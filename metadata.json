@@ -1,0 +1,6 @@
+{
+  "name": "PGDAS-D Plataforma Fiscal",
+  "description": "Plataforma Fiscal premium para gerenciamento de empresas, certificados digitais e procurações.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

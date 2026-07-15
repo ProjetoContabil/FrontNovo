@@ -1,0 +1,311 @@
+   950	                      </div>
+   951	
+   952	                      <div className="bg-amber-50/50 rounded-2xl border border-amber-100 p-5 flex flex-col justify-between items-start gap-4">
+   953	                        <div className="space-y-1">
+   954	                          <div className="flex items-center gap-2">
+   955	                            <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+   956	                            <h4 className="text-sm font-bold text-amber-900">Limite de empresas próximo</h4>
+   957	                          </div>
+   958	                          <p className="text-xs font-semibold text-amber-700/80 ml-4">
+   959	                            Uso do plano está em 84% (126 de 150).
+   960	                          </p>
+   961	                        </div>
+   962	                        <button className="ml-4 px-3 py-1.5 bg-white border border-amber-200 text-amber-600 text-[11px] font-bold rounded-lg shadow-sm hover:bg-amber-50 transition-colors">
+   963	                          Fazer upgrade
+   964	                        </button>
+   965	                      </div>
+   966	                    </div>
+   967	                  </div>
+   968	                </div>
+   969	              )}
+   970	              {profileTab === "dados" && (
+   971	                <div className="space-y-6">
+   972	                  {/* Dados da Empresa */}
+   973	                  <div className="bg-white rounded-2xl border border-zinc-200/65 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.02)] overflow-hidden">
+   974	                    <div className="px-6 py-4 border-b border-zinc-100 flex items-center gap-3">
+   975	                      <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center">
+   976	                        <Building2 className="w-4 h-4 text-emerald-600" />
+   977	                      </div>
+   978	                      <h3 className="text-sm font-extrabold text-zinc-900 tracking-tight font-display">Dados da Empresa</h3>
+   979	                    </div>
+   980	                    <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+   981	                      <div className="space-y-1.5">
+   982	                        <label className="text-[11px] font-bold text-zinc-700 uppercase tracking-wider block">Razão Social</label>
+   983	                        <input type="text" defaultValue="Alfa Serviços Contábeis Ltda." className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 text-zinc-800 text-sm font-semibold rounded-xl focus:border-emerald-500 outline-none" />
+   984	                      </div>
+   985	                      <div className="space-y-1.5">
+   986	                        <label className="text-[11px] font-bold text-zinc-700 uppercase tracking-wider block">Nome Fantasia</label>
+   987	                        <input type="text" defaultValue="Contabilidade Alfa" className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 text-zinc-800 text-sm font-semibold rounded-xl focus:border-emerald-500 outline-none" />
+   988	                      </div>
+   989	                      <div className="space-y-1.5">
+   990	                        <label className="text-[11px] font-bold text-zinc-700 uppercase tracking-wider block">CNPJ</label>
+   991	                        <input type="text" defaultValue="12.345.678/0001-99" disabled className="w-full px-3 py-2 bg-zinc-100 border border-zinc-200 text-zinc-500 text-sm font-semibold rounded-xl outline-none cursor-not-allowed" />
+   992	                        <p className="text-[10px] text-zinc-400 font-medium">A alteração do CNPJ exige confirmação do administrador.</p>
+   993	                      </div>
+   994	                      <div className="space-y-1.5">
+   995	                        <label className="text-[11px] font-bold text-zinc-700 uppercase tracking-wider block">Inscrição Municipal</label>
+   996	                        <input type="text" defaultValue="987654321" className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 text-zinc-800 text-sm font-semibold rounded-xl focus:border-emerald-500 outline-none" />
+   997	                      </div>
+   998	                      <div className="space-y-1.5">
+   999	                        <label className="text-[11px] font-bold text-zinc-700 uppercase tracking-wider block">Data de Abertura</label>
+  1000	                        <input type="date" defaultValue="2020-01-15" className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 text-zinc-800 text-sm font-semibold rounded-xl focus:border-emerald-500 outline-none" />
+  1001	                      </div>
+  1002	                      <div className="space-y-1.5">
+  1003	                        <label className="text-[11px] font-bold text-zinc-700 uppercase tracking-wider block">Natureza Jurídica</label>
+  1004	                        <input type="text" defaultValue="Sociedade Empresária Limitada" className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 text-zinc-800 text-sm font-semibold rounded-xl focus:border-emerald-500 outline-none" />
+  1005	                      </div>
+  1006	                    </div>
+  1007	                  </div>
+  1008	
+  1009	                  {/* Endereço */}
+  1010	                  <div className="bg-white rounded-2xl border border-zinc-200/65 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.02)] overflow-hidden">
+  1011	                    <div className="px-6 py-4 border-b border-zinc-100 flex items-center gap-3">
+  1012	                      <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+  1013	                        <MapPin className="w-4 h-4 text-blue-600" />
+  1014	                      </div>
+  1015	                      <h3 className="text-sm font-extrabold text-zinc-900 tracking-tight font-display">Endereço</h3>
+  1016	                    </div>
+  1017	                    <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+  1018	                      <div className="space-y-1.5 md:col-span-1">
+  1019	                        <label className="text-[11px] font-bold text-zinc-700 uppercase tracking-wider block">CEP</label>
+  1020	                        <input type="text" defaultValue="57000-000" className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 text-zinc-800 text-sm font-semibold rounded-xl focus:border-emerald-500 outline-none" />
+  1021	                      </div>
+  1022	                      <div className="space-y-1.5 md:col-span-2">
+  1023	                        <label className="text-[11px] font-bold text-zinc-700 uppercase tracking-wider block">Logradouro</label>
+  1024	                        <input type="text" defaultValue="Av. Álvaro Calheiros" className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 text-zinc-800 text-sm font-semibold rounded-xl focus:border-emerald-500 outline-none" />
+  1025	                      </div>
+  1026	                      <div className="space-y-1.5">
+  1027	                        <label className="text-[11px] font-bold text-zinc-700 uppercase tracking-wider block">Número</label>
+  1028	                        <input type="text" defaultValue="150" className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 text-zinc-800 text-sm font-semibold rounded-xl focus:border-emerald-500 outline-none" />
+  1029	                      </div>
+  1030	                      <div className="space-y-1.5 md:col-span-2">
+  1031	                        <label className="text-[11px] font-bold text-zinc-700 uppercase tracking-wider block">Bairro</label>
+  1032	                        <input type="text" defaultValue="Jatiúca" className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 text-zinc-800 text-sm font-semibold rounded-xl focus:border-emerald-500 outline-none" />
+  1033	                      </div>
+  1034	                    </div>
+  1035	                  </div>
+  1036	                  
+  1037	                  {/* Contatos */}
+  1038	                  <div className="bg-white rounded-2xl border border-zinc-200/65 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.02)] overflow-hidden">
+  1039	                    <div className="px-6 py-4 border-b border-zinc-100 flex items-center gap-3">
+  1040	                      <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center">
+  1041	                        <Phone className="w-4 h-4 text-indigo-600" />
+  1042	                      </div>
+  1043	                      <h3 className="text-sm font-extrabold text-zinc-900 tracking-tight font-display">Contatos</h3>
+  1044	                    </div>
+  1045	                    <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+  1046	                      <div className="space-y-1.5">
+  1047	                        <label className="text-[11px] font-bold text-zinc-700 uppercase tracking-wider block">E-mail Institucional</label>
+  1048	                        <input type="email" defaultValue="contato@alfa.com.br" className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 text-zinc-800 text-sm font-semibold rounded-xl focus:border-emerald-500 outline-none" />
+  1049	                      </div>
+  1050	                      <div className="space-y-1.5">
+  1051	                        <label className="text-[11px] font-bold text-zinc-700 uppercase tracking-wider block">WhatsApp</label>
+  1052	                        <input type="text" defaultValue="(82) 99999-9999" className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 text-zinc-800 text-sm font-semibold rounded-xl focus:border-emerald-500 outline-none" />
+  1053	                      </div>
+  1054	                    </div>
+  1055	                  </div>
+  1056	                  
+  1057	                  <div className="flex justify-end pt-2">
+  1058	                    <button className="px-6 py-2.5 bg-zinc-900 hover:bg-zinc-800 text-white text-sm font-bold rounded-xl transition-all shadow-md shadow-zinc-900/10">
+  1059	                      Salvar Alterações
+  1060	                    </button>
+  1061	                  </div>
+  1062	                </div>
+  1063	              )}
+  1064	
+  1065	              {profileTab === "responsaveis" && (
+  1066	                <div className="space-y-6">
+  1067	                  {/* Responsável Técnico */}
+  1068	                  <div className="bg-white rounded-2xl border border-zinc-200/65 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.02)] overflow-hidden">
+  1069	                    <div className="px-6 py-4 border-b border-zinc-100 flex items-center justify-between">
+  1070	                      <div className="flex items-center gap-3">
+  1071	                        <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center">
+  1072	                          <User className="w-4 h-4 text-emerald-600" />
+  1073	                        </div>
+  1074	                        <h3 className="text-sm font-extrabold text-zinc-900 tracking-tight font-display">Responsável Técnico Principal</h3>
+  1075	                      </div>
+  1076	                      <span className="bg-emerald-50 text-emerald-700 border border-emerald-200/50 px-2 py-1 rounded-md text-[10px] font-bold">Ativo</span>
+  1077	                    </div>
+  1078	                    <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+  1079	                      <div className="space-y-1.5">
+  1080	                        <label className="text-[11px] font-bold text-zinc-700 uppercase tracking-wider block">Nome Completo</label>
+  1081	                        <input type="text" defaultValue="Carlos Roberto Silva" className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 text-zinc-800 text-sm font-semibold rounded-xl focus:border-emerald-500 outline-none" />
+  1082	                      </div>
+  1083	                      <div className="space-y-1.5">
+  1084	                        <label className="text-[11px] font-bold text-zinc-700 uppercase tracking-wider block">CPF</label>
+  1085	                        <input type="text" defaultValue="111.222.333-44" className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 text-zinc-800 text-sm font-semibold rounded-xl focus:border-emerald-500 outline-none" />
+  1086	                      </div>
+  1087	                      <div className="space-y-1.5">
+  1088	                        <label className="text-[11px] font-bold text-zinc-700 uppercase tracking-wider block">Registro (CRC)</label>
+  1089	                        <input type="text" defaultValue="AL-123456/O" className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 text-zinc-800 text-sm font-semibold rounded-xl focus:border-emerald-500 outline-none" />
+  1090	                      </div>
+  1091	                      <div className="space-y-1.5">
+  1092	                        <label className="text-[11px] font-bold text-zinc-700 uppercase tracking-wider block">Telefone</label>
+  1093	                        <input type="text" defaultValue="(82) 98888-8888" className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 text-zinc-800 text-sm font-semibold rounded-xl focus:border-emerald-500 outline-none" />
+  1094	                      </div>
+  1095	                      <div className="space-y-1.5">
+  1096	                        <label className="text-[11px] font-bold text-zinc-700 uppercase tracking-wider block">E-mail</label>
+  1097	                        <input type="email" defaultValue="carlos@alfa.com.br" className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 text-zinc-800 text-sm font-semibold rounded-xl focus:border-emerald-500 outline-none" />
+  1098	                      </div>
+  1099	                    </div>
+  1100	                    <div className="px-6 py-4 border-t border-zinc-100 bg-zinc-50/50 flex justify-end">
+  1101	                      <button className="px-4 py-2 bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-700 text-xs font-bold rounded-xl transition-colors shadow-sm">
+  1102	                        Substituir Responsável
+  1103	                      </button>
+  1104	                    </div>
+  1105	                  </div>
+  1106	
+  1107	                  <div className="bg-white rounded-2xl border border-zinc-200/65 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.02)] overflow-hidden">
+  1108	                    <div className="px-6 py-4 border-b border-zinc-100">
+  1109	                      <h3 className="text-sm font-extrabold text-zinc-900 tracking-tight font-display">Histórico de Responsáveis</h3>
+  1110	                    </div>
+  1111	                    <div className="p-6">
+  1112	                      <div className="flex items-center justify-between py-3 border-b border-zinc-100">
+  1113	                        <div>
+  1114	                          <p className="text-sm font-bold text-zinc-800">Maria Souza</p>
+  1115	                          <p className="text-[11px] font-semibold text-zinc-500">CRC: AL-987654/O</p>
+  1116	                        </div>
+  1117	                        <div className="text-right">
+  1118	                          <p className="text-xs font-bold text-zinc-600">Jan/2024 - Mar/2025</p>
+  1119	                          <p className="text-[10px] text-zinc-400 font-medium mt-0.5">Substituído por: Admin</p>
+  1120	                        </div>
+  1121	                      </div>
+  1122	                    </div>
+  1123	                  </div>
+  1124	                </div>
+  1125	              )}
+  1126	
+  1127	              {profileTab === "equipe" && (
+  1128	                <div className="space-y-6">
+  1129	                  <div className="bg-white rounded-2xl border border-zinc-200/65 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.02)] overflow-hidden">
+  1130	                    <div className="px-6 py-4 border-b border-zinc-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+  1131	                      <div>
+  1132	                        <h3 className="text-sm font-extrabold text-zinc-900 tracking-tight font-display">Equipe do Escritório</h3>
+  1133	                        <p className="text-xs text-zinc-500 mt-0.5 font-medium">Gerencie o acesso dos seus colaboradores.</p>
+  1134	                      </div>
+  1135	                      <button className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold rounded-xl transition-colors shadow-sm whitespace-nowrap">
+  1136	                        Convidar Colaborador
+  1137	                      </button>
+  1138	                    </div>
+  1139	                    <div className="overflow-x-auto">
+  1140	                      <table className="w-full text-left border-collapse min-w-[600px]">
+  1141	                        <thead>
+  1142	                          <tr className="border-b border-zinc-100 bg-zinc-50/50">
+  1143	                            <th className="px-6 py-3 text-[10px] font-extrabold text-zinc-500 uppercase tracking-widest">Colaborador</th>
+  1144	                            <th className="px-6 py-3 text-[10px] font-extrabold text-zinc-500 uppercase tracking-widest">Função</th>
+  1145	                            <th className="px-6 py-3 text-[10px] font-extrabold text-zinc-500 uppercase tracking-widest">Permissão</th>
+  1146	                            <th className="px-6 py-3 text-[10px] font-extrabold text-zinc-500 uppercase tracking-widest">Status</th>
+  1147	                            <th className="px-6 py-3 text-[10px] font-extrabold text-zinc-500 uppercase tracking-widest">Último Acesso</th>
+  1148	                            <th className="px-6 py-3"></th>
+  1149	                          </tr>
+  1150	                        </thead>
+  1151	                        <tbody className="divide-y divide-zinc-50">
+  1152	                          <tr className="hover:bg-zinc-50/50 transition-colors group">
+  1153	                            <td className="px-6 py-3">
+  1154	                              <p className="text-xs font-bold text-zinc-900">Ana Souza</p>
+  1155	                              <p className="text-[10px] font-semibold text-zinc-500">ana@alfa.com.br</p>
+  1156	                            </td>
+  1157	                            <td className="px-6 py-3 text-xs font-semibold text-zinc-600">Fiscal</td>
+  1158	                            <td className="px-6 py-3 text-[11px] font-bold text-zinc-500 bg-zinc-50 rounded-md inline-block mt-3 border border-zinc-200">Analista</td>
+  1159	                            <td className="px-6 py-3">
+  1160	                              <span className="bg-emerald-50 text-emerald-600 border border-emerald-200/50 px-2 py-0.5 rounded text-[10px] font-bold">Ativo</span>
+  1161	                            </td>
+  1162	                            <td className="px-6 py-3 text-[11px] font-semibold text-zinc-500">Hoje, 09:42</td>
+  1163	                            <td className="px-6 py-3 text-right">
+  1164	                              <button className="text-[11px] font-bold text-emerald-600 hover:text-emerald-700 opacity-0 group-hover:opacity-100 transition-opacity">Editar</button>
+  1165	                            </td>
+  1166	                          </tr>
+  1167	                          <tr className="hover:bg-zinc-50/50 transition-colors group">
+  1168	                            <td className="px-6 py-3">
+  1169	                              <p className="text-xs font-bold text-zinc-900">Carlos Lima</p>
+  1170	                              <p className="text-[10px] font-semibold text-zinc-500">carlos@alfa.com.br</p>
+  1171	                            </td>
+  1172	                            <td className="px-6 py-3 text-xs font-semibold text-zinc-600">DP</td>
+  1173	                            <td className="px-6 py-3 text-[11px] font-bold text-zinc-500 bg-zinc-50 rounded-md inline-block mt-3 border border-zinc-200">Gestor</td>
+  1174	                            <td className="px-6 py-3">
+  1175	                              <span className="bg-emerald-50 text-emerald-600 border border-emerald-200/50 px-2 py-0.5 rounded text-[10px] font-bold">Ativo</span>
+  1176	                            </td>
+  1177	                            <td className="px-6 py-3 text-[11px] font-semibold text-zinc-500">Ontem, 17:10</td>
+  1178	                            <td className="px-6 py-3 text-right">
+  1179	                              <button className="text-[11px] font-bold text-emerald-600 hover:text-emerald-700 opacity-0 group-hover:opacity-100 transition-opacity">Editar</button>
+  1180	                            </td>
+  1181	                          </tr>
+  1182	                          <tr className="hover:bg-zinc-50/50 transition-colors group">
+  1183	                            <td className="px-6 py-3">
+  1184	                              <p className="text-xs font-bold text-zinc-900">João Silva</p>
+  1185	                              <p className="text-[10px] font-semibold text-zinc-500">joao@alfa.com.br</p>
+  1186	                            </td>
+  1187	                            <td className="px-6 py-3 text-xs font-semibold text-zinc-600">Contábil</td>
+  1188	                            <td className="px-6 py-3 text-[11px] font-bold text-zinc-500 bg-zinc-50 rounded-md inline-block mt-3 border border-zinc-200">Consulta</td>
+  1189	                            <td className="px-6 py-3">
+  1190	                              <span className="bg-amber-50 text-amber-600 border border-amber-200/50 px-2 py-0.5 rounded text-[10px] font-bold">Pendente</span>
+  1191	                            </td>
+  1192	                            <td className="px-6 py-3 text-[11px] font-semibold text-zinc-500">—</td>
+  1193	                            <td className="px-6 py-3 text-right">
+  1194	                              <button className="text-[11px] font-bold text-zinc-500 hover:text-zinc-700 opacity-0 group-hover:opacity-100 transition-opacity">Reenviar</button>
+  1195	                            </td>
+  1196	                          </tr>
+  1197	                        </tbody>
+  1198	                      </table>
+  1199	                    </div>
+  1200	                  </div>
+  1201	                </div>
+  1202	              )}
+  1203	
+  1204	              {profileTab === "seguranca" && (
+  1205	                <div className="space-y-6">
+  1206	                  <div className="bg-white rounded-2xl border border-zinc-200/65 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.02)] overflow-hidden">
+  1207	                    <div className="px-6 py-4 border-b border-zinc-100 flex items-center justify-between">
+  1208	                      <div className="flex items-center gap-3">
+  1209	                        <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+  1210	                          <Lock className="w-4 h-4 text-blue-600" />
+  1211	                        </div>
+  1212	                        <h3 className="text-sm font-extrabold text-zinc-900 tracking-tight font-display">Segurança e Acesso</h3>
+  1213	                      </div>
+  1214	                    </div>
+  1215	                    <div className="p-6 space-y-6">
+  1216	                      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 border-b border-zinc-100 pb-6">
+  1217	                        <div>
+  1218	                          <p className="text-sm font-bold text-zinc-900">Autenticação em Dois Fatores (2FA)</p>
+  1219	                          <p className="text-xs font-semibold text-zinc-500 mt-1">Adiciona uma camada extra de segurança à sua conta.</p>
+  1220	                        </div>
+  1221	                        <button className="px-4 py-2 bg-emerald-50 text-emerald-600 border border-emerald-200/50 text-xs font-bold rounded-xl transition-colors shadow-sm">
+  1222	                          Habilitar 2FA
+  1223	                        </button>
+  1224	                      </div>
+  1225	                      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 border-b border-zinc-100 pb-6">
+  1226	                        <div>
+  1227	                          <p className="text-sm font-bold text-zinc-900">Alterar Senha</p>
+  1228	                          <p className="text-xs font-semibold text-zinc-500 mt-1">Recomendamos atualizar sua senha regularmente.</p>
+  1229	                        </div>
+  1230	                        <button className="px-4 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-bold rounded-xl transition-colors border border-transparent shadow-sm">
+  1231	                          Atualizar Senha
+  1232	                        </button>
+  1233	                      </div>
+  1234	                      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+  1235	                        <div>
+  1236	                          <p className="text-sm font-bold text-zinc-900">Sessões Abertas</p>
+  1237	                          <p className="text-xs font-semibold text-zinc-500 mt-1">Gerencie os dispositivos conectados à sua conta.</p>
+  1238	                        </div>
+  1239	                        <button className="px-4 py-2 bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-700 text-xs font-bold rounded-xl transition-colors shadow-sm">
+  1240	                          Encerrar Sessões
+  1241	                        </button>
+  1242	                      </div>
+  1243	                    </div>
+  1244	                  </div>
+  1245	                </div>
+  1246	              )}
+  1247	            </div>
+  1248	          </motion.div>
+  1249	        )}
+  1250	
+  1251	        {/* ====================================================================
+  1252	            VIEW: DASHBOARD (INÍCIO)
+  1253	            ==================================================================== */}
+  1254	        {currentPage === "dashboard" && (
+  1255	          <motion.div
+  1256	            key="dashboard"
+  1257	            initial={{ opacity: 0, x: 20 }}
+  1258	            animate={{ opacity: 1, x: 0 }}
+  1259	            exit={{ opacity: 0, x: -20 }}
+  1260	            transition={{ duration: 0.3 }}
