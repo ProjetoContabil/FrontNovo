@@ -18,6 +18,7 @@ import {
   Menu,
   X,
   ChevronDown,
+  ChevronLeft,
   ChevronRight,
   ChevronUp,
   BarChart3,
@@ -39,9 +40,151 @@ import {
   LockKeyhole,
   Plus,
   Receipt,
-  LayoutDashboard
+  LayoutDashboard,
+  Users
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
+
+// Helper function to mathematically validate CNPJ (Cadastro Nacional da Pessoa Jurídica)
+const isValidCnpj = (cnpjValue: string): boolean => {
+  const clean = cnpjValue.replace(/\D/g, "");
+  if (clean.length !== 14) return false;
+
+  // Accept predefined mocks in mock database
+  const whitelistedMocks = [
+    "12345678000190",
+    "45987654000132",
+    "78123456000121",
+    "66378843000134",
+    "22333444000155",
+    "55666777000188",
+    "88999000000111",
+    "11222333000144"
+  ];
+  if (whitelistedMocks.includes(clean)) return true;
+
+  // Reject known invalid sequential or repeated patterns (e.g. 11111111111111)
+  if (/^(\d)\1{13}$/.test(clean)) return false;
+
+  // Validate first check digit
+  let size = clean.length - 2;
+  let numbers = clean.substring(0, size);
+  const digits = clean.substring(size);
+  let sum = 0;
+  let pos = size - 7;
+  for (let i = size; i >= 1; i--) {
+    sum += parseInt(numbers.charAt(size - i)) * pos--;
+    if (pos < 2) pos = 9;
+  }
+  let result = sum % 11 < 2 ? 0 : 11 - (sum % 11);
+  if (result !== parseInt(digits.charAt(0))) return false;
+
+  // Validate second check digit
+  size = size + 1;
+  numbers = clean.substring(0, size);
+  sum = 0;
+  pos = size - 7;
+  for (let i = size; i >= 1; i--) {
+    sum += parseInt(numbers.charAt(size - i)) * pos--;
+    if (pos < 2) pos = 9;
+  }
+  result = sum % 11 < 2 ? 0 : 11 - (sum % 11);
+  if (result !== parseInt(digits.charAt(1))) return false;
+
+  return true;
+};
+
+// Helper function to highlight search term in standard texts
+const highlightText = (text: string, query: string): React.ReactNode => {
+  if (!query) return text;
+  
+  const escapedQuery = query.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+  try {
+    const parts = text.split(new RegExp(`(${escapedQuery})`, "gi"));
+    return (
+      <>
+        {parts.map((part, i) => 
+          part.toLowerCase() === query.toLowerCase() ? (
+            <mark key={i} className="bg-amber-100 text-amber-950 font-semibold px-0.5 rounded-[2px] shadow-xs">
+              {part}
+            </mark>
+          ) : (
+            part
+          )
+        )}
+      </>
+    );
+  } catch (e) {
+    return text;
+  }
+};
+
+// Helper function to highlight CNPJ intelligently (handles formatting and raw digits)
+const highlightCnpj = (cnpj: string, query: string): React.ReactNode => {
+  if (!query) return cnpj;
+  
+  const escapedQuery = query.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+  if (cnpj.toLowerCase().includes(query.toLowerCase())) {
+    try {
+      const parts = cnpj.split(new RegExp(`(${escapedQuery})`, "gi"));
+      return (
+        <>
+          {parts.map((part, i) => 
+            part.toLowerCase() === query.toLowerCase() ? (
+              <mark key={i} className="bg-amber-100 text-amber-950 font-semibold px-0.5 rounded-[2px] shadow-xs">
+                {part}
+              </mark>
+            ) : (
+              part
+            )
+          )}
+        </>
+      );
+    } catch {
+      return cnpj;
+    }
+  }
+
+  const cleanQuery = query.replace(/\D/g, "");
+  if (!cleanQuery) return cnpj;
+
+  const cleanCnpj = cnpj.replace(/\D/g, "");
+  const matchIndex = cleanCnpj.indexOf(cleanQuery);
+  
+  if (matchIndex === -1) return cnpj;
+
+  const result: React.ReactNode[] = [];
+  let digitCounter = 0;
+  const matchEnd = matchIndex + cleanQuery.length;
+
+  for (let i = 0; i < cnpj.length; i++) {
+    const char = cnpj[i];
+    if (/\d/.test(char)) {
+      if (digitCounter >= matchIndex && digitCounter < matchEnd) {
+        result.push(
+          <mark key={i} className="bg-amber-100 text-amber-950 font-semibold px-0.5 rounded-[2px] shadow-xs">
+            {char}
+          </mark>
+        );
+      } else {
+        result.push(char);
+      }
+      digitCounter++;
+    } else {
+      if (digitCounter > matchIndex && digitCounter < matchEnd) {
+        result.push(
+          <mark key={i} className="bg-amber-100 text-amber-950 font-semibold px-0.5 rounded-[2px] shadow-xs">
+            {char}
+          </mark>
+        );
+      } else {
+        result.push(char);
+      }
+    }
+  }
+
+  return <>{result}</>;
+};
 
 // Mock Database for CNPJ Simulation
 const mockCnpjData: Record<string, any> = {
@@ -108,7 +251,7 @@ export default function Page() {
   // Navigation State
   const [currentPage, setCurrentPage] = useState<"dashboard" | "empresas" | "certificados" | "procuracoes" | "relatorios" | "configuracoes" | "perfil_escritorio" | "pgdas">("dashboard");
   const [isFiscalMenuOpen, setIsFiscalMenuOpen] = useState(false);
-  const [profileTab, setProfileTab] = useState<"visao_geral" | "dados" | "responsaveis" | "certificados_integracoes">("visao_geral");
+  const [profileTab, setProfileTab] = useState<"visao_geral" | "dados" | "responsaveis" | "equipe" | "preferencias">("visao_geral");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [currentWorkspace, setCurrentWorkspace] = useState<"admin" | "escritorio">("escritorio");
@@ -163,6 +306,54 @@ export default function Page() {
       statusPgdas: "Processando",
       periodoApuracao: "Junho/2026",
       statusEmpresa: "Suspensa"
+    },
+    {
+      cnpj: "22.333.444/0001-55",
+      razaoSocial: "GAMA DISTRIBUIDORA DE ALIMENTOS LTDA",
+      nomeFantasia: "Gama Food",
+      regimeTributario: "Simples Nacional",
+      uf: "SC",
+      municipio: "Florianópolis",
+      statusAcesso: "Não Configurado",
+      statusPgdas: "Pendente",
+      periodoApuracao: "Junho/2026",
+      statusEmpresa: "Ativa"
+    },
+    {
+      cnpj: "55.666.777/0001-88",
+      razaoSocial: "DELTA TECNOLOGIA E SISTEMAS S/A",
+      nomeFantasia: "Delta Tech",
+      regimeTributario: "Lucro Presumido",
+      uf: "RS",
+      municipio: "Porto Alegre",
+      statusAcesso: "e-CNPJ Ativo",
+      statusPgdas: "Entregue",
+      periodoApuracao: "Maio/2026",
+      statusEmpresa: "Ativa"
+    },
+    {
+      cnpj: "88.999.000/0001-11",
+      razaoSocial: "EPSILON CONSTRUTORA E INCORPORADORA EIRELI",
+      nomeFantasia: "Epsilon Engenharia",
+      regimeTributario: "Lucro Presumido",
+      uf: "GO",
+      municipio: "Goiânia",
+      statusAcesso: "Procuração Ativa",
+      statusPgdas: "Sem Movimento",
+      periodoApuracao: "Junho/2026",
+      statusEmpresa: "Ativa"
+    },
+    {
+      cnpj: "11.222.333/0001-44",
+      razaoSocial: "SIGMA SERVIÇOS LOGÍSTICOS S/S",
+      nomeFantasia: "Sigma Log",
+      regimeTributario: "Simples Nacional",
+      uf: "PE",
+      municipio: "Recife",
+      statusAcesso: "Não Configurado",
+      statusPgdas: "Pendente",
+      periodoApuracao: "Junho/2026",
+      statusEmpresa: "Inativa"
     }
   ]);
 
@@ -170,6 +361,10 @@ export default function Page() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterRegime, setFilterRegime] = useState("all");
   const [filterAcesso, setFilterAcesso] = useState("all");
+
+  // Pagination states for companies list
+  const [companiesPage, setCompaniesPage] = useState(1);
+  const [companiesPerPage, setCompaniesPerPage] = useState(5);
 
   // User notifications / toasts
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -257,6 +452,7 @@ export default function Page() {
   const [isValidatingCert, setIsValidatingCert] = useState(false);
   const [isValidatedCert, setIsValidatedCert] = useState(false);
   const [validationProgressMessage, setValidationProgressMessage] = useState("");
+  const [certValidationProgress, setCertValidationProgress] = useState(0);
   const [certExpiryDate, setCertExpiryDate] = useState("");
   const [procuracaoId, setProcuracaoId] = useState("");
   const [procuracaoVencimento, setProcuracaoVencimento] = useState("");
@@ -392,6 +588,14 @@ export default function Page() {
   const [defaultRegime, setDefaultRegime] = useState("Simples Nacional");
   const [defaultUf, setDefaultUf] = useState("AL");
   const [receiveEmailReport, setReceiveEmailReport] = useState(true);
+  const [prefNotificationChannel, setPrefNotificationChannel] = useState<"email" | "sms" | "whatsapp">("email");
+  const [prefAlertCrc, setPrefAlertCrc] = useState(true);
+  const [prefAlertCert, setPrefAlertCert] = useState(true);
+  const [prefAlertRobot, setPrefAlertRobot] = useState(true);
+  const [prefSessionTimeout, setPrefSessionTimeout] = useState("30m");
+  const [prefSecureConfirm, setPrefSecureConfirm] = useState(true);
+  const [transferOwnerOpen, setTransferOwnerOpen] = useState(false);
+  const [newOwnerId, setNewOwnerId] = useState("");
 
   const [billingLimitCompanies, setBillingLimitCompanies] = useState(150);
   const [billingBonusCredits, setBillingBonusCredits] = useState(0);
@@ -572,8 +776,9 @@ export default function Page() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Real-time CNPJ and CEP validations
-  const isCnpjValid = cnpj.length === 18;
+  const isCnpjValid = cnpj.length === 18 && isValidCnpj(cnpj);
   const isCnpjIncomplete = cnpj.length > 0 && cnpj.length < 18;
+  const isCnpjInvalidFormat = cnpj.length === 18 && !isValidCnpj(cnpj);
 
   const isCepValid = cep.length === 9;
   const isCepIncomplete = cep.length > 0 && cep.length < 9;
@@ -752,14 +957,18 @@ export default function Page() {
     }
 
     setIsValidatingCert(true);
+    setCertValidationProgress(15);
     setValidationProgressMessage("Decodificando chaves criptográficas .pfx...");
     addToast("Iniciando verificação do certificado digital...", "info");
 
     setTimeout(() => {
+      setCertValidationProgress(55);
       setValidationProgressMessage("Estabelecendo canal seguro com a Receita Federal...");
       setTimeout(() => {
+        setCertValidationProgress(85);
         setValidationProgressMessage("Autenticando CNPJ com as chaves do SERPRO...");
         setTimeout(() => {
+          setCertValidationProgress(100);
           setIsValidatingCert(false);
           setIsValidatedCert(true);
           
@@ -767,9 +976,9 @@ export default function Page() {
           expDate.setFullYear(expDate.getFullYear() + 1);
           setCertExpiryDate(expDate.toLocaleDateString("pt-BR"));
           addToast("Certificado digital validado e autorizado! ICP-Brasil OK.", "success");
-        }, 600);
-      }, 600);
-    }, 600);
+        }, 650);
+      }, 650);
+    }, 650);
   };
 
   const saveCertificateConfig = () => {
@@ -895,6 +1104,31 @@ export default function Page() {
     </div>
   );
 
+  // Filtered and Paginated Companies
+  const filteredCompanies = companies.filter(c => {
+    const matchesSearch = 
+      c.razaoSocial.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      c.nomeFantasia.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      c.cnpj.replace(/\D/g, "").includes(searchTerm.replace(/\D/g, ""));
+    
+    const matchesRegime = 
+      filterRegime === "all" || 
+      c.regimeTributario.includes(filterRegime);
+    
+    const matchesAcesso = 
+      filterAcesso === "all" || 
+      (filterAcesso === "Configurado" && c.statusAcesso !== "Não Configurado") ||
+      (filterAcesso === "Não Configurado" && c.statusAcesso === "Não Configurado");
+
+    return matchesSearch && matchesRegime && matchesAcesso;
+  });
+
+  const totalCompaniesItems = filteredCompanies.length;
+  const totalCompaniesPages = Math.ceil(totalCompaniesItems / companiesPerPage);
+  const activeCompaniesPage = Math.min(companiesPage, totalCompaniesPages || 1);
+  const startCompanyIndex = (activeCompaniesPage - 1) * companiesPerPage;
+  const paginatedCompanies = filteredCompanies.slice(startCompanyIndex, startCompanyIndex + companiesPerPage);
+
   return (
     <div className="min-h-screen bg-zinc-50/50 flex flex-col md:flex-row font-sans text-zinc-800 antialiased selection:bg-emerald-500/10 selection:text-emerald-700">
       
@@ -972,7 +1206,6 @@ export default function Page() {
             {!sidebarCollapsed && (
               <div>
                 <h1 className="font-extrabold text-white text-base tracking-tight leading-none font-display">PGDAS-D</h1>
-                <p className="text-[10px] text-zinc-500 font-bold tracking-widest mt-0.5">SISTEMA FISCAL</p>
               </div>
             )}
           </div>
@@ -1300,8 +1533,9 @@ export default function Page() {
               {[
                 { id: "visao_geral", label: "Visão Geral", icon: LayoutDashboard },
                 { id: "dados", label: "Dados do Escritório", icon: Building2 },
-                { id: "responsaveis", label: "Responsável Técnico", icon: Shield },
-                { id: "certificados_integracoes", label: "Certificados e Integrações", icon: FileKey },
+                { id: "responsaveis", label: "Responsáveis Técnicos", icon: Shield },
+                { id: "equipe", label: "Equipe e Acessos", icon: Users },
+                { id: "preferencias", label: "Preferências", icon: Settings },
               ].map((tab) => {
                 const IconComponent = tab.icon;
                 const isActive = profileTab === tab.id;
@@ -1327,31 +1561,366 @@ export default function Page() {
 
             {/* Content Tabs */}
             <div className="space-y-6">
+              <AnimatePresence mode="wait">
+                {/* ABA: VISÃO GERAL */}
+                {profileTab === "visao_geral" && (
+                  <motion.div
+                    key="visao_geral"
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.15, ease: "easeOut" }}
+                    className="space-y-6"
+                  >
+                  {/* A. Indicadores Rápidos (Cartões Clicáveis) */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <button 
+                      onClick={() => {
+                        setCurrentPage("dashboard");
+                        addToast("Redirecionando para Gerenciar Empresas...", "info");
+                      }}
+                      className="bg-white hover:bg-zinc-50 border border-zinc-200 rounded-2xl p-5 text-left transition-all duration-200 group focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider">Empresas Clientes</p>
+                          <p className="text-2xl font-black text-zinc-900 mt-1">{companies.length}</p>
+                          <p className="text-[10px] text-emerald-600 font-bold mt-2 flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                            {companies.filter(c => c.statusEmpresa === "Ativa").length || companies.length} ativas
+                          </p>
+                        </div>
+                        <div className="p-2.5 rounded-xl bg-emerald-50 text-emerald-600 group-hover:scale-105 transition-transform">
+                          <Building2 className="w-5 h-5" />
+                        </div>
+                      </div>
+                    </button>
 
-              {/* ABA: VISÃO GERAL */}
-              {profileTab === "visao_geral" && (
-                <div className="bg-white rounded-2xl border border-zinc-200 p-6 md:p-8 space-y-6">
-                  <h3 className="text-sm font-black text-zinc-900 uppercase">Visão Geral do Escritório</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="bg-emerald-50 rounded-xl p-6 border border-emerald-100">
-                      <p className="text-xs font-bold text-emerald-600">Empresas Ativas</p>
-                      <p className="text-3xl font-black text-emerald-900 mt-2">{companies.length}</p>
+                    <button 
+                      onClick={() => setProfileTab("equipe")}
+                      className="bg-white hover:bg-zinc-50 border border-zinc-200 rounded-2xl p-5 text-left transition-all duration-200 group focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider">Equipe do Escritório</p>
+                          <p className="text-2xl font-black text-zinc-900 mt-1">{teamMembers.length}</p>
+                          <p className="text-[10px] text-zinc-500 font-bold mt-2 flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-zinc-400"></span>
+                            {teamMembers.filter(t => t.status === "Pendente").length} convite pendente
+                          </p>
+                        </div>
+                        <div className="p-2.5 rounded-xl bg-zinc-100 text-zinc-600 group-hover:scale-105 transition-transform">
+                          <Users className="w-5 h-5" />
+                        </div>
+                      </div>
+                    </button>
+
+                    <button 
+                      onClick={() => setProfileTab("responsaveis")}
+                      className="bg-white hover:bg-zinc-50 border border-zinc-200 rounded-2xl p-5 text-left transition-all duration-200 group focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider">Responsáveis Técnicos</p>
+                          <p className="text-2xl font-black text-zinc-900 mt-1">{responsaveis.length}</p>
+                          <p className="text-[10px] text-emerald-600 font-bold mt-2 flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
+                            Principal: {responsaveis.find(r => r.principal)?.nome.split(" ")[0] || "Naiale"}
+                          </p>
+                        </div>
+                        <div className="p-2.5 rounded-xl bg-blue-50 text-blue-600 group-hover:scale-105 transition-transform">
+                          <Shield className="w-5 h-5" />
+                        </div>
+                      </div>
+                    </button>
+
+                    <a 
+                      href="#pendencias-section"
+                      className="bg-white hover:bg-zinc-50 border border-zinc-200 rounded-2xl p-5 text-left transition-all duration-200 group focus:outline-none focus:ring-2 focus:ring-emerald-500/20 block"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider">Pendências Ativas</p>
+                          <p className="text-2xl font-black text-amber-600 mt-1">4</p>
+                          <p className="text-[10px] text-amber-600 font-bold mt-2 flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 bg-amber-500 rounded-full"></span>
+                            Requerem atenção
+                          </p>
+                        </div>
+                        <div className="p-2.5 rounded-xl bg-amber-50 text-amber-600 group-hover:scale-105 transition-transform">
+                          <AlertCircle className="w-5 h-5 animate-pulse" />
+                        </div>
+                      </div>
+                    </a>
+                  </div>
+
+                  {/* B. Pendências e Atenção Necessária */}
+                  <div id="pendencias-section" className="bg-white rounded-2xl border border-zinc-200 p-6 md:p-8 space-y-4">
+                    <div>
+                      <h3 className="text-sm font-extrabold text-zinc-900 uppercase tracking-wider flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4 text-amber-500" />
+                        Pendências e Atenção Necessária
+                      </h3>
+                      <p className="text-xs text-zinc-500 mt-1">
+                        Ações prioritárias recomendadas para manter o compliance administrativo e fiscal do escritório.
+                      </p>
                     </div>
-                    <div className="bg-blue-50 rounded-xl p-6 border border-blue-100">
-                      <p className="text-xs font-bold text-blue-600">Apurações PGDAS-D (Mês)</p>
-                      <p className="text-3xl font-black text-blue-900 mt-2">12</p>
-                    </div>
-                    <div className="bg-zinc-50 rounded-xl p-6 border border-zinc-200">
-                      <p className="text-xs font-bold text-zinc-600">Status do Sistema</p>
-                      <p className="text-lg font-black text-zinc-900 mt-2">Operacional</p>
+
+                    <div className="space-y-3">
+                      {/* Item 1 */}
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 rounded-xl border border-rose-100 bg-rose-50/20 gap-4">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="bg-rose-100 text-rose-700 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded">Critica</span>
+                            <span className="text-[10px] font-bold text-zinc-400 uppercase">Responsável Técnico</span>
+                          </div>
+                          <p className="text-xs font-bold text-zinc-900">CRC do Responsável Técnico está próximo do vencimento</p>
+                          <p className="text-[11px] text-zinc-500">O registro profissional do contador principal expira em breve. Atualize o documento para evitar interrupções operacionais.</p>
+                        </div>
+                        <button 
+                          onClick={() => setProfileTab("responsaveis")}
+                          className="px-3.5 py-1.5 bg-white hover:bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold rounded-xl transition-all shadow-xs shrink-0"
+                        >
+                          Resolver agora
+                        </button>
+                      </div>
+
+                      {/* Item 2 */}
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 rounded-xl border border-amber-100 bg-amber-50/20 gap-4">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="bg-amber-100 text-amber-700 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded">Atenção</span>
+                            <span className="text-[10px] font-bold text-zinc-400 uppercase">Cadastro</span>
+                          </div>
+                          <p className="text-xs font-bold text-zinc-900">Cadastro do escritório incompleto (Falta WhatsApp Corporativo)</p>
+                          <p className="text-[11px] text-zinc-500">Seu perfil do escritório está com 85% de completude. Complete as informações de contatos e canais.</p>
+                        </div>
+                        <button 
+                          onClick={() => {
+                            setProfileTab("dados");
+                            setIsEditingProfileForm(true);
+                            addToast("Foque no bloco 'Contatos e canais' e adicione o WhatsApp!", "info");
+                          }}
+                          className="px-3.5 py-1.5 bg-white hover:bg-amber-50 border border-amber-200 text-amber-700 text-xs font-bold rounded-xl transition-all shadow-xs shrink-0"
+                        >
+                          Preencher dados
+                        </button>
+                      </div>
+
+                      {/* Item 3 */}
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 rounded-xl border border-zinc-200 bg-zinc-50/40 gap-4">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="bg-zinc-150 text-zinc-700 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded">Informativa</span>
+                            <span className="text-[10px] font-bold text-zinc-400 uppercase">Equipe</span>
+                          </div>
+                          <p className="text-xs font-bold text-zinc-900">Convite de equipe pendente há mais de 3 dias</p>
+                          <p className="text-[11px] text-zinc-500">Ana Paula Silva (anapaula@contabilidadealfa.com.br) ainda não aceitou o convite de acesso.</p>
+                        </div>
+                        <button 
+                          onClick={() => setProfileTab("equipe")}
+                          className="px-3.5 py-1.5 bg-white hover:bg-zinc-100 border border-zinc-200 text-zinc-700 text-xs font-bold rounded-xl transition-all shadow-xs shrink-0"
+                        >
+                          Ver equipe
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
+
+                  {/* C & D. Linha de Resumos Cadastrais */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* C. Resumo Dados do Escritório */}
+                    <div className="bg-white rounded-2xl border border-zinc-200 p-6 space-y-4">
+                      <div className="flex justify-between items-start border-b border-zinc-100 pb-3">
+                        <h4 className="text-xs font-extrabold text-zinc-950 uppercase tracking-wider flex items-center gap-1.5">
+                          <Building2 className="w-4 h-4 text-emerald-500" />
+                          Dados Cadastrais Resumidos
+                        </h4>
+                        <button 
+                          onClick={() => setProfileTab("dados")}
+                          className="text-[11px] font-bold text-emerald-600 hover:text-emerald-700 hover:underline"
+                        >
+                          Ver dados completos
+                        </button>
+                      </div>
+
+                      <div className="space-y-3 text-xs text-zinc-700 font-semibold">
+                        <div className="flex justify-between py-1 border-b border-zinc-50">
+                          <span className="text-zinc-400">Razão Social</span>
+                          <span className="text-zinc-900">{escritorioRazaoSocial}</span>
+                        </div>
+                        <div className="flex justify-between py-1 border-b border-zinc-50">
+                          <span className="text-zinc-400">E-mail Institucional</span>
+                          <span className="text-zinc-900 break-all text-right">{escritorioEmailInstitucional}</span>
+                        </div>
+                        <div className="flex justify-between py-1 border-b border-zinc-50">
+                          <span className="text-zinc-400">Telefone Principal</span>
+                          <span className="text-zinc-900">{escritorioTelefone}</span>
+                        </div>
+                        <div className="flex justify-between py-1">
+                          <span className="text-zinc-400">Localização</span>
+                          <span className="text-zinc-900">{escritorioMunicipio} - {escritorioUf}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* D. Resumo Responsável Técnico Principal */}
+                    <div className="bg-white rounded-2xl border border-zinc-200 p-6 space-y-4">
+                      <div className="flex justify-between items-start border-b border-zinc-100 pb-3">
+                        <h4 className="text-xs font-extrabold text-zinc-950 uppercase tracking-wider flex items-center gap-1.5">
+                          <Shield className="w-4 h-4 text-emerald-500" />
+                          Responsável Técnico Principal
+                        </h4>
+                        <button 
+                          onClick={() => setProfileTab("responsaveis")}
+                          className="text-[11px] font-bold text-emerald-600 hover:text-emerald-700 hover:underline"
+                        >
+                          Gerenciar responsáveis
+                        </button>
+                      </div>
+
+                      {responsaveis.find(r => r.principal) ? (
+                        <div className="space-y-3 text-xs text-zinc-700 font-semibold">
+                          <div className="flex justify-between py-1 border-b border-zinc-50">
+                            <span className="text-zinc-400">Nome</span>
+                            <span className="text-zinc-900 font-bold">{responsaveis.find(r => r.principal)?.nome}</span>
+                          </div>
+                          <div className="flex justify-between py-1 border-b border-zinc-50">
+                            <span className="text-zinc-400">CRC Legal</span>
+                            <span className="text-zinc-900">{responsaveis.find(r => r.principal)?.crc} ({responsaveis.find(r => r.principal)?.estadoCrc})</span>
+                          </div>
+                          <div className="flex justify-between py-1 border-b border-zinc-50">
+                            <span className="text-zinc-400">Situação Cadastral</span>
+                            <span className="text-emerald-600 font-bold">{responsaveis.find(r => r.principal)?.situacao}</span>
+                          </div>
+                          <div className="flex justify-between py-1">
+                            <span className="text-zinc-400">Validade CRC</span>
+                            <span className="text-zinc-900">{responsaveis.find(r => r.principal)?.validadeCrc || "Ininterrupto"}</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-center py-6 text-zinc-400 font-semibold text-xs">
+                          Nenhum responsável técnico principal definido!
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* E & F. Linha de Clientes e Equipe */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* E. Carteira de Clientes */}
+                    <div className="bg-white rounded-2xl border border-zinc-200 p-6 space-y-4">
+                      <div className="flex justify-between items-start border-b border-zinc-100 pb-3">
+                        <h4 className="text-xs font-extrabold text-zinc-950 uppercase tracking-wider flex items-center gap-1.5">
+                          <Briefcase className="w-4 h-4 text-emerald-500" />
+                          Carteira de Clientes (Operacional)
+                        </h4>
+                        <button 
+                          onClick={() => {
+                            setCurrentPage("dashboard");
+                            addToast("Abra a área de Empresas para editar cadastros individuais.", "info");
+                          }}
+                          className="text-[11px] font-bold text-emerald-600 hover:text-emerald-700 hover:underline"
+                        >
+                          Gerenciar empresas
+                        </button>
+                      </div>
+
+                      <div className="space-y-2 text-xs">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="bg-zinc-50 p-3 rounded-xl border border-zinc-100">
+                            <p className="text-[10px] text-zinc-400 font-bold uppercase">Empresas Cadastradas</p>
+                            <p className="text-lg font-black text-zinc-800 mt-1">{companies.length}</p>
+                          </div>
+                          <div className="bg-zinc-50 p-3 rounded-xl border border-zinc-100">
+                            <p className="text-[10px] text-zinc-400 font-bold uppercase">Optantes Simples</p>
+                            <p className="text-lg font-black text-zinc-800 mt-1">
+                              {companies.filter(c => c.regimeTributario === "Simples Nacional").length || 3}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="pt-2 text-[10px] text-zinc-400 font-bold uppercase tracking-wider">Últimas empresas adicionadas:</div>
+                        <div className="space-y-1.5 text-xs">
+                          {companies.slice(0, 2).map((c, idx) => (
+                            <div key={idx} className="flex justify-between items-center text-zinc-700 font-semibold py-1 px-2 hover:bg-zinc-50 rounded-lg">
+                              <span className="truncate max-w-[180px]">{c.razaoSocial}</span>
+                              <span className="text-zinc-400 text-[10px]">{c.cnpj}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* F. Equipe e Acessos */}
+                    <div className="bg-white rounded-2xl border border-zinc-200 p-6 space-y-4">
+                      <div className="flex justify-between items-start border-b border-zinc-100 pb-3">
+                        <h4 className="text-xs font-extrabold text-zinc-950 uppercase tracking-wider flex items-center gap-1.5">
+                          <Users className="w-4 h-4 text-emerald-500" />
+                          Equipe e Acessos do Escritório
+                        </h4>
+                        <button 
+                          onClick={() => setProfileTab("equipe")}
+                          className="text-[11px] font-bold text-emerald-600 hover:text-emerald-700 hover:underline"
+                        >
+                          Gerenciar equipe
+                        </button>
+                      </div>
+
+                      <div className="space-y-2.5 text-xs text-zinc-700 font-semibold">
+                        <div className="flex justify-between py-1 border-b border-zinc-50">
+                          <span className="text-zinc-400">Proprietário Legal</span>
+                          <span className="text-zinc-900 font-bold">Naiale Augustinho</span>
+                        </div>
+                        <div className="flex justify-between py-1 border-b border-zinc-50">
+                          <span className="text-zinc-400">Usuários Administradores</span>
+                          <span className="text-zinc-900">
+                            {teamMembers.filter(t => t.acesso === "Administrador").length} operador(es)
+                          </span>
+                        </div>
+                        <div className="flex justify-between py-1">
+                          <span className="text-zinc-400">Convites Aguardando Aceite</span>
+                          <span className="text-zinc-900 font-bold text-amber-600">
+                            {teamMembers.filter(t => t.status === "Pendente").length} pendente(s)
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* G. Atividade Recente (Somente com dados reais) */}
+                  {auditLogs.length > 0 && (
+                    <div className="bg-white rounded-2xl border border-zinc-200 p-6 space-y-4">
+                      <h4 className="text-xs font-extrabold text-zinc-950 uppercase tracking-wider flex items-center gap-1.5 border-b border-zinc-100 pb-3">
+                        <Clock className="w-4 h-4 text-emerald-500" />
+                        Histórico de Atividade Recente (Auditoria do Escritório)
+                      </h4>
+
+                      <div className="divide-y divide-zinc-50 text-xs">
+                        {auditLogs.slice(0, 5).map((log) => (
+                          <div key={log.id} className="flex justify-between items-center py-2.5 hover:bg-zinc-50/50 px-2 rounded-lg transition-colors">
+                            <div className="space-y-0.5">
+                              <p className="font-bold text-zinc-900">{log.evento}</p>
+                              <p className="text-[10px] text-zinc-400 font-semibold">Operado por: <span className="font-bold text-zinc-600">{log.usuario}</span></p>
+                            </div>
+                            <span className="text-[10px] font-mono text-zinc-400 whitespace-nowrap">{log.data}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </motion.div>
               )}
 
               {/* ABA 1: DADOS CADASTRAIS */}
               {profileTab === "dados" && (
-                <div className="bg-white rounded-2xl border border-zinc-200 p-6 md:p-8 space-y-8">
+                <motion.div
+                  key="dados"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.15, ease: "easeOut" }}
+                  className="bg-white rounded-2xl border border-zinc-200 p-6 md:p-8 space-y-8"
+                >
                   {isEditingProfileForm && (
                     <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-xs font-semibold text-amber-800 flex items-center gap-3">
                       <Info className="w-5 h-5 text-amber-500 shrink-0" />
@@ -1652,12 +2221,19 @@ export default function Page() {
                       </div>
                     </div>
                   </div>
-                </div>
+                </motion.div>
               )}
 
               {/* ABA 3: RESPONSÁVEL TÉCNICO */}
               {profileTab === "responsaveis" && (
-                <div className="space-y-6">
+                <motion.div
+                  key="responsaveis"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.15, ease: "easeOut" }}
+                  className="space-y-6"
+                >
                   <div className="bg-white rounded-2xl border border-zinc-200 p-6 md:p-8 space-y-6">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-zinc-100 pb-4 gap-4">
                       <div>
@@ -1829,343 +2405,415 @@ export default function Page() {
                       </table>
                     </div>
                   </div>
-                </div>
+                </motion.div>
               )}
 
 
-              {/* ABA 6: CERTIFICADOS E INTEGRAÇÕES */}
-              {profileTab === "certificados_integracoes" && (
-
-
-
-
-
-                <div className="bg-white rounded-2xl border border-zinc-200 p-6 md:p-8 space-y-6">
-                  <div className="space-y-1">
-                    <p className="text-xs font-bold text-zinc-900">Importação em Lote (Layout de Empresas)</p>
-                    <p className="text-[11px] text-zinc-500 font-semibold max-w-md mx-auto">
-                      Arraste sua planilha ou arquivo de clientes em formato CSV ou JSON contendo CNPJ, Razão Social e Regime Tributário.
-                    </p>
-                  </div>
-                  <button 
-                    onClick={() => {
-                      addToast("Simulando leitura de planilha XLS...", "info");
-                      setTimeout(() => {
-                        // Add imported simulation
-                        setCompanies(prev => [
-                          {
-                            cnpj: "22.341.984/0001-09",
-                            razaoSocial: "TECHNOVA LABS LTDA",
-                            nomeFantasia: "TechNova",
-                            regimeTributario: "Lucro Real",
-                            uf: "SP",
-                            municipio: "Campinas",
-                            statusAcesso: "Não Configurado",
-                            statusPgdas: "Pendente",
-                            periodoApuracao: "Junho/2026",
-                            statusEmpresa: "Ativa"
-                          },
-                          ...prev
-                        ]);
-                        addAuditLog("Importação em lote de empresas", "-", "Importada: TECHNOVA LABS LTDA via arquivo .CSV");
-                        addToast("Importação finalizada! Empresa TECHNOVA LABS LTDA adicionada à lista fiscal com sucesso.", "success");
-                      }, 1200);
-                    }}
-                    className="px-4 py-2 bg-white hover:bg-zinc-100 border border-zinc-200 text-zinc-700 text-xs font-bold rounded-xl transition-all shadow-xs cursor-pointer inline-flex items-center gap-1.5"
-                  >
-                    Selecionar Arquivo CSV/JSON
-                  </button>
-                </div>
-              )}
-
-              {/* ABA 6: CERTIFICADOS E INTEGRAÇÕES */}
-              {profileTab === "certificados_integracoes" && (
-                <div className="space-y-6">
-                  {/* ALERTS PREFERENCES AND CRITICAL NOTIFICATIONS */}
+              {/* ABA 4: EQUIPE E ACESSOS */}
+              {profileTab === "equipe" && (
+                <motion.div
+                  key="equipe"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.15, ease: "easeOut" }}
+                  className="space-y-6"
+                >
                   <div className="bg-white rounded-2xl border border-zinc-200 p-6 md:p-8 space-y-6">
-                    <div className="border-b border-zinc-100 pb-4">
-                      <h3 className="text-sm font-extrabold text-zinc-950 uppercase tracking-wider flex items-center gap-2">
-                        <FileKey className={`w-4 h-4 ${theme.text}`} />
-                        Painel de Certificados Digitais e Alertas de Validade
-                      </h3>
-                      <p className="text-xs text-zinc-500 mt-1">
-                        Gerencie as chaves criptográficas A1/A3 que realizam as comunicações automatizadas com os fiscos estaduais e federais.
-                      </p>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-4 rounded-2xl border border-zinc-150 p-5 bg-zinc-50/20">
-                        <h4 className="text-xs font-extrabold text-zinc-900 uppercase">Lista de Certificados Vinculados</h4>
-                        
-                        <div className="space-y-3">
-                          <div className="bg-white border border-zinc-200 rounded-xl p-4 flex justify-between items-start">
-                            <div className="space-y-1">
-                              <p className="text-xs font-bold text-zinc-900">E-CNPJ de {escritorioNomeFantasia}</p>
-                              <p className="text-[10px] text-zinc-400 font-semibold">Tipo: A1 (PFX) · Vínculo Legal</p>
-                              <p className="text-[10px] text-zinc-500 font-bold flex items-center gap-1">
-                                <Check className="w-3.5 h-3.5 text-emerald-500" />
-                                ICP-Brasil Válido até 10/07/2027
-                              </p>
-                            </div>
-                            <span className="bg-emerald-50 text-emerald-700 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded border border-emerald-200">
-                              Ativo (OK)
-                            </span>
-                          </div>
-
-                          <div className="bg-white border border-rose-100 rounded-xl p-4 flex justify-between items-start">
-                            <div className="space-y-1">
-                              <p className="text-xs font-bold text-zinc-900">E-CNPJ de Procurador (Marta Helena Souza)</p>
-                              <p className="text-[10px] text-rose-500 font-bold">Vencimento iminente em 12 dias (23/07/2026)</p>
-                              <p className="text-[10px] text-zinc-400 font-semibold">Tipo: A3 (Smartcard) · Válido para 12 empresas</p>
-                            </div>
-                            <span className="bg-rose-50 text-rose-700 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded border border-rose-200 animate-pulse">
-                              Atenção
-                            </span>
-                          </div>
-                        </div>
+                    <div className="border-b border-zinc-100 pb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                      <div>
+                        <h3 className="text-sm font-extrabold text-zinc-950 uppercase tracking-wider flex items-center gap-2">
+                          <Users className={`w-4 h-4 ${theme.text}`} />
+                          Gestão de Equipe e Controle de Acessos
+                        </h3>
+                        <p className="text-xs text-zinc-500 mt-1">
+                          Gerencie as permissões dos analistas tributários, envie novos convites de acesso e administre o time do escritório.
+                        </p>
                       </div>
 
-                      {/* CERTIFICATE UPLOAD FORM */}
-                      <div className="space-y-4">
-                        <h4 className="text-xs font-extrabold text-zinc-900 uppercase">Adicionar Novo Certificado A1 (.PFX/.P12)</h4>
-                        
-                        <div 
-                          onDragOver={handleDragOver}
-                          onDrop={handleDrop}
-                          onClick={triggerUploadClick}
-                          className="border-2 border-dashed border-zinc-300 hover:border-emerald-500 rounded-2xl p-6 bg-zinc-50/40 text-center cursor-pointer transition-colors space-y-2"
-                        >
-                          <input 
-                            type="file" 
-                            ref={fileInputRef}
-                            onChange={handleFileSelect}
-                            accept=".pfx,.p12"
-                            className="hidden" 
-                          />
-                          <div className="mx-auto h-10 w-10 rounded-full bg-zinc-100 flex items-center justify-center text-zinc-500">
-                            <Upload className="w-5 h-5" />
+                      <button 
+                        onClick={() => {
+                          setInviteNome("");
+                          setInviteEmail("");
+                          setInviteCargo("");
+                          setInviteAcesso("Operador");
+                          setShowInviteMemberModal(true);
+                        }}
+                        className={`px-4 py-2 ${theme.bg} ${theme.hoverBg} text-white text-xs font-bold rounded-xl transition-all shadow-sm flex items-center gap-1.5 cursor-pointer`}
+                      >
+                        <Plus className="w-4 h-4" />
+                        Convidar Colaborador
+                      </button>
+                    </div>
+
+                    {/* Team Members List */}
+                    <div className="border border-zinc-150 rounded-2xl overflow-hidden bg-white">
+                      <table className="w-full text-left">
+                        <thead>
+                          <tr className="bg-zinc-50 border-b border-zinc-150 text-[10px] font-black uppercase text-zinc-400">
+                            <th className="p-4">Colaborador</th>
+                            <th className="p-4">Cargo / Função</th>
+                            <th className="p-4">Perfil de Acesso</th>
+                            <th className="p-4">Status</th>
+                            <th className="p-4 text-right">Ações</th>
+                          </tr>
+                        </thead>
+                        <tbody className="text-xs font-semibold text-zinc-700 divide-y divide-zinc-50">
+                          {teamMembers.map((member) => (
+                            <tr key={member.id} className="hover:bg-zinc-50/40 transition-colors">
+                              <td className="p-4 flex items-center gap-3">
+                                <div className="h-8 w-8 rounded-full bg-zinc-100 border border-zinc-200 text-zinc-700 flex items-center justify-center font-bold text-xs uppercase shadow-xs">
+                                  {member.nome.charAt(0)}
+                                </div>
+                                <div className="space-y-0.5">
+                                  <p className="font-bold text-zinc-900">{member.nome}</p>
+                                  <p className="text-[10px] text-zinc-400 font-medium">{member.email}</p>
+                                </div>
+                              </td>
+                              <td className="p-4 font-medium text-zinc-500">{member.cargo}</td>
+                              <td className="p-4">
+                                {member.acesso === "Proprietário" ? (
+                                  <span className="bg-purple-50 text-purple-700 border border-purple-200 px-2 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-wider">
+                                    Proprietário
+                                  </span>
+                                ) : (
+                                  <select 
+                                    value={member.acesso}
+                                    onChange={(e) => {
+                                      const oldAccess = member.acesso;
+                                      const newAccess = e.target.value;
+                                      setTeamMembers(prev => prev.map(m => m.id === member.id ? { ...m, acesso: newAccess } : m));
+                                      addAuditLog("Alteração de acesso de equipe", `${member.nome} (${oldAccess})`, `Novo acesso: ${newAccess}`);
+                                      addToast(`Perfil de acesso de ${member.nome} alterado para ${newAccess}!`, "success");
+                                    }}
+                                    className="bg-zinc-50 hover:bg-zinc-100 border border-zinc-200 rounded-lg px-2 py-1 text-[11px] font-bold outline-none focus:border-emerald-500 text-zinc-700 cursor-pointer"
+                                  >
+                                    <option value="Administrador">Administrador</option>
+                                    <option value="Operador">Operador</option>
+                                    <option value="Auditor">Auditor</option>
+                                  </select>
+                                )}
+                              </td>
+                              <td className="p-4">
+                                <span className={`px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider rounded border ${
+                                  member.status === "Ativo" 
+                                    ? "bg-emerald-50 text-emerald-700 border-emerald-200" 
+                                    : member.status === "Pendente" 
+                                    ? "bg-amber-50 text-amber-700 border-amber-200" 
+                                    : "bg-zinc-100 text-zinc-600 border-zinc-200"
+                                }`}>
+                                  {member.status}
+                                </span>
+                              </td>
+                              <td className="p-4 text-right">
+                                <div className="flex justify-end gap-2 text-[11px] font-bold">
+                                  {member.status === "Pendente" && (
+                                    <button 
+                                      onClick={() => {
+                                        addToast(`Convite de acesso reenviado com sucesso para ${member.email}!`, "success");
+                                        addAuditLog("Reenvio de convite", "-", `Destinatário: ${member.email}`);
+                                      }}
+                                      className="text-emerald-600 hover:text-emerald-700 cursor-pointer"
+                                    >
+                                      Reenviar Convite
+                                    </button>
+                                  )}
+
+                                  {member.acesso !== "Proprietário" && member.status === "Ativo" && (
+                                    <button 
+                                      onClick={() => {
+                                        setTeamMembers(prev => prev.map(m => m.id === member.id ? { ...m, status: "Suspenso" } : m));
+                                        addAuditLog("Suspensão de acesso de colaborador", member.nome, "Status: Suspenso");
+                                        addToast(`O acesso do colaborador ${member.nome} foi suspenso temporariamente.`, "info");
+                                      }}
+                                      className="text-rose-600 hover:text-rose-700 cursor-pointer"
+                                    >
+                                      Suspender
+                                    </button>
+                                  )}
+
+                                  {member.status === "Suspenso" && (
+                                    <button 
+                                      onClick={() => {
+                                        setTeamMembers(prev => prev.map(m => m.id === member.id ? { ...m, status: "Ativo" } : m));
+                                        addAuditLog("Reativação de acesso de colaborador", member.nome, "Status: Ativo");
+                                        addToast(`O acesso do colaborador ${member.nome} foi reativado com sucesso!`, "success");
+                                      }}
+                                      className="text-emerald-600 hover:text-emerald-700 cursor-pointer"
+                                    >
+                                      Ativar
+                                    </button>
+                                  )}
+
+                                  {member.acesso === "Proprietário" && (
+                                    <button 
+                                      onClick={() => {
+                                        setTransferOwnerOpen(true);
+                                        addToast("Selecione o novo proprietário no painel de transferência legal abaixo.", "info");
+                                      }}
+                                      className="text-purple-600 hover:text-purple-700 cursor-pointer flex items-center gap-1"
+                                    >
+                                      <Shield className="w-3.5 h-3.5" />
+                                      Transferir Propriedade
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Ownership Transfer Module */}
+                    {transferOwnerOpen && (
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="bg-purple-50/30 border border-purple-100 rounded-2xl p-5 md:p-6 space-y-4"
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="p-2 bg-purple-100 text-purple-700 rounded-xl shrink-0">
+                            <Shield className="w-5 h-5" />
                           </div>
                           <div>
-                            <p className="text-xs font-bold text-zinc-900">
-                              {uploadedFile ? uploadedFile.name : "Clique ou arraste o certificado aqui"}
-                            </p>
-                            <p className="text-[10px] text-zinc-400 font-semibold mt-0.5">
-                              {uploadedFile ? `${uploadedFile.size} · Carregado` : "Apenas arquivos formato .pfx ou .p12"}
+                            <h4 className="text-xs font-black text-purple-950 uppercase tracking-wider">Transferência Legal de Propriedade do Escritório</h4>
+                            <p className="text-[11px] text-purple-700 font-semibold mt-0.5 leading-relaxed">
+                              Esta é uma ação jurídica de segurança. Ao transferir a propriedade, você abdica do controle mestre do escritório. O novo proprietário terá permissão exclusiva para redefinir cadastros legalmente.
                             </p>
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end text-xs font-semibold">
                           <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-zinc-500 uppercase">Senha do Certificado</label>
-                            <input 
-                              type="password"
-                              value={senhaCertificado}
-                              onChange={(e) => setSenhaCertificado(e.target.value)}
-                              className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-2 text-xs font-semibold outline-none focus:border-emerald-500"
-                              placeholder="Insira a senha"
-                            />
+                            <label className="text-[10px] font-bold text-purple-900 uppercase">Selecione o Novo Proprietário do Escritório</label>
+                            <select 
+                              value={newOwnerId}
+                              onChange={(e) => setNewOwnerId(e.target.value)}
+                              className="w-full bg-white border border-purple-200 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-purple-500 text-zinc-800 animate-none"
+                            >
+                              <option value="">-- Escolha um colaborador ativo --</option>
+                              {teamMembers.filter(m => m.acesso !== "Proprietário" && m.status === "Ativo").map((m) => (
+                                <option key={m.id} value={m.id}>{m.nome} ({m.cargo})</option>
+                              ))}
+                            </select>
                           </div>
 
-                          <div className="space-y-1 flex items-end">
+                          <div className="flex gap-2">
                             <button 
-                              onClick={validateCertificate}
-                              disabled={isValidatingCert}
-                              className={`w-full py-2.5 ${theme.bg} ${theme.hoverBg} text-white text-xs font-bold rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50`}
+                              onClick={() => {
+                                if (!newOwnerId) {
+                                  addToast("Selecione o colaborador destinatário!", "error");
+                                  return;
+                                }
+                                const target = teamMembers.find(m => m.id === newOwnerId);
+                                if (!target) return;
+
+                                // Perform legal transfer
+                                setTeamMembers(prev => prev.map(m => {
+                                  if (m.acesso === "Proprietário") {
+                                    return { ...m, acesso: "Administrador" };
+                                  }
+                                  if (m.id === target.id) {
+                                    return { ...m, acesso: "Proprietário" };
+                                  }
+                                  return m;
+                                }));
+
+                                addAuditLog("Transferência legal de propriedade do escritório", "Naiale Augustinho", `Novo proprietário: ${target.nome}`);
+                                addToast(`Propriedade transferida com sucesso para ${target.nome}!`, "success");
+                                setTransferOwnerOpen(false);
+                                setNewOwnerId("");
+                              }}
+                              className="flex-1 py-2 bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer text-center shadow-sm"
                             >
-                              {isValidatingCert ? (
-                                <>
-                                  <RefreshCw className="w-4 h-4 animate-spin" />
-                                  Verificando...
-                                </>
-                              ) : (
-                                "Testar e Importar"
-                              )}
+                              Confirmar Transferência
+                            </button>
+                            <button 
+                              onClick={() => {
+                                setTransferOwnerOpen(false);
+                                setNewOwnerId("");
+                              }}
+                              className="px-4 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-bold rounded-xl transition-colors cursor-pointer"
+                            >
+                              Cancelar
                             </button>
                           </div>
                         </div>
-
-                        {isValidatingCert && (
-                          <p className="text-[10px] font-bold text-amber-600 animate-pulse bg-amber-50 border border-amber-100 rounded-lg p-2 text-center">
-                            {validationProgressMessage}
-                          </p>
-                        )}
-
-                        {isValidatedCert && (
-                          <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-[11px] font-bold text-emerald-800 flex items-center gap-2">
-                            <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                            <span>Certificado validado com sucesso! Chave privada armazenada em cofre seguro. Expira em {certExpiryDate}.</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
+                      </motion.div>
+                    )}
                   </div>
+                </motion.div>
+              )}
 
-                  {/* CONFIGURAÇÃO DE INTEGRAÇÕES */}
+              {/* ABA 5: PREFERÊNCIAS */}
+              {profileTab === "preferencias" && (
+                <motion.div
+                  key="preferencias"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.15, ease: "easeOut" }}
+                  className="space-y-6"
+                >
+                  {/* CONFIGURAÇÕES OPERACIONAIS */}
                   <div className="bg-white rounded-2xl border border-zinc-200 p-6 md:p-8 space-y-6">
                     <div className="border-b border-zinc-100 pb-4">
                       <h3 className="text-sm font-extrabold text-zinc-950 uppercase tracking-wider flex items-center gap-2">
-                        <RefreshCw className={`w-4 h-4 ${theme.text}`} />
-                        Sincronização Fiscal Integrada e Robôs de Leitura
+                        <Settings className={`w-4 h-4 ${theme.text}`} />
+                        Configurações Operacionais e Sede Padrão
                       </h3>
                       <p className="text-xs text-zinc-500 mt-1">
-                        Sincronize credenciais da Receita, SEFAZ estaduais e municípios. O sistema realiza varredura automática de pendências fiscais em segundo plano.
+                        Defina as convenções internas e regimes fiscais sugeridos automaticamente para agilizar a rotina tributária do escritório.
                       </p>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                      {integrations.map((integration) => (
-                        <div key={integration.id} className="border border-zinc-150 rounded-2xl p-5 bg-white space-y-3 flex flex-col justify-between">
-                          <div className="space-y-1">
-                            <div className="flex justify-between items-center">
-                              <h4 className="text-xs font-extrabold text-zinc-900 uppercase tracking-wider">{integration.nome}</h4>
-                              <span className={`px-2 py-0.5 text-[9px] font-black rounded ${
-                                integration.conexao === "Conectado" 
-                                  ? "bg-emerald-50 text-emerald-700" 
-                                  : integration.conexao === "Não configurado" 
-                                  ? "bg-zinc-100 text-zinc-600" 
-                                  : "bg-amber-50 text-amber-700 animate-pulse"
-                              }`}>
-                                {integration.conexao}
-                              </span>
-                            </div>
-                            <p className="text-[11px] text-zinc-500 font-semibold leading-relaxed">{integration.desc}</p>
-                          </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="space-y-1.5 text-xs font-semibold">
+                        <label className="text-[10px] font-bold text-zinc-400 uppercase">Regime Tributário Padrão</label>
+                        <select 
+                          value={defaultRegime}
+                          onChange={(e) => setDefaultRegime(e.target.value)}
+                          className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-emerald-500 text-zinc-700 cursor-pointer"
+                        >
+                          <option value="Simples Nacional">Simples Nacional</option>
+                          <option value="Lucro Presumido">Lucro Presumido</option>
+                          <option value="Lucro Real">Lucro Real</option>
+                        </select>
+                        <p className="text-[10px] text-zinc-400 font-medium">Sugerido por padrão no cadastro de novas empresas clientes.</p>
+                      </div>
 
-                          <div className="flex justify-between items-center pt-2 border-t border-zinc-50 text-xs font-semibold">
-                            <div className="flex items-center gap-2">
-                              <button 
-                                onClick={() => {
-                                  const newStatus = integration.status === "Ativo" ? "Inativo" : "Ativo";
-                                  setIntegrations(prev => prev.map(i => i.id === integration.id ? { ...i, status: newStatus } : i));
-                                  addAuditLog("Alteração de status de integração", `${integration.nome} (${integration.status})`, `Status: ${newStatus}`);
-                                  addToast(`Integração com ${integration.nome} foi ${newStatus === "Ativo" ? "ativada" : "desativada"}!`, "info");
-                                }}
-                                className={`w-10 h-5 rounded-full transition-colors relative cursor-pointer ${
-                                  integration.status === "Ativo" ? "bg-emerald-600" : "bg-zinc-300"
-                                }`}
-                              >
-                                <span className={`w-4 h-4 bg-white rounded-full absolute top-0.5 shadow transition-all ${
-                                  integration.status === "Ativo" ? "left-5.5" : "left-0.5"
-                                }`} />
-                              </button>
-                              <span className="text-[11px] font-bold text-zinc-500">
-                                {integration.status === "Ativo" ? "Ativado" : "Desativado"}
-                              </span>
-                            </div>
+                      <div className="space-y-1.5 text-xs font-semibold">
+                        <label className="text-[10px] font-bold text-zinc-400 uppercase">Estado (UF) Sede Fiscal</label>
+                        <select 
+                          value={defaultUf}
+                          onChange={(e) => setDefaultUf(e.target.value)}
+                          className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-emerald-500 text-zinc-700 cursor-pointer"
+                        >
+                          <option value="AL">Maceió - AL (Padrão Sede)</option>
+                          <option value="SP">São Paulo - SP</option>
+                          <option value="MG">Belo Horizonte - MG</option>
+                          <option value="RJ">Rio de Janeiro - RJ</option>
+                        </select>
+                        <p className="text-[10px] text-zinc-400 font-medium">UF legal para automatizações e calendários estaduais específicos.</p>
+                      </div>
 
+                      <div className="space-y-1.5 text-xs font-semibold">
+                        <label className="text-[10px] font-bold text-zinc-400 uppercase">Horário de Expediente Fiscal</label>
+                        <select 
+                          defaultValue="comercial"
+                          className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-emerald-500 text-zinc-700 cursor-pointer"
+                        >
+                          <option value="comercial">Comercial (08:00 às 18:00)</option>
+                          <option value="flexivel">Flexível (07:00 às 22:00)</option>
+                        </select>
+                        <p className="text-[10px] text-zinc-400 font-medium">Período para envio de alertas automatizados aos clientes.</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* CANAIS E ALERTAS DE NOTIFICAÇÕES */}
+                  <div className="bg-white rounded-2xl border border-zinc-200 p-6 md:p-8 space-y-6">
+                    <div className="border-b border-zinc-100 pb-4">
+                      <h3 className="text-sm font-extrabold text-zinc-950 uppercase tracking-wider flex items-center gap-2">
+                        <Mail className={`w-4 h-4 ${theme.text}`} />
+                        Canais de Comunicação e Alertas Operacionais
+                      </h3>
+                      <p className="text-xs text-zinc-500 mt-1">
+                        Controle os eventos que geram avisos imediatos no painel e configure o canal principal de notificações fiscais.
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-xs font-semibold">
+                      {/* Left: Channel Selector */}
+                      <div className="space-y-4">
+                        <h4 className="text-xs font-extrabold text-zinc-900 uppercase">Canal Principal de Comunicação</h4>
+                        <div className="grid grid-cols-3 gap-3">
+                          {[
+                            { id: "email", label: "E-mail", desc: "Suporte padrão" },
+                            { id: "whatsapp", label: "WhatsApp", desc: "Avisos rápidos" },
+                            { id: "sms", label: "SMS Legal", desc: "Notificações" }
+                          ].map((chan) => (
                             <button 
-                              onClick={() => {
-                                if (integration.conexao === "Não configurado") {
-                                  addToast("Configure as credenciais e certificado antes de testar.", "error");
-                                  return;
-                                }
-                                addToast(`Testando canal seguro de comunicação com ${integration.nome}...`, "info");
-                                setTimeout(() => {
-                                  setIntegrations(prev => prev.map(i => i.id === integration.id ? { ...i, conexao: "Conectado" } : i));
-                                  addToast(`Comunicação restabelecida com ${integration.nome}! 🟢 Servidor Online.`, "success");
-                                }, 1200);
-                              }}
-                              className="text-emerald-600 hover:text-emerald-700 text-[11px] font-bold cursor-pointer"
+                              key={chan.id}
+                              onClick={() => setPrefNotificationChannel(chan.id as any)}
+                              className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between h-20 ${
+                                prefNotificationChannel === chan.id 
+                                  ? "border-zinc-955 bg-zinc-50 shadow-xs" 
+                                  : "border-zinc-200 hover:border-zinc-300 bg-white"
+                              }`}
                             >
-                              Testar Conexão
+                              <span className="font-extrabold text-zinc-900">{chan.label}</span>
+                              <span className="text-[10px] text-zinc-400 font-medium">{chan.desc}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Right: Toggle options */}
+                      <div className="space-y-4">
+                        <h4 className="text-xs font-extrabold text-zinc-900 uppercase">Eventos Monitorados de Compliance</h4>
+                        
+                        <div className="space-y-3">
+                          {/* Option 1 */}
+                          <div className="flex justify-between items-center py-1">
+                            <div className="space-y-0.5">
+                              <p className="text-xs font-bold text-zinc-900">Alertas de Vencimento de CRC</p>
+                              <p className="text-[10px] text-zinc-400 font-medium">Avisar com antecedência de 60, 30 e 15 dias do vencimento.</p>
+                            </div>
+                            <button 
+                              onClick={() => setPrefAlertCrc(!prefAlertCrc)}
+                              className={`w-10 h-5 rounded-full transition-colors relative cursor-pointer shrink-0 ${
+                                prefAlertCrc ? "bg-emerald-600" : "bg-zinc-300"
+                              }`}
+                            >
+                              <span className={`w-4 h-4 bg-white rounded-full absolute top-0.5 shadow transition-all ${
+                                prefAlertCrc ? "left-5.5" : "left-0.5"
+                              }`} />
                             </button>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
 
+                          {/* Option 2 */}
+                          <div className="flex justify-between items-center py-1">
+                            <div className="space-y-0.5">
+                              <p className="text-xs font-bold text-zinc-900">Alertas de Vencimento de Certificados</p>
+                              <p className="text-[10px] text-zinc-400 font-medium">Monitorar chaves A1/A3 e notificar vencimentos críticos.</p>
+                            </div>
+                            <button 
+                              onClick={() => setPrefAlertCert(!prefAlertCert)}
+                              className={`w-10 h-5 rounded-full transition-colors relative cursor-pointer shrink-0 ${
+                                prefAlertCert ? "bg-emerald-600" : "bg-zinc-300"
+                              }`}
+                            >
+                              <span className={`w-4 h-4 bg-white rounded-full absolute top-0.5 shadow transition-all ${
+                                prefAlertCert ? "left-5.5" : "left-0.5"
+                              }`} />
+                            </button>
+                          </div>
 
+                          {/* Option 3 */}
+                          <div className="flex justify-between items-center py-1">
+                            <div className="space-y-0.5">
+                              <p className="text-xs font-bold text-zinc-900">Alertas de Falha de Sincronização Fiscal</p>
+                              <p className="text-[10px] text-zinc-400 font-medium">Notificar imediatamente se um canal municipal requerer reautenticação.</p>
+                            </div>
+                            <button 
+                              onClick={() => setPrefAlertRobot(!prefAlertRobot)}
+                              className={`w-10 h-5 rounded-full transition-colors relative cursor-pointer shrink-0 ${
+                                prefAlertRobot ? "bg-emerald-600" : "bg-zinc-300"
+                              }`}
+                            >
+                              <span className={`w-4 h-4 bg-white rounded-full absolute top-0.5 shadow transition-all ${
+                                prefAlertRobot ? "left-5.5" : "left-0.5"
+                              }`} />
+                            </button>
+                          </div>
 
-              {/* ABA 9: PREFERÊNCIAS E PERSONALIZAÇÃO */}
-              {false && (profileTab as any) === "preferencias" && (
-                <div className="bg-white rounded-2xl border border-zinc-200 p-6 md:p-8 space-y-6">
-                  <div className="border-b border-zinc-100 pb-4">
-                    <h3 className="text-sm font-extrabold text-zinc-950 uppercase tracking-wider flex items-center gap-2">
-                      <Settings className={`w-4 h-4 ${theme.text}`} />
-                      Personalização da Marca do Escritório e Padrões Fiscais
-                    </h3>
-                    <p className="text-xs text-zinc-500 mt-1">
-                      Configure a cor de destaque e as variáveis padrão do sistema para agilizar as operações de sua equipe tributária.
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    {/* BRANDING ACCENT SELECTOR */}
-                    <div className="space-y-4">
-                      <h4 className="text-xs font-extrabold text-zinc-900 uppercase">Escolha a Cor Temática do Escritório</h4>
-                      
-                      <div className="grid grid-cols-2 gap-3 text-xs font-bold text-zinc-700">
-                        {[
-                          { key: "emerald", label: "🟢 Esmeralda Fiscal", colorHex: "bg-emerald-600" },
-                          { key: "indigo", label: "🔵 Safira Corporativa", colorHex: "bg-indigo-600" },
-                          { key: "rose", label: "🔴 Framboesa Moderna", colorHex: "bg-rose-600" },
-                          { key: "amber", label: "🟡 Âmbar Energética", colorHex: "bg-amber-600" },
-                          { key: "slate", label: "⚫ Grafite Clássico", colorHex: "bg-zinc-700" }
-                        ].map((col) => (
-                          <button 
-                            key={col.key}
-                            onClick={() => {
-                              setAccentColor(col.key as any);
-                              addToast(`Cor temática do escritório alterada para ${col.label.split(" ")[1]}!`, "success");
-                            }}
-                            className={`p-3.5 rounded-xl border-2 text-left transition-all cursor-pointer flex items-center justify-between ${
-                              accentColor === col.key 
-                                ? "border-zinc-900 bg-zinc-50 shadow-md" 
-                                : "border-zinc-200 hover:border-zinc-300 bg-white"
-                            }`}
-                          >
-                            <span>{col.label}</span>
-                            <span className={`h-4 w-4 rounded-full ${col.colorHex}`} />
-                          </button>
-                        ))}
-                      </div>
-                      
-                      <div className="bg-zinc-50 border border-zinc-150 p-4 rounded-xl text-xs font-medium text-zinc-500 leading-relaxed">
-                        <strong>Nota:</strong> A cor temática será aplicada instantaneamente nos menus, botões de ação e títulos de todas as abas sob seu controle corporativo.
-                      </div>
-                    </div>
-
-                    {/* DEFAULTS AND GENERAL SETTINGS */}
-                    <div className="space-y-4 text-xs font-semibold text-zinc-700">
-                      <h4 className="text-xs font-extrabold text-zinc-900 uppercase">Configuração de Padrões Operacionais</h4>
-                      
-                      <div className="space-y-3">
-                        <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-zinc-400 uppercase">Regime Tributário Padrão para Novos Clientes</label>
-                          <select 
-                            value={defaultRegime}
-                            onChange={(e) => setDefaultRegime(e.target.value)}
-                            className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-2 outline-none focus:border-emerald-500 font-bold text-zinc-700"
-                          >
-                            <option value="Simples Nacional">Simples Nacional</option>
-                            <option value="Lucro Presumido">Lucro Presumido</option>
-                            <option value="Lucro Real">Lucro Real</option>
-                          </select>
-                        </div>
-
-                        <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-zinc-400 uppercase">Estado (UF) Sede Padrão</label>
-                          <select 
-                            value={defaultUf}
-                            onChange={(e) => setDefaultUf(e.target.value)}
-                            className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-2 outline-none focus:border-emerald-500 font-bold text-zinc-700"
-                          >
-                            <option value="AL">Maceió - AL (Padrão Sede)</option>
-                            <option value="SP">São Paulo - SP</option>
-                            <option value="MG">Belo Horizonte - MG</option>
-                            <option value="RJ">Rio de Janeiro - RJ</option>
-                          </select>
-                        </div>
-
-                        <div className="pt-2 space-y-3">
-                          <div className="flex justify-between items-center">
-                            <div>
-                              <p className="text-xs font-bold text-zinc-900">Relatórios Mensais Automatizados por E-mail</p>
-                              <p className="text-[10px] text-zinc-400">Envia resumo compilado de todas as obrigações transmitidas para o administrativo.</p>
+                          {/* Option 4 */}
+                          <div className="flex justify-between items-center py-1">
+                            <div className="space-y-0.5">
+                              <p className="text-xs font-bold text-zinc-900">Relatórios Mensais por E-mail</p>
+                              <p className="text-[10px] text-zinc-400 font-medium">Resumos automatizados com todas as obrigações e pendências resolvidas.</p>
                             </div>
                             <button 
                               onClick={() => setReceiveEmailReport(!receiveEmailReport)}
@@ -2180,80 +2828,73 @@ export default function Page() {
                           </div>
                         </div>
                       </div>
-
-                      <div className="pt-4 flex justify-end">
-                        <button 
-                          onClick={() => {
-                            addAuditLog("Atualização de preferências gerais", "Padrões cadastrais antigos", `Accent: ${accentColor}, Regime: ${defaultRegime}`);
-                            addToast("Preferências corporativas e padrões internos salvos com sucesso!", "success");
-                          }}
-                          className={`px-4 py-2 bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer shadow-sm`}
-                        >
-                          Salvar Configurações
-                        </button>
-                      </div>
                     </div>
                   </div>
-                </div>
-              )}
 
-              {/* ABA 10: AUDITORIA */}
-              {false && (profileTab as any) === "auditoria" && (
-                <div className="bg-white rounded-2xl border border-zinc-200 p-6 md:p-8 space-y-6">
-                  <div className="border-b border-zinc-100 pb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                    <div>
+                  {/* SEGURANÇA OPERACIONAL */}
+                  <div className="bg-white rounded-2xl border border-zinc-200 p-6 md:p-8 space-y-6">
+                    <div className="border-b border-zinc-100 pb-4">
                       <h3 className="text-sm font-extrabold text-zinc-950 uppercase tracking-wider flex items-center gap-2">
-                        <Clock className={`w-4 h-4 ${theme.text}`} />
-                        Histórico de Auditoria Geral e Trilha de Auditoria
+                        <LockKeyhole className={`w-4 h-4 ${theme.text}`} />
+                        Segurança e Políticas Operacionais do Inquilino
                       </h3>
                       <p className="text-xs text-zinc-500 mt-1">
-                        Consulte o registro imutável de todas as modificações cadastrais, financeiras, de usuários e certificados do seu inquilino.
+                        Gerencie as regras de segurança adicionais para manter as informações cadastrais e fiscais do escritório protegidas.
                       </p>
                     </div>
 
-                    <button 
-                      onClick={() => {
-                        addToast("Trilha de auditoria exportada em formato Excel criptografado!", "success");
-                      }}
-                      className="px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 border border-zinc-200 text-zinc-700 text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <FileText className="w-3.5 h-3.5" />
-                      Exportar Logs (XLS)
-                    </button>
-                  </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-xs font-semibold">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold text-zinc-400 uppercase">Tempo Limite de Sessão do Sistema</label>
+                        <select 
+                          value={prefSessionTimeout}
+                          onChange={(e) => setPrefSessionTimeout(e.target.value)}
+                          className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-emerald-500 text-zinc-700 cursor-pointer"
+                        >
+                          <option value="15m">15 minutos de inatividade</option>
+                          <option value="30m">30 minutos de inatividade (Padrão)</option>
+                          <option value="1h">1 hora de inatividade</option>
+                          <option value="4h">4 horas de inatividade</option>
+                        </select>
+                        <p className="text-[10px] text-zinc-400 font-medium">Após o período sem uso, o painel exigirá nova reautenticação automática para segurança.</p>
+                      </div>
 
-                  <div className="border border-zinc-150 rounded-2xl overflow-hidden">
-                    <table className="w-full text-left">
-                      <thead>
-                        <tr className="bg-zinc-50 border-b border-zinc-150 text-[10px] font-black uppercase text-zinc-400">
-                          <th className="p-4">Data e Hora</th>
-                          <th className="p-4">Operador / Usuário</th>
-                          <th className="p-4">Evento / Ação Realizada</th>
-                          <th className="p-4">Valor Anterior</th>
-                          <th className="p-4">Novo Valor Salvo</th>
-                          <th className="p-4">IP e Dispositivo</th>
-                        </tr>
-                      </thead>
-                      <tbody className="text-xs font-semibold text-zinc-700 divide-y divide-zinc-50">
-                        {auditLogs.map((log) => (
-                          <tr key={log.id} className="hover:bg-zinc-50/50">
-                            <td className="p-4 text-zinc-500 font-mono text-[11px] whitespace-nowrap">{log.data}</td>
-                            <td className="p-4">
-                              <span className="bg-zinc-100 text-zinc-800 px-2 py-0.5 rounded text-[10px] font-bold">
-                                {log.usuario}
-                              </span>
-                            </td>
-                            <td className="p-4 font-bold text-zinc-900">{log.evento}</td>
-                            <td className="p-4 text-zinc-400 font-medium truncate max-w-[150px]" title={log.valorAnterior}>{log.valorAnterior}</td>
-                            <td className="p-4 text-zinc-700 font-bold truncate max-w-[150px]" title={log.valorNovo}>{log.valorNovo}</td>
-                            <td className="p-4 text-zinc-500 font-mono text-[10px]">{log.ip} <span className="text-zinc-300">|</span> {log.dispositivo}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                      <div className="space-y-4">
+                        <h4 className="text-xs font-extrabold text-zinc-900 uppercase">Controle de Modificações Críticas</h4>
+                        <div className="flex justify-between items-center py-1">
+                          <div className="space-y-0.5">
+                            <p className="text-xs font-bold text-zinc-900">Confirmação Adicional por Senha</p>
+                            <p className="text-[10px] text-zinc-400 font-medium">Exigir senha e confirmação de auditoria antes de atualizar CNPJ ou Responsáveis Técnicos.</p>
+                          </div>
+                          <button 
+                            onClick={() => setPrefSecureConfirm(!prefSecureConfirm)}
+                            className={`w-10 h-5 rounded-full transition-colors relative cursor-pointer shrink-0 ${
+                              prefSecureConfirm ? "bg-emerald-600" : "bg-zinc-300"
+                            }`}
+                          >
+                            <span className={`w-4 h-4 bg-white rounded-full absolute top-0.5 shadow transition-all ${
+                              prefSecureConfirm ? "left-5.5" : "left-0.5"
+                            }`} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="pt-4 border-t border-zinc-150 flex justify-end">
+                      <button 
+                        onClick={() => {
+                          addAuditLog("Atualização de preferências gerais", "Padrões cadastrais antigos", `Canal: ${prefNotificationChannel}, Regime: ${defaultRegime}`);
+                          addToast("Preferências operacionais e canais de segurança atualizados com sucesso!", "success");
+                        }}
+                        className={`px-5 py-2.5 bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer shadow-sm`}
+                      >
+                        Salvar Configurações
+                      </button>
+                    </div>
                   </div>
-                </div>
+                </motion.div>
               )}
+              </AnimatePresence>
             </div>
 
             {/* CNPJ CHANGES EXTREME SAFETY WARNING DIALOG MODAL */}
@@ -2696,14 +3337,14 @@ export default function Page() {
                     type="text"
                     placeholder="Buscar por razão social ou CNPJ..."
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onChange={(e) => { setSearchTerm(e.target.value); setCompaniesPage(1); }}
                     className="w-full pl-9 pr-4 py-1.5 bg-zinc-50/50 border border-zinc-200 focus:border-emerald-500 focus:bg-white text-xs font-semibold rounded-xl outline-none transition-all placeholder:text-zinc-400 h-9"
                   />
                 </div>
                 <div className="flex w-full sm:w-auto gap-2">
                   <select
                     value={filterRegime}
-                    onChange={(e) => setFilterRegime(e.target.value)}
+                    onChange={(e) => { setFilterRegime(e.target.value); setCompaniesPage(1); }}
                     className="flex-1 sm:flex-none px-2.5 py-1.5 bg-zinc-50/50 border border-zinc-200 focus:border-emerald-500 text-xs font-bold rounded-xl outline-none cursor-pointer transition-all text-zinc-600 h-9"
                   >
                     <option value="all">Todos os Regimes</option>
@@ -2712,7 +3353,7 @@ export default function Page() {
                   </select>
                   <select
                     value={filterAcesso}
-                    onChange={(e) => setFilterAcesso(e.target.value)}
+                    onChange={(e) => { setFilterAcesso(e.target.value); setCompaniesPage(1); }}
                     className="flex-1 sm:flex-none px-2.5 py-1.5 bg-zinc-50/50 border border-zinc-200 focus:border-emerald-500 text-xs font-bold rounded-xl outline-none cursor-pointer transition-all text-zinc-600 h-9"
                   >
                     <option value="all">Todos os Acessos</option>
@@ -2734,43 +3375,21 @@ export default function Page() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-100 font-medium text-zinc-700">
-                    {(() => {
-                      const filtered = companies.filter(c => {
-                        const matchesSearch = 
-                          c.razaoSocial.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          c.nomeFantasia.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          c.cnpj.replace(/\D/g, "").includes(searchTerm.replace(/\D/g, ""));
-                        
-                        const matchesRegime = 
-                          filterRegime === "all" || 
-                          c.regimeTributario.includes(filterRegime);
-                        
-                        const matchesAcesso = 
-                          filterAcesso === "all" || 
-                          (filterAcesso === "Configurado" && c.statusAcesso !== "Não Configurado") ||
-                          (filterAcesso === "Não Configurado" && c.statusAcesso === "Não Configurado");
-
-                        return matchesSearch && matchesRegime && matchesAcesso;
-                      });
-
-                      if (filtered.length === 0) {
-                        return (
-                          <tr>
-                            <td colSpan={5} className="py-12 text-center">
-                              <Building2 className="h-8 w-8 text-zinc-300 mx-auto mb-2" strokeWidth={1.5} />
-                              <p className="text-zinc-400 text-xs font-bold">Nenhuma empresa encontrada com os filtros selecionados.</p>
-                              <button 
-                                onClick={() => { setSearchTerm(""); setFilterRegime("all"); setFilterAcesso("all"); }}
-                                className="mt-3 text-emerald-600 hover:text-emerald-700 text-[11px] font-black underline cursor-pointer"
-                              >
-                                Limpar Filtros
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      }
-
-                      return filtered.map((company, index) => {
+                    {paginatedCompanies.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="py-12 text-center">
+                          <Building2 className="h-8 w-8 text-zinc-300 mx-auto mb-2" strokeWidth={1.5} />
+                          <p className="text-zinc-400 text-xs font-bold">Nenhuma empresa encontrada com os filtros selecionados.</p>
+                          <button 
+                            onClick={() => { setSearchTerm(""); setFilterRegime("all"); setFilterAcesso("all"); }}
+                            className="mt-3 text-emerald-600 hover:text-emerald-700 text-[11px] font-black underline cursor-pointer"
+                          >
+                            Limpar Filtros
+                          </button>
+                        </td>
+                      </tr>
+                    ) : (
+                      paginatedCompanies.map((company) => {
                         const initial = company.razaoSocial.charAt(0);
                         return (
                           <tr key={company.cnpj} className="hover:bg-zinc-50/50 transition-colors duration-150">
@@ -2780,8 +3399,17 @@ export default function Page() {
                                   {initial}
                                 </div>
                                 <div className="min-w-0">
-                                  <p className="font-extrabold text-zinc-900 truncate max-w-[200px] sm:max-w-xs">{company.razaoSocial}</p>
-                                  <p className="text-[10px] text-zinc-400 font-mono mt-0.5">CNPJ: {company.cnpj}</p>
+                                  <p className="font-extrabold text-zinc-900 truncate max-w-[200px] sm:max-w-xs" title={company.razaoSocial}>
+                                    {highlightText(company.razaoSocial, searchTerm)}
+                                  </p>
+                                  {company.nomeFantasia && company.nomeFantasia !== company.razaoSocial && (
+                                    <p className="text-[10px] text-zinc-500 truncate max-w-[200px] sm:max-w-xs" title={company.nomeFantasia}>
+                                      {highlightText(company.nomeFantasia, searchTerm)}
+                                    </p>
+                                  )}
+                                  <p className="text-[10px] text-zinc-400 font-mono mt-0.5">
+                                    CNPJ: {highlightCnpj(company.cnpj, searchTerm)}
+                                  </p>
                                 </div>
                               </div>
                             </td>
@@ -2854,11 +3482,93 @@ export default function Page() {
                             </td>
                           </tr>
                         );
-                      });
-                    })()}
+                      })
+                    )}
                   </tbody>
                 </table>
               </div>
+
+              {/* Pagination Controls */}
+              {totalCompaniesItems > 0 && (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-zinc-100 text-xs font-bold text-zinc-500">
+                  <div className="flex items-center gap-2">
+                    <span>Mostrando</span>
+                    <span className="text-zinc-800">{startCompanyIndex + 1}</span>
+                    <span>a</span>
+                    <span className="text-zinc-800">{Math.min(startCompanyIndex + companiesPerPage, totalCompaniesItems)}</span>
+                    <span>de</span>
+                    <span className="text-zinc-800">{totalCompaniesItems}</span>
+                    <span>empresas</span>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-4">
+                    {/* Items per page selector */}
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] text-zinc-405 font-semibold uppercase tracking-wider">Exibir:</span>
+                      <select
+                        value={companiesPerPage}
+                        onChange={(e) => {
+                          setCompaniesPerPage(Number(e.target.value));
+                          setCompaniesPage(1);
+                        }}
+                        className="px-2 py-1 bg-zinc-50 border border-zinc-200 focus:border-emerald-500 rounded-lg outline-none cursor-pointer text-zinc-700 text-xs font-bold h-7"
+                      >
+                        <option value={3}>3</option>
+                        <option value={5}>5</option>
+                        <option value={10}>10</option>
+                        <option value={20}>20</option>
+                      </select>
+                    </div>
+
+                    {/* Page buttons */}
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => setCompaniesPage(prev => Math.max(prev - 1, 1))}
+                        disabled={activeCompaniesPage === 1}
+                        className="p-1.5 rounded-lg border border-zinc-200 hover:bg-zinc-50 text-zinc-500 hover:text-zinc-800 disabled:opacity-40 disabled:hover:bg-transparent disabled:cursor-not-allowed transition-all cursor-pointer"
+                        title="Página Anterior"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </button>
+
+                      {Array.from({ length: totalCompaniesPages }, (_, i) => i + 1).map((pageNum) => {
+                        const isFirstOrLast = pageNum === 1 || pageNum === totalCompaniesPages;
+                        const isNearActive = Math.abs(pageNum - activeCompaniesPage) <= 1;
+
+                        if (!isFirstOrLast && !isNearActive) {
+                          if (pageNum === 2 || pageNum === totalCompaniesPages - 1) {
+                            return <span key={pageNum} className="px-1 text-zinc-350">...</span>;
+                          }
+                          return null;
+                        }
+
+                        return (
+                          <button
+                            key={pageNum}
+                            onClick={() => setCompaniesPage(pageNum)}
+                            className={`min-w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                              activeCompaniesPage === pageNum
+                                ? "bg-emerald-600 text-white shadow-sm shadow-emerald-600/15"
+                                : "hover:bg-zinc-100 text-zinc-650 hover:text-zinc-900 border border-transparent"
+                            }`}
+                          >
+                            {pageNum}
+                          </button>
+                        );
+                      })}
+
+                      <button
+                        onClick={() => setCompaniesPage(prev => Math.min(prev + 1, totalCompaniesPages))}
+                        disabled={activeCompaniesPage === totalCompaniesPages}
+                        className="p-1.5 rounded-lg border border-zinc-200 hover:bg-zinc-50 text-zinc-500 hover:text-zinc-800 disabled:opacity-40 disabled:hover:bg-transparent disabled:cursor-not-allowed transition-all cursor-pointer"
+                        title="Próxima Página"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
           </motion.div>
@@ -3173,27 +3883,74 @@ export default function Page() {
 
                     {/* Progressive live validator loader interface */}
                     <div className="pt-2 border-t border-zinc-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
-                      {isValidatingCert ? (
-                        <div className="flex items-center gap-2 text-xs font-semibold text-zinc-600 bg-zinc-50 px-3 py-2 rounded-lg border border-zinc-100 flex-1">
-                          <RefreshCw className="h-4 w-4 text-emerald-600 animate-spin shrink-0" />
-                          <span>{validationProgressMessage}</span>
-                        </div>
-                      ) : isValidatedCert ? (
-                        <div className="flex items-center gap-2 text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-2 rounded-lg border border-emerald-100 flex-1">
-                          <Check className="h-4 w-4 shrink-0" />
-                          <span>ICP-Brasil chaves em conformidade. Expiração: {certExpiryDate}</span>
-                        </div>
-                      ) : (
-                        <p className="text-[11px] text-zinc-400 font-semibold flex items-center gap-1.5">
-                          <LockKeyhole className="h-3.5 w-3.5 text-zinc-300" /> Criptografia de ponta a ponta ativa.
-                        </p>
-                      )}
+                      <div className="flex-1 min-w-0">
+                        <AnimatePresence mode="wait">
+                          {isValidatingCert ? (
+                            <motion.div
+                              key="validating-cert-container"
+                              initial={{ opacity: 0, height: 0, y: 10 }}
+                              animate={{ opacity: 1, height: "auto", y: 0 }}
+                              exit={{ opacity: 0, height: 0, y: -10 }}
+                              transition={{ duration: 0.3 }}
+                              className="flex flex-col gap-2 p-3 bg-zinc-50 rounded-xl border border-zinc-100 w-full"
+                            >
+                              <div className="flex items-center gap-2 text-xs font-semibold text-zinc-650">
+                                <RefreshCw className="h-3.5 w-3.5 text-emerald-600 animate-spin shrink-0" />
+                                <span className="truncate">{validationProgressMessage}</span>
+                                <span className="ml-auto text-[10px] text-zinc-400 font-mono font-bold">{certValidationProgress}%</span>
+                              </div>
+                              {/* Animated progress bar track */}
+                              <div className="h-1.5 w-full bg-zinc-100 rounded-full overflow-hidden">
+                                <motion.div
+                                  className="h-full bg-emerald-500 rounded-full"
+                                  initial={{ width: "0%" }}
+                                  animate={{ width: `${certValidationProgress}%` }}
+                                  transition={{ duration: 0.3, ease: "easeOut" }}
+                                />
+                              </div>
+                            </motion.div>
+                          ) : isValidatedCert ? (
+                            <motion.div
+                              key="validated-cert-container"
+                              initial={{ opacity: 0, height: 0, y: 10 }}
+                              animate={{ opacity: 1, height: "auto", y: 0 }}
+                              exit={{ opacity: 0, height: 0, y: -10 }}
+                              transition={{ duration: 0.3 }}
+                              className="flex flex-col gap-2 p-3 bg-emerald-50/50 rounded-xl border border-emerald-100 w-full"
+                            >
+                              <div className="flex items-center gap-2 text-xs font-bold text-emerald-700">
+                                <Check className="h-4 w-4 shrink-0" />
+                                <span className="truncate">ICP-Brasil chaves em conformidade. Expiração: {certExpiryDate}</span>
+                                <span className="ml-auto text-[10px] text-emerald-600 font-mono font-bold">100%</span>
+                              </div>
+                              {/* Completed animated progress bar track */}
+                              <div className="h-1.5 w-full bg-emerald-100 rounded-full overflow-hidden">
+                                <motion.div
+                                  className="h-full bg-emerald-600 rounded-full"
+                                  initial={{ width: "85%" }}
+                                  animate={{ width: "100%" }}
+                                  transition={{ duration: 0.3, ease: "easeOut" }}
+                                />
+                              </div>
+                            </motion.div>
+                          ) : (
+                            <motion.p
+                              key="idle-cert-container"
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              className="text-[11px] text-zinc-400 font-semibold flex items-center gap-1.5 py-2"
+                            >
+                              <LockKeyhole className="h-3.5 w-3.5 text-zinc-300" /> Criptografia de ponta a ponta ativa.
+                            </motion.p>
+                          )}
+                        </AnimatePresence>
+                      </div>
 
                       <button
                         type="button"
                         onClick={validateCertificate}
                         disabled={isValidatingCert}
-                        className="px-4 py-2 bg-zinc-900 hover:bg-zinc-800 text-white rounded-lg font-bold text-xs transition-all flex items-center justify-center gap-1.5 shrink-0 disabled:bg-zinc-100 disabled:text-zinc-400 cursor-pointer"
+                        className="px-4 py-2 bg-zinc-900 hover:bg-zinc-800 text-white rounded-lg font-bold text-xs transition-all flex items-center justify-center gap-1.5 shrink-0 disabled:bg-zinc-100 disabled:text-zinc-400 cursor-pointer h-9 sm:mt-0 mt-2"
                         id="btn-validar-cert"
                       >
                         {isValidatingCert ? "Validando..." : "Validar Certificado"}
@@ -4154,8 +4911,10 @@ export default function Page() {
                       className={`w-full pl-3 pr-11 py-2 border text-xs font-medium transition-all rounded-lg focus:outline-none focus:ring-2 ${
                         isCnpjValid
                           ? "border-emerald-500 bg-emerald-50/10 focus:ring-emerald-500/15 focus:border-emerald-600 text-emerald-900"
-                          : isCnpjIncomplete
+                          : isCnpjInvalidFormat
                           ? "border-rose-400 bg-rose-50/10 focus:ring-rose-500/15 focus:border-rose-500 text-rose-900"
+                          : isCnpjIncomplete
+                          ? "border-amber-400 bg-amber-50/10 focus:ring-amber-500/15 focus:border-amber-500 text-amber-900"
                           : "border-zinc-200 bg-white placeholder-zinc-400 text-zinc-800 focus:ring-emerald-500/15 focus:border-emerald-600"
                       }`}
                       id="input-cnpj-cad"
@@ -4169,12 +4928,20 @@ export default function Page() {
                           ? "bg-zinc-100 text-zinc-400 cursor-wait"
                           : isCnpjValid
                           ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm shadow-emerald-600/10"
+                          : isCnpjInvalidFormat
+                          ? "bg-amber-600 hover:bg-amber-700 text-white shadow-sm shadow-amber-600/10"
                           : isCnpjIncomplete
                           ? "bg-zinc-50 text-zinc-350 border border-zinc-100 cursor-not-allowed"
                           : "bg-emerald-50 hover:bg-emerald-100 text-emerald-600"
                       }`}
                       id="btn-consultar-cnpj"
-                      title={isCnpjIncomplete ? "Preencha o CNPJ completo" : "Consultar na Receita"}
+                      title={
+                        isCnpjIncomplete
+                          ? "Preencha o CNPJ completo"
+                          : isCnpjInvalidFormat
+                          ? "Dígitos verificadores incorretos. Clique para simular busca mesmo assim."
+                          : "Consultar na Receita"
+                      }
                     >
                       {isSearchingCnpj ? (
                         <RefreshCw className="h-3.5 w-3.5 animate-spin" />
@@ -4189,8 +4956,13 @@ export default function Page() {
                     </p>
                   )}
                   {isCnpjIncomplete && (
+                    <p className="text-[10px] text-amber-600 font-bold flex items-center gap-1.5 mt-1 animate-fade-in">
+                      <AlertCircle className="h-3 w-3" /> CNPJ incompleto (digite 14 números)
+                    </p>
+                  )}
+                  {isCnpjInvalidFormat && (
                     <p className="text-[10px] text-rose-500 font-bold flex items-center gap-1.5 mt-1 animate-fade-in">
-                      <AlertCircle className="h-3 w-3" /> CNPJ incompleto (14 dígitos)
+                      <AlertCircle className="h-3 w-3" /> CNPJ inválido (formato ou dígitos verificadores incorretos)
                     </p>
                   )}
                 </div>
