@@ -5,6 +5,7 @@ import {
   Building2,
   FileKey,
   Shield,
+  ShieldCheck,
   Search,
   Upload,
   Calendar,
@@ -41,7 +42,11 @@ import {
   Plus,
   Receipt,
   LayoutDashboard,
-  Users
+  Users,
+  Copy,
+  AlertTriangle,
+  Calculator,
+  Sparkles
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 
@@ -249,8 +254,9 @@ interface Company {
 
 export default function Page() {
   // Navigation State
-  const [currentPage, setCurrentPage] = useState<"dashboard" | "empresas" | "certificados" | "procuracoes" | "relatorios" | "configuracoes" | "perfil_escritorio" | "pgdas">("dashboard");
+  const [currentPage, setCurrentPage] = useState<"dashboard" | "empresas" | "cadastro_empresa" | "certificados" | "procuracoes" | "relatorios" | "configuracoes" | "perfil_escritorio" | "pgdas">("dashboard");
   const [isFiscalMenuOpen, setIsFiscalMenuOpen] = useState(false);
+  const [isConfigMenuOpen, setIsConfigMenuOpen] = useState(false);
   const [profileTab, setProfileTab] = useState<"visao_geral" | "dados" | "responsaveis" | "equipe" | "preferencias">("visao_geral");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -320,6 +326,234 @@ export default function Page() {
       statusEmpresa: "Ativa"
     },
     {
+      cnpj: "10.000.000/0001-01",
+      razaoSocial: "COMPANY A",
+      nomeFantasia: "Company A",
+      regimeTributario: "Simples Nacional",
+      uf: "SP",
+      municipio: "São Paulo",
+      statusAcesso: "Não Configurado",
+      statusPgdas: "Pendente",
+      periodoApuracao: "Junho/2026",
+      statusEmpresa: "Ativa"
+    },
+    {
+      cnpj: "10.000.000/0001-02",
+      razaoSocial: "COMPANY B",
+      nomeFantasia: "Company B",
+      regimeTributario: "Simples Nacional",
+      uf: "SP",
+      municipio: "São Paulo",
+      statusAcesso: "Não Configurado",
+      statusPgdas: "Pendente",
+      periodoApuracao: "Junho/2026",
+      statusEmpresa: "Ativa"
+    },
+    {
+      cnpj: "10.000.000/0001-03",
+      razaoSocial: "COMPANY C",
+      nomeFantasia: "Company C",
+      regimeTributario: "Simples Nacional",
+      uf: "SP",
+      municipio: "São Paulo",
+      statusAcesso: "Não Configurado",
+      statusPgdas: "Pendente",
+      periodoApuracao: "Junho/2026",
+      statusEmpresa: "Ativa"
+    },
+    {
+      cnpj: "10.000.000/0001-04",
+      razaoSocial: "COMPANY D",
+      nomeFantasia: "Company D",
+      regimeTributario: "Simples Nacional",
+      uf: "SP",
+      municipio: "São Paulo",
+      statusAcesso: "Não Configurado",
+      statusPgdas: "Pendente",
+      periodoApuracao: "Junho/2026",
+      statusEmpresa: "Ativa"
+    },
+    {
+      cnpj: "10.000.000/0001-05",
+      razaoSocial: "COMPANY E",
+      nomeFantasia: "Company E",
+      regimeTributario: "Simples Nacional",
+      uf: "SP",
+      municipio: "São Paulo",
+      statusAcesso: "Não Configurado",
+      statusPgdas: "Pendente",
+      periodoApuracao: "Junho/2026",
+      statusEmpresa: "Ativa"
+    },
+    {
+      cnpj: "10.000.000/0001-06",
+      razaoSocial: "COMPANY F",
+      nomeFantasia: "Company F",
+      regimeTributario: "Simples Nacional",
+      uf: "SP",
+      municipio: "São Paulo",
+      statusAcesso: "Não Configurado",
+      statusPgdas: "Pendente",
+      periodoApuracao: "Junho/2026",
+      statusEmpresa: "Ativa"
+    },
+    {
+      cnpj: "10.000.000/0001-07",
+      razaoSocial: "COMPANY G",
+      nomeFantasia: "Company G",
+      regimeTributario: "Simples Nacional",
+      uf: "SP",
+      municipio: "São Paulo",
+      statusAcesso: "Não Configurado",
+      statusPgdas: "Pendente",
+      periodoApuracao: "Junho/2026",
+      statusEmpresa: "Ativa"
+    },
+    {
+      cnpj: "10.000.000/0001-08",
+      razaoSocial: "COMPANY H",
+      nomeFantasia: "Company H",
+      regimeTributario: "Simples Nacional",
+      uf: "SP",
+      municipio: "São Paulo",
+      statusAcesso: "Não Configurado",
+      statusPgdas: "Pendente",
+      periodoApuracao: "Junho/2026",
+      statusEmpresa: "Ativa"
+    },
+    {
+      cnpj: "10.000.000/0001-09",
+      razaoSocial: "COMPANY I",
+      nomeFantasia: "Company I",
+      regimeTributario: "Simples Nacional",
+      uf: "SP",
+      municipio: "São Paulo",
+      statusAcesso: "Não Configurado",
+      statusPgdas: "Pendente",
+      periodoApuracao: "Junho/2026",
+      statusEmpresa: "Ativa"
+    },
+    {
+      cnpj: "10.000.000/0001-10",
+      razaoSocial: "COMPANY J",
+      nomeFantasia: "Company J",
+      regimeTributario: "Simples Nacional",
+      uf: "SP",
+      municipio: "São Paulo",
+      statusAcesso: "Não Configurado",
+      statusPgdas: "Pendente",
+      periodoApuracao: "Junho/2026",
+      statusEmpresa: "Ativa"
+    },
+    {
+      cnpj: "10.000.000/0001-11",
+      razaoSocial: "COMPANY K",
+      nomeFantasia: "Company K",
+      regimeTributario: "Simples Nacional",
+      uf: "SP",
+      municipio: "São Paulo",
+      statusAcesso: "Não Configurado",
+      statusPgdas: "Pendente",
+      periodoApuracao: "Junho/2026",
+      statusEmpresa: "Ativa"
+    },
+    {
+      cnpj: "10.000.000/0001-12",
+      razaoSocial: "COMPANY L",
+      nomeFantasia: "Company L",
+      regimeTributario: "Simples Nacional",
+      uf: "SP",
+      municipio: "São Paulo",
+      statusAcesso: "Não Configurado",
+      statusPgdas: "Pendente",
+      periodoApuracao: "Junho/2026",
+      statusEmpresa: "Ativa"
+    },
+    {
+      cnpj: "10.000.000/0001-13",
+      razaoSocial: "COMPANY M",
+      nomeFantasia: "Company M",
+      regimeTributario: "Simples Nacional",
+      uf: "SP",
+      municipio: "São Paulo",
+      statusAcesso: "Não Configurado",
+      statusPgdas: "Pendente",
+      periodoApuracao: "Junho/2026",
+      statusEmpresa: "Ativa"
+    },
+    {
+      cnpj: "10.000.000/0001-14",
+      razaoSocial: "COMPANY N",
+      nomeFantasia: "Company N",
+      regimeTributario: "Simples Nacional",
+      uf: "SP",
+      municipio: "São Paulo",
+      statusAcesso: "Não Configurado",
+      statusPgdas: "Pendente",
+      periodoApuracao: "Junho/2026",
+      statusEmpresa: "Ativa"
+    },
+    {
+      cnpj: "10.000.000/0001-15",
+      razaoSocial: "COMPANY O",
+      nomeFantasia: "Company O",
+      regimeTributario: "Simples Nacional",
+      uf: "SP",
+      municipio: "São Paulo",
+      statusAcesso: "Não Configurado",
+      statusPgdas: "Pendente",
+      periodoApuracao: "Junho/2026",
+      statusEmpresa: "Ativa"
+    },
+    {
+      cnpj: "10.000.000/0001-16",
+      razaoSocial: "COMPANY P",
+      nomeFantasia: "Company P",
+      regimeTributario: "Simples Nacional",
+      uf: "SP",
+      municipio: "São Paulo",
+      statusAcesso: "Não Configurado",
+      statusPgdas: "Pendente",
+      periodoApuracao: "Junho/2026",
+      statusEmpresa: "Ativa"
+    },
+    {
+      cnpj: "10.000.000/0001-17",
+      razaoSocial: "COMPANY Q",
+      nomeFantasia: "Company Q",
+      regimeTributario: "Simples Nacional",
+      uf: "SP",
+      municipio: "São Paulo",
+      statusAcesso: "Não Configurado",
+      statusPgdas: "Pendente",
+      periodoApuracao: "Junho/2026",
+      statusEmpresa: "Ativa"
+    },
+    {
+      cnpj: "10.000.000/0001-18",
+      razaoSocial: "COMPANY R",
+      nomeFantasia: "Company R",
+      regimeTributario: "Simples Nacional",
+      uf: "SP",
+      municipio: "São Paulo",
+      statusAcesso: "Não Configurado",
+      statusPgdas: "Pendente",
+      periodoApuracao: "Junho/2026",
+      statusEmpresa: "Ativa"
+    },
+    {
+      cnpj: "10.000.000/0001-19",
+      razaoSocial: "COMPANY S",
+      nomeFantasia: "Company S",
+      regimeTributario: "Simples Nacional",
+      uf: "SP",
+      municipio: "São Paulo",
+      statusAcesso: "Não Configurado",
+      statusPgdas: "Pendente",
+      periodoApuracao: "Junho/2026",
+      statusEmpresa: "Ativa"
+    },
+    {
       cnpj: "55.666.777/0001-88",
       razaoSocial: "DELTA TECNOLOGIA E SISTEMAS S/A",
       nomeFantasia: "Delta Tech",
@@ -365,6 +599,24 @@ export default function Page() {
   // Pagination states for companies list
   const [companiesPage, setCompaniesPage] = useState(1);
   const [companiesPerPage, setCompaniesPerPage] = useState(5);
+  const [showNextStep, setShowNextStep] = useState(false);
+  const [isLoadingCompanies, setIsLoadingCompanies] = useState(false);
+
+  // Trigger loading skeleton on companies search/filters/page changes
+  useEffect(() => {
+    const loadTimer = setTimeout(() => {
+      setIsLoadingCompanies(true);
+    }, 0);
+    
+    const resolveTimer = setTimeout(() => {
+      setIsLoadingCompanies(false);
+    }, 500);
+
+    return () => {
+      clearTimeout(loadTimer);
+      clearTimeout(resolveTimer);
+    };
+  }, [searchTerm, filterRegime, filterAcesso, companiesPage]);
 
   // User notifications / toasts
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -594,6 +846,8 @@ export default function Page() {
   const [prefAlertRobot, setPrefAlertRobot] = useState(true);
   const [prefSessionTimeout, setPrefSessionTimeout] = useState("30m");
   const [prefSecureConfirm, setPrefSecureConfirm] = useState(true);
+  const [platformName, setPlatformName] = useState("PGDAS-D");
+  const [platformInitials, setPlatformInitials] = useState("PG");
   const [transferOwnerOpen, setTransferOwnerOpen] = useState(false);
   const [newOwnerId, setNewOwnerId] = useState("");
 
@@ -1033,9 +1287,8 @@ export default function Page() {
       };
       setCompanies(prev => [newCompany, ...prev]);
       addToast(`Empresa "${razaoSocial.toUpperCase()}" cadastrada com sucesso!`, "success");
+      setShowNextStep(true);
     }
-
-    setCurrentPage("dashboard");
   };
 
   const editCompany = (company: Company) => {
@@ -1058,7 +1311,7 @@ export default function Page() {
     setMunicipioIncidencia(mockDbEntry.municipioIncidencia || `${company.municipio} - ${company.uf}`);
     setDataAbertura("12/04/2015");
     
-    setCurrentPage("empresas");
+    setCurrentPage("cadastro_empresa");
     addToast(`Carregando dados de "${company.razaoSocial}" para edição.`, "info");
   };
 
@@ -1146,7 +1399,7 @@ export default function Page() {
                   ? "bg-white border-emerald-100 text-emerald-900"
                   : toast.type === "error"
                   ? "bg-white border-rose-100 text-rose-900"
-                  : "bg-white border-zinc-150 text-zinc-900"
+                  : "bg-white border-zinc-200 text-zinc-900"
               }`}
             >
               <div className="shrink-0 mt-0.5">
@@ -1164,10 +1417,10 @@ export default function Page() {
       <header className="md:hidden bg-zinc-900 text-white px-5 py-4 flex justify-between items-center shadow-sm sticky top-0 z-30">
         <div className="flex items-center gap-3">
           <div className="h-8 w-8 rounded-lg bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center font-bold text-sm tracking-wider shadow-inner">
-            PG
+            {platformInitials}
           </div>
           <div>
-            <h1 className="font-extrabold text-sm tracking-tight leading-none text-zinc-100">PGDAS-D</h1>
+            <h1 className="font-extrabold text-sm tracking-tight leading-none text-zinc-100">{platformName}</h1>
             <p className="text-[10px] text-zinc-400 font-semibold mt-0.5">Plataforma Fiscal Premium</p>
           </div>
         </div>
@@ -1201,11 +1454,11 @@ export default function Page() {
         <div className="p-5 border-b border-zinc-900/60 flex justify-between items-center h-16 shrink-0">
           <div className={`flex items-center gap-3 transition-all duration-300 ${sidebarCollapsed ? "opacity-0 md:opacity-100 scale-90" : "opacity-100"}`}>
             <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-white flex items-center justify-center font-black tracking-widest text-base shadow-md shadow-emerald-500/15 shrink-0">
-              PG
+              {platformInitials}
             </div>
             {!sidebarCollapsed && (
               <div>
-                <h1 className="font-extrabold text-white text-base tracking-tight leading-none font-display">PGDAS-D</h1>
+                <h1 className="font-extrabold text-white text-base tracking-tight leading-none font-display">{platformName}</h1>
               </div>
             )}
           </div>
@@ -1223,10 +1476,6 @@ export default function Page() {
         {/* Navigation Menus */}
         <nav className="flex-1 py-6 overflow-y-auto px-4 space-y-1.5">
           {/* Workspace Switcher Removed */}
-
-          <p className={`text-[10px] font-bold text-zinc-500 tracking-widest uppercase mb-3 px-2 ${sidebarCollapsed ? "hidden" : "block"}`}>
-            Navegação Principal
-          </p>
           
           {currentWorkspace === "admin" ? (
             <>
@@ -1248,74 +1497,139 @@ export default function Page() {
             </>
           ) : (
             <>
-              <div className="space-y-1 relative">
-                <button
-                  onClick={() => {
-                    setCurrentPage("perfil_escritorio");
-                    setSidebarOpen(false);
-                  }}
-                  className={`relative w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 group text-[13px] font-bold z-10 ${
-                    currentPage === "perfil_escritorio"
-                      ? "bg-[#27272a] text-zinc-100 shadow-sm"
-                      : "text-zinc-400 hover:text-zinc-100 hover:bg-[#27272a]/50"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-5 h-5 flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 duration-200">
-                      <Briefcase 
-                        className={`h-4.5 w-4.5 ${
-                          currentPage === "perfil_escritorio" ? "text-zinc-300" : "text-zinc-500 group-hover:text-zinc-300"
-                        }`} 
-                        strokeWidth={1.5}
-                      />
-                    </div>
-                    <span className={`transition-opacity duration-200 ${sidebarCollapsed ? "md:opacity-0 md:w-0 overflow-hidden" : "opacity-100"}`}>
-                      Escritório
-                    </span>
-                  </div>
-                </button>
-              </div>
+              {/* SECTION: VISÃO GERAL */}
+              {!sidebarCollapsed && <div className="px-4 text-[10px] font-black text-zinc-500 uppercase tracking-wider mb-2 mt-4">Visão Geral</div>}
 
               {/* Menu Item - Dashboard */}
               <button
                 onClick={() => { setCurrentPage("dashboard"); setSidebarOpen(false); }}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group text-[13px] font-bold ${
-                  (currentPage === "dashboard" || currentPage === "empresas")
-                    ? "bg-[#27272a] text-zinc-100 hover:bg-[#3f3f46]"
+                className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 group text-[13px] font-bold ${
+                  currentPage === "dashboard"
+                    ? "bg-[#27272a] text-zinc-100 shadow-sm"
                     : "text-zinc-400 hover:text-zinc-100 hover:bg-[#27272a]/50"
                 }`}
-                id="nav-empresas-main"
+                id="nav-dashboard"
               >
-                <div className="w-5 h-5 flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 duration-200">
-                  <Building2 
-                    className={`h-4.5 w-4.5 ${
-                      (currentPage === "dashboard" || currentPage === "empresas") ? "text-zinc-300 group-hover:text-zinc-100" : "text-zinc-500 group-hover:text-zinc-300"
-                    }`} 
-                    strokeWidth={1.5}
-                  />
+                <div className="flex items-center gap-3">
+                  <div className="w-5 h-5 flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 duration-200">
+                    <LayoutDashboard 
+                      className={`h-4.5 w-4.5 ${
+                        currentPage === "dashboard" ? "text-zinc-300" : "text-zinc-500 group-hover:text-zinc-300"
+                      }`} 
+                      strokeWidth={1.75}
+                    />
+                  </div>
+                  <span className={`transition-opacity duration-200 ${sidebarCollapsed ? "md:opacity-0 md:w-0 overflow-hidden" : "opacity-100"}`}>
+                    Dashboard
+                  </span>
                 </div>
-                <span className={`transition-opacity duration-200 ${sidebarCollapsed ? "md:opacity-0 md:w-0 overflow-hidden" : "opacity-100"}`}>
-                  Empresas
-                </span>
               </button>
-              
+
+              {/* SECTION: MEU ESCRITÓRIO */}
+              {!sidebarCollapsed && <div className="px-4 text-[10px] font-black text-zinc-500 uppercase tracking-wider mb-2 mt-6">Meu Escritório</div>}
+
+              {/* Menu Item - Perfil */}
+              <button
+                onClick={() => {
+                  setCurrentPage("perfil_escritorio");
+                  setSidebarOpen(false);
+                }}
+                className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 group text-[13px] font-bold ${
+                  currentPage === "perfil_escritorio"
+                    ? "bg-[#27272a] text-zinc-100 shadow-sm"
+                    : "text-zinc-400 hover:text-zinc-100 hover:bg-[#27272a]/50"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-5 h-5 flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 duration-200">
+                    <Building2 
+                      className={`h-4.5 w-4.5 ${
+                        currentPage === "perfil_escritorio" ? "text-zinc-300" : "text-zinc-500 group-hover:text-zinc-300"
+                      }`} 
+                      strokeWidth={1.75}
+                    />
+                  </div>
+                  <span className={`transition-opacity duration-200 ${sidebarCollapsed ? "md:opacity-0 md:w-0 overflow-hidden" : "opacity-100"}`}>
+                    Perfil & Equipe
+                  </span>
+                </div>
+              </button>
+
+              {/* Menu Item - Certificados */}
+              <button
+                onClick={() => {
+                  setCurrentPage("certificados");
+                  setSidebarOpen(false);
+                }}
+                className={`w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl transition-all duration-200 group text-[13px] font-bold ${
+                  currentPage === "certificados"
+                    ? "bg-[#27272a] text-zinc-100 shadow-sm"
+                    : "text-zinc-400 hover:text-zinc-100 hover:bg-[#27272a]/50"
+                }`}
+                id="nav-certificados"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-5 h-5 flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 duration-200">
+                    <ShieldCheck
+                      className={`h-4.5 w-4.5 ${
+                        currentPage === "certificados" ? "text-zinc-300" : "text-zinc-500 group-hover:text-zinc-300"
+                      }`}
+                      strokeWidth={1.75}
+                    />
+                  </div>
+                  <span className={`transition-opacity duration-200 ${sidebarCollapsed ? "md:opacity-0 md:w-0 overflow-hidden" : "opacity-100"}`}>
+                    Certificados Digitais
+                  </span>
+                </div>
+              </button>
+
+              {/* SECTION: MÓDULOS OPERACIONAIS */}
+              {!sidebarCollapsed && <div className="px-4 text-[10px] font-black text-zinc-500 uppercase tracking-wider mb-2 mt-6">Módulos Operacionais</div>}
+
+              {/* Menu Item - Empresas */}
+              <button
+                onClick={() => {
+                  setCurrentPage("empresas");
+                  setSidebarOpen(false);
+                }}
+                className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 group text-[13px] font-bold ${
+                  (currentPage === "empresas" || currentPage === "cadastro_empresa")
+                    ? "bg-[#27272a] text-zinc-100 shadow-sm"
+                    : "text-zinc-400 hover:text-zinc-100 hover:bg-[#27272a]/50"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-5 h-5 flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 duration-200">
+                    <Building2 
+                      className={`h-4.5 w-4.5 ${
+                        (currentPage === "empresas" || currentPage === "cadastro_empresa") ? "text-zinc-300" : "text-zinc-500 group-hover:text-zinc-300"
+                      }`} 
+                      strokeWidth={1.75}
+                    />
+                  </div>
+                  <span className={`transition-opacity duration-200 ${sidebarCollapsed ? "md:opacity-0 md:w-0 overflow-hidden" : "opacity-100"}`}>
+                    Gestão de Empresas
+                  </span>
+                </div>
+              </button>
+
               {/* Menu Item - Fiscal */}
               <button
                 onClick={() => setIsFiscalMenuOpen(!isFiscalMenuOpen)}
                 className={`w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl transition-all duration-200 group text-[13px] font-bold ${
-                  currentPage === "certificados" || currentPage === "pgdas"
-                    ? "bg-[#27272a] text-zinc-100"
+                  currentPage === "pgdas"
+                    ? "bg-[#27272a] text-zinc-100 shadow-sm"
                     : "text-zinc-400 hover:text-zinc-100 hover:bg-[#27272a]/50"
                 }`}
                 id="nav-fiscal"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-5 h-5 flex items-center justify-center shrink-0">
+                  <div className="w-5 h-5 flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 duration-200">
                     <Receipt
                       className={`h-4.5 w-4.5 ${
-                        currentPage === "certificados" || currentPage === "pgdas" ? "text-zinc-300" : "text-zinc-500"
+                        currentPage === "pgdas" ? "text-zinc-300" : "text-zinc-500 group-hover:text-zinc-300"
                       }`}
-                      strokeWidth={1.5}
+                      strokeWidth={1.75}
                     />
                   </div>
                   <span className={`transition-opacity duration-200 ${sidebarCollapsed ? "md:opacity-0 md:w-0 overflow-hidden" : "opacity-100"}`}>
@@ -1323,13 +1637,40 @@ export default function Page() {
                   </span>
                 </div>
                 {!sidebarCollapsed && (
-                  isFiscalMenuOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
+                  <div className={`transition-transform duration-200 ${isFiscalMenuOpen ? 'rotate-180' : ''}`}>
+                    <ChevronDown className="h-4 w-4 text-zinc-500" />
+                  </div>
                 )}
               </button>
+              
+              {/* Fiscal Submenu */}
               {isFiscalMenuOpen && !sidebarCollapsed && (
-                <div className="pl-10 space-y-1 mt-1">
-                    <button onClick={() => { setCurrentPage("pgdas"); setSidebarOpen(false); }} className={`w-full text-left px-4 py-2 rounded-lg text-xs font-semibold ${currentPage === "pgdas" ? "text-zinc-100" : "text-zinc-400 hover:text-zinc-100"}`}>PGDAS</button>
-                    <button onClick={() => { setCurrentPage("certificados"); setSidebarOpen(false); }} className={`w-full text-left px-4 py-2 rounded-lg text-xs font-semibold ${currentPage === "certificados" ? "text-zinc-100" : "text-zinc-400 hover:text-zinc-100"}`}>Certificados</button>
+                <div className="pl-12 pr-4 space-y-1 mt-1 overflow-hidden transition-all">
+                  <div className="relative before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[1px] before:bg-zinc-800 py-1 space-y-1">
+                    <button 
+                      onClick={() => { setCurrentPage("pgdas"); setSidebarOpen(false); }} 
+                      className={`w-full flex items-center gap-3 pl-4 pr-3 py-2 rounded-lg text-[12px] font-bold transition-all relative group ${
+                        currentPage === "pgdas" 
+                          ? "text-zinc-100 bg-[#27272a]" 
+                          : "text-zinc-400 hover:text-zinc-200 hover:bg-[#27272a]/50"
+                      }`}
+                    >
+                      {/* Active indicator dot */}
+                      {currentPage === "pgdas" && (
+                        <div className="absolute left-[-2px] top-1/2 -translate-y-1/2 w-1 h-1 rounded-full bg-emerald-500 ring-4 ring-emerald-500/20"></div>
+                      )}
+                      <FileCheck className={`h-3.5 w-3.5 ${currentPage === "pgdas" ? "text-emerald-500" : "text-zinc-500 group-hover:text-zinc-400"}`} strokeWidth={2} />
+                      Apuração PGDAS
+                    </button>
+                    
+                    <button 
+                      onClick={() => { addToast("Módulo em desenvolvimento", "info"); }} 
+                      className="w-full flex items-center gap-3 pl-4 pr-3 py-2 rounded-lg text-[12px] font-bold text-zinc-500 hover:text-zinc-300 hover:bg-[#27272a]/30 transition-all relative group"
+                    >
+                      <Layers className="h-3.5 w-3.5 text-zinc-600 group-hover:text-zinc-500" strokeWidth={2} />
+                      Simples Nacional
+                    </button>
+                  </div>
                 </div>
               )}
             </>
@@ -1579,7 +1920,7 @@ export default function Page() {
                         setCurrentPage("dashboard");
                         addToast("Redirecionando para Gerenciar Empresas...", "info");
                       }}
-                      className="bg-white hover:bg-zinc-50 border border-zinc-200 rounded-2xl p-5 text-left transition-all duration-200 group focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                      className="bg-white hover:bg-zinc-50 border border-zinc-100 rounded-2xl p-5 text-left transition-all duration-200 group focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                     >
                       <div className="flex justify-between items-start">
                         <div>
@@ -1598,7 +1939,7 @@ export default function Page() {
 
                     <button 
                       onClick={() => setProfileTab("equipe")}
-                      className="bg-white hover:bg-zinc-50 border border-zinc-200 rounded-2xl p-5 text-left transition-all duration-200 group focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                      className="bg-white hover:bg-zinc-50 border border-zinc-100 rounded-2xl p-5 text-left transition-all duration-200 group focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                     >
                       <div className="flex justify-between items-start">
                         <div>
@@ -1617,7 +1958,7 @@ export default function Page() {
 
                     <button 
                       onClick={() => setProfileTab("responsaveis")}
-                      className="bg-white hover:bg-zinc-50 border border-zinc-200 rounded-2xl p-5 text-left transition-all duration-200 group focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                      className="bg-white hover:bg-zinc-50 border border-zinc-100 rounded-2xl p-5 text-left transition-all duration-200 group focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                     >
                       <div className="flex justify-between items-start">
                         <div>
@@ -1636,7 +1977,7 @@ export default function Page() {
 
                     <a 
                       href="#pendencias-section"
-                      className="bg-white hover:bg-zinc-50 border border-zinc-200 rounded-2xl p-5 text-left transition-all duration-200 group focus:outline-none focus:ring-2 focus:ring-emerald-500/20 block"
+                      className="bg-white hover:bg-zinc-50 border border-zinc-100 rounded-2xl p-5 text-left transition-all duration-200 group focus:outline-none focus:ring-2 focus:ring-emerald-500/20 block"
                     >
                       <div className="flex justify-between items-start">
                         <div>
@@ -1711,7 +2052,7 @@ export default function Page() {
                       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 rounded-xl border border-zinc-200 bg-zinc-50/40 gap-4">
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
-                            <span className="bg-zinc-150 text-zinc-700 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded">Informativa</span>
+                            <span className="bg-zinc-200 text-zinc-700 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded">Informativa</span>
                             <span className="text-[10px] font-bold text-zinc-400 uppercase">Equipe</span>
                           </div>
                           <p className="text-xs font-bold text-zinc-900">Convite de equipe pendente há mais de 3 dias</p>
@@ -2037,6 +2378,31 @@ export default function Page() {
                           value={escritorioLogoLetter}
                           onChange={(e) => setEscritorioLogoLetter(e.target.value.toUpperCase())}
                           className="w-full bg-zinc-50/70 border border-zinc-200 disabled:bg-zinc-100/50 disabled:text-zinc-600 rounded-xl px-3.5 py-2 text-xs font-bold outline-none focus:border-emerald-500 transition-colors text-center"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[11px] font-bold text-zinc-500 uppercase">Nome da Plataforma (Menu)</label>
+                        <input 
+                          type="text" 
+                          disabled={!isEditingProfileForm}
+                          value={platformName}
+                          onChange={(e) => setPlatformName(e.target.value)}
+                          className="w-full bg-zinc-50/70 border border-zinc-200 disabled:bg-zinc-100/50 disabled:text-zinc-600 rounded-xl px-3.5 py-2 text-xs font-semibold outline-none focus:border-emerald-500 transition-colors"
+                          placeholder="Ex: PGDAS-D"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[11px] font-bold text-zinc-500 uppercase">Iniciais do Logotipo (Menu)</label>
+                        <input 
+                          type="text" 
+                          maxLength={3}
+                          disabled={!isEditingProfileForm}
+                          value={platformInitials}
+                          onChange={(e) => setPlatformInitials(e.target.value.toUpperCase())}
+                          className="w-full bg-zinc-50/70 border border-zinc-200 disabled:bg-zinc-100/50 disabled:text-zinc-600 rounded-xl px-3.5 py-2 text-xs font-bold outline-none focus:border-emerald-500 transition-colors text-center font-mono"
+                          placeholder="Ex: PG"
                         />
                       </div>
                     </div>
@@ -2447,10 +2813,10 @@ export default function Page() {
                     </div>
 
                     {/* Team Members List */}
-                    <div className="border border-zinc-150 rounded-2xl overflow-hidden bg-white">
+                    <div className="border border-zinc-100 rounded-2xl overflow-hidden bg-white">
                       <table className="w-full text-left">
                         <thead>
-                          <tr className="bg-zinc-50 border-b border-zinc-150 text-[10px] font-black uppercase text-zinc-400">
+                          <tr className="bg-zinc-50 border-b border-zinc-100 text-[10px] font-black uppercase text-zinc-400">
                             <th className="p-4">Colaborador</th>
                             <th className="p-4">Cargo / Função</th>
                             <th className="p-4">Perfil de Acesso</th>
@@ -2458,7 +2824,7 @@ export default function Page() {
                             <th className="p-4 text-right">Ações</th>
                           </tr>
                         </thead>
-                        <tbody className="text-xs font-semibold text-zinc-700 divide-y divide-zinc-50">
+                        <tbody className="text-xs font-semibold text-zinc-700 divide-y divide-zinc-100">
                           {teamMembers.map((member) => (
                             <tr key={member.id} className="hover:bg-zinc-50/40 transition-colors">
                               <td className="p-4 flex items-center gap-3">
@@ -2656,6 +3022,67 @@ export default function Page() {
                   transition={{ duration: 0.15, ease: "easeOut" }}
                   className="space-y-6"
                 >
+                  {/* PERSONALIZAÇÃO DA MARCA / PLATAFORMA */}
+                  <div className="bg-white rounded-2xl border border-zinc-200 p-6 md:p-8 space-y-6">
+                    <div className="border-b border-zinc-100 pb-4">
+                      <h3 className="text-sm font-extrabold text-zinc-950 uppercase tracking-wider flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-emerald-500 animate-pulse" />
+                        Personalização da Marca / Plataforma (White Label)
+                      </h3>
+                      <p className="text-xs text-zinc-500 mt-1">
+                        Configure o nome e as iniciais da plataforma que aparecem no menu lateral e cabeçalhos do sistema. Ideal para escritórios que utilizam white-label ou desejam personalizar a identidade visual do portal do cliente.
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="space-y-1.5 text-xs font-semibold">
+                        <label className="text-[10px] font-bold text-zinc-400 uppercase">Nome da Plataforma (No Menu)</label>
+                        <input 
+                          type="text"
+                          value={platformName}
+                          onChange={(e) => {
+                            setPlatformName(e.target.value);
+                          }}
+                          className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-emerald-500 text-zinc-700"
+                          placeholder="Ex: PGDAS-D"
+                        />
+                        <p className="text-[10px] text-zinc-400 font-medium">Nome exibido no topo do menu lateral e no cabeçalho mobile.</p>
+                      </div>
+
+                      <div className="space-y-1.5 text-xs font-semibold">
+                        <label className="text-[10px] font-bold text-zinc-400 uppercase">Iniciais / Sigla do Logotipo</label>
+                        <input 
+                          type="text"
+                          value={platformInitials}
+                          onChange={(e) => {
+                            setPlatformInitials(e.target.value.substring(0, 3).toUpperCase());
+                          }}
+                          className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-emerald-500 text-zinc-700 font-mono"
+                          placeholder="Ex: PG"
+                        />
+                        <p className="text-[10px] text-zinc-400 font-medium">Até 3 letras. É o logotipo circular/quadrado do sistema.</p>
+                      </div>
+
+                      {/* LIVE SIDEBAR PREVIEW BOX */}
+                      <div className="bg-zinc-950 rounded-xl p-4 flex items-center justify-between border border-zinc-900 shadow-inner">
+                        <div className="space-y-1.5 flex-1">
+                          <p className="text-[9px] font-extrabold text-zinc-500 uppercase tracking-widest">Pré-visualização do Menu</p>
+                          <div className="flex items-center gap-3">
+                            <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-white flex items-center justify-center font-black tracking-widest text-base shadow-md shadow-emerald-500/15 shrink-0">
+                              {platformInitials || "PG"}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-extrabold text-white text-xs tracking-tight truncate leading-none font-display">
+                                {platformName || "PGDAS-D"}
+                              </p>
+                              <p className="text-[9px] text-zinc-500 font-semibold mt-0.5">Visualização do Menu Lateral</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
                   {/* CONFIGURAÇÕES OPERACIONAIS */}
                   <div className="bg-white rounded-2xl border border-zinc-200 p-6 md:p-8 space-y-6">
                     <div className="border-b border-zinc-100 pb-4">
@@ -2880,7 +3307,7 @@ export default function Page() {
                       </div>
                     </div>
 
-                    <div className="pt-4 border-t border-zinc-150 flex justify-end">
+                    <div className="pt-4 border-t border-zinc-200 flex justify-end">
                       <button 
                         onClick={() => {
                           addAuditLog("Atualização de preferências gerais", "Padrões cadastrais antigos", `Canal: ${prefNotificationChannel}, Regime: ${defaultRegime}`);
@@ -3253,6 +3680,32 @@ export default function Page() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.3 }}
+            className="space-y-8 flex flex-col items-center justify-center h-[70vh]"
+          >
+            <div className="w-16 h-16 bg-zinc-100 rounded-full flex items-center justify-center mb-4 border border-zinc-200">
+              <LayoutDashboard className="h-8 w-8 text-zinc-400" />
+            </div>
+            <h2 className="text-2xl md:text-3xl font-extrabold text-zinc-900 tracking-tight font-display text-center">Dashboard Principal</h2>
+            <p className="text-sm text-zinc-500 text-center max-w-md">Visão geral do sistema e principais métricas do escritório em breve.</p>
+            <button 
+              onClick={() => setCurrentPage("empresas")}
+              className="mt-4 px-6 py-2.5 bg-[#1e2696] hover:bg-[#151c6e] text-white text-xs font-bold rounded-xl transition-all shadow-sm flex items-center gap-2"
+            >
+              Ir para Gestão de Empresas <ChevronRight className="h-4 w-4" />
+            </button>
+          </motion.div>
+        )}
+
+        {/* ====================================================================
+            VIEW: EMPRESAS (LISTA DE CLIENTES)
+            ==================================================================== */}
+        {currentPage === "empresas" && (
+          <motion.div
+            key="dashboard"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.3 }}
             className="space-y-8"
           >
             {/* Top Header */}
@@ -3266,7 +3719,7 @@ export default function Page() {
               </div>
               <div className="flex items-center gap-3 shrink-0 w-full sm:w-auto justify-between sm:justify-start">
                 <button
-                  onClick={() => setCurrentPage("empresas")}
+                  onClick={() => setCurrentPage("cadastro_empresa")}
                   className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer hover:shadow-md h-9"
                   id="btn-nova-empresa-top"
                 >
@@ -3375,7 +3828,39 @@ export default function Page() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-100 font-medium text-zinc-700">
-                    {paginatedCompanies.length === 0 ? (
+                    {isLoadingCompanies ? (
+                      Array.from({ length: Math.min(companiesPerPage, 5) }).map((_, idx) => (
+                        <tr key={idx} className="animate-pulse">
+                          <td className="py-4">
+                            <div className="flex items-center gap-3">
+                              <div className="h-8 w-8 rounded-lg bg-zinc-200 shrink-0" />
+                              <div className="space-y-2 flex-1 min-w-0">
+                                <div className="h-3.5 bg-zinc-200 rounded w-48 sm:w-64" />
+                                <div className="h-2.5 bg-zinc-100 rounded w-32" />
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-4">
+                            <div className="space-y-2">
+                              <div className="h-3.5 bg-zinc-200 rounded w-28" />
+                              <div className="h-2.5 bg-zinc-100 rounded w-20" />
+                            </div>
+                          </td>
+                          <td className="py-4">
+                            <div className="h-5.5 bg-zinc-200 rounded-full w-24" />
+                          </td>
+                          <td className="py-4">
+                            <div className="h-5.5 bg-zinc-200 rounded-full w-16" />
+                          </td>
+                          <td className="py-4 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <div className="h-7 bg-zinc-200 rounded-lg w-12" />
+                              <div className="h-7 bg-zinc-200 rounded-lg w-16" />
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    ) : paginatedCompanies.length === 0 ? (
                       <tr>
                         <td colSpan={5} className="py-12 text-center">
                           <Building2 className="h-8 w-8 text-zinc-300 mx-auto mb-2" strokeWidth={1.5} />
@@ -3532,6 +4017,23 @@ export default function Page() {
                       </button>
 
                       {Array.from({ length: totalCompaniesPages }, (_, i) => i + 1).map((pageNum) => {
+                        // Always show if total pages is small
+                        if (totalCompaniesPages <= 7) {
+                          return (
+                            <button
+                              key={pageNum}
+                              onClick={() => setCompaniesPage(pageNum)}
+                              className={`min-w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                                activeCompaniesPage === pageNum
+                                  ? "bg-emerald-600 text-white shadow-sm shadow-emerald-600/15"
+                                  : "hover:bg-zinc-100 text-zinc-650 hover:text-zinc-900 border border-transparent"
+                              }`}
+                            >
+                              {pageNum}
+                            </button>
+                          );
+                        }
+
                         const isFirstOrLast = pageNum === 1 || pageNum === totalCompaniesPages;
                         const isNearActive = Math.abs(pageNum - activeCompaniesPage) <= 1;
 
@@ -3849,7 +4351,7 @@ export default function Page() {
                           type="text"
                           value="e-CNPJ"
                           disabled
-                          className="w-full px-3 py-2 border border-zinc-150 bg-zinc-50 rounded-lg text-xs text-zinc-500 font-bold"
+                          className="w-full px-3 py-2 border border-zinc-200 bg-zinc-50 rounded-lg text-xs text-zinc-500 font-bold"
                         />
                       </div>
 
@@ -3863,7 +4365,7 @@ export default function Page() {
                           type="text"
                           value="66.378.843/0001-34"
                           disabled
-                          className="w-full px-3 py-2 border border-zinc-150 bg-zinc-50 rounded-lg text-xs text-zinc-500 font-mono font-bold"
+                          className="w-full px-3 py-2 border border-zinc-200 bg-zinc-50 rounded-lg text-xs text-zinc-500 font-mono font-bold"
                         />
                       </div>
 
@@ -3876,7 +4378,7 @@ export default function Page() {
                           type="text"
                           value={responsavelConfig}
                           disabled
-                          className="w-full px-3 py-2 border border-zinc-150 bg-zinc-50 rounded-lg text-xs text-zinc-500 font-bold"
+                          className="w-full px-3 py-2 border border-zinc-200 bg-zinc-50 rounded-lg text-xs text-zinc-500 font-bold"
                         />
                       </div>
                     </div>
@@ -4098,7 +4600,7 @@ export default function Page() {
                   { label: "Sincronia SERPRO", value: isValidatedCert ? "Ativa & Validada" : "Aguardando chave" },
                   { label: "Serviços Fiscais", value: isValidatedCert ? "Liberados" : "Bloqueados", highlight: true, valid: isValidatedCert }
                 ].map((item, i) => (
-                  <div key={i} className="bg-zinc-50 p-4 rounded-xl border border-zinc-150 space-y-1">
+                  <div key={i} className="bg-zinc-50 p-4 rounded-xl border border-zinc-200 space-y-1">
                     <span className="text-[9px] font-bold text-zinc-600 uppercase tracking-wider block">{item.label}</span>
                     <p className={`text-xs font-bold leading-snug ${item.highlight ? (item.valid ? "text-emerald-600" : "text-amber-600") : "text-zinc-800"}`}>
                       {item.value}
@@ -4130,16 +4632,22 @@ export default function Page() {
                 <h2 className="text-2xl font-black text-zinc-900 tracking-tight font-display">Apuração PGDAS-D</h2>
                 <p className="text-xs md:text-sm text-zinc-500 font-semibold mt-0.5">Do contexto fiscal aos documentos oficiais, com conferência antes da transmissão.</p>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest bg-zinc-100 px-2.5 py-1 rounded-md border border-zinc-200/50">PGDAS-D v3.2</span>
+              <div className="flex items-center gap-2 w-full md:w-auto">
+                <button className="flex-1 md:flex-none px-4 py-2 bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-700 rounded-lg text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-2">
+                  <Save className="h-4 w-4" /> Salvar dados
+                </button>
+                <button className="flex-1 md:flex-none px-4 py-2 bg-[#1e2696] hover:bg-[#151c6e] text-white rounded-lg text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-2">
+                  <Calculator className="h-4 w-4" /> Calcular prévia
+                </button>
               </div>
             </div>
 
             {/* Steps Navigation Component */}
-            <div className="bg-white p-4 md:p-5 rounded-2xl border border-zinc-200 shadow-xs">
-              <div className="grid grid-cols-2 md:flex md:items-center md:justify-between gap-3 md:gap-4">
+            <div className="bg-white p-4 md:p-5 rounded-2xl border border-zinc-200 shadow-xs relative">
+              <div className="hidden md:block absolute top-1/2 left-0 w-full h-[1px] bg-zinc-100 -z-10 -translate-y-1/2"></div>
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 md:gap-0 z-10">
                 {[
-                  { stepNum: 1, label: "Importação" },
+                  { stepNum: 1, label: "Contexto" },
                   { stepNum: 2, label: "Dados fiscais" },
                   { stepNum: 3, label: "Prévia" },
                   { stepNum: 4, label: "Confirmação" },
@@ -4148,7 +4656,7 @@ export default function Page() {
                   const isActive = pgdasStep === s.stepNum;
                   const isCompleted = pgdasStep > s.stepNum;
                   return (
-                    <React.Fragment key={s.stepNum}>
+                    <div key={s.stepNum} className="flex items-center group flex-1">
                       {/* Step Item */}
                       <button
                         onClick={() => {
@@ -4158,42 +4666,52 @@ export default function Page() {
                             addToast(`Por favor, complete a etapa atual para avançar para ${s.label}.`, "info");
                           }
                         }}
-                        className={`flex items-center gap-2.5 text-left transition-all ${
-                          isActive 
-                            ? "text-[#1e2696] scale-[1.02]" 
-                            : isCompleted 
-                              ? "text-emerald-600 hover:text-emerald-700" 
-                              : "text-zinc-400 hover:text-zinc-600"
+                        className={`flex items-center gap-3 transition-all bg-white px-2 ${
+                          !isCompleted && s.stepNum > pgdasStep && pgdasFiles.length === 0
+                            ? "cursor-not-allowed opacity-50"
+                            : "cursor-pointer"
                         }`}
                       >
-                        <div className={`h-6.5 w-6.5 rounded-full flex items-center justify-center text-[11px] font-bold border transition-all ${
-                          isActive 
-                            ? "border-[#1e2696] bg-[#f0f2fe] text-[#1e2696] shadow-sm" 
-                            : isCompleted 
-                              ? "border-emerald-500 bg-emerald-50 text-emerald-600" 
-                              : "border-zinc-200 bg-zinc-50 text-zinc-500"
-                        }`}>
-                          {isCompleted ? <Check className="h-3.5 w-3.5" strokeWidth={3} /> : s.stepNum}
+                        <div
+                          className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-all ${
+                            isCompleted
+                              ? "bg-emerald-50 text-emerald-600 border border-emerald-200"
+                              : isActive
+                              ? "bg-white text-[#1e2696] border-2 border-[#1e2696]"
+                              : "bg-white text-zinc-400 border border-zinc-200 group-hover:border-zinc-300 group-hover:text-zinc-600"
+                          }`}
+                        >
+                          {isCompleted ? <Check className="h-4 w-4" strokeWidth={3} /> : s.stepNum}
                         </div>
-                        <div>
-                          <p className={`text-xs ${isActive || isCompleted ? "font-extrabold" : "font-bold"}`}>{s.label}</p>
-                          <span className="text-[9px] text-zinc-400 block -mt-0.5">Etapa 0{s.stepNum}</span>
-                        </div>
+                        <span
+                          className={`text-xs font-bold hidden md:block lg:block transition-all ${
+                            isCompleted ? "text-emerald-700" : isActive ? "text-[#1e2696]" : "text-zinc-500 group-hover:text-zinc-700"
+                          }`}
+                        >
+                          {s.label}
+                        </span>
+                        <span
+                          className={`text-xs font-bold md:hidden transition-all ${
+                            isCompleted ? "text-emerald-700" : isActive ? "text-[#1e2696]" : "text-zinc-500"
+                          }`}
+                        >
+                          {s.stepNum}. {s.label}
+                        </span>
                       </button>
-
-                      {/* Connector line (desktop only) */}
+                      
+                      {/* Connector Line (Desktop) */}
                       {idx < 4 && (
-                        <div className="hidden md:block flex-1 h-[2px] bg-zinc-150 mx-2 rounded-full relative overflow-hidden">
-                          <div className={`absolute top-0 left-0 h-full transition-all duration-500 ${isCompleted ? "bg-emerald-500 w-full" : isActive ? "bg-[#1e2696]/40 w-1/2" : "bg-zinc-200 w-0"}`} />
+                        <div className="hidden md:block h-[1px] flex-1 mx-4 transition-all bg-zinc-200">
+                          <div className={`h-full transition-all ${isCompleted ? 'bg-emerald-400' : 'bg-transparent'}`}></div>
                         </div>
                       )}
-                    </React.Fragment>
+                    </div>
                   );
                 })}
               </div>
             </div>
 
-            {/* STEP 1: CONTEXTO (MATCHING THE MOCKUP IMAGE PERFECTLY) */}
+            {/* STEP 1: IMPORTAÇÃO */}
             {pgdasStep === 1 && (
               <div className="space-y-6">
                 
@@ -4201,12 +4719,9 @@ export default function Page() {
                 <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-xs space-y-5">
                   <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
                     <h3 className="text-[13px] font-black text-zinc-900 uppercase tracking-wider">1. Dados da apuração</h3>
-                    <span className="text-[10px] text-zinc-400 font-bold flex items-center gap-1.5">
-                      <Clock className="h-3 w-3" /> Atualizado em tempo real
-                    </span>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
+                  <div className="grid grid-cols-1 md:grid-cols-9 gap-5">
                     {/* Left Column - Empresa Selection */}
                     <div className="md:col-span-6 space-y-1.5">
                       <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Empresa</label>
@@ -4231,22 +4746,6 @@ export default function Page() {
                         </select>
                         <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 pointer-events-none" />
                       </div>
-
-                      {/* Info Badges */}
-                      <div className="flex flex-wrap gap-2 mt-3">
-                        <span className="bg-zinc-100 text-zinc-700 text-[10px] font-bold px-2.5 py-1 rounded-md border border-zinc-200/60 font-mono">
-                          {pgdasEmpresaCnpj}
-                        </span>
-                        <span className="bg-emerald-50 text-emerald-700 text-[10px] font-bold px-2.5 py-1 rounded-md border border-emerald-100 flex items-center gap-1">
-                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0"></span> Simples Nacional
-                        </span>
-                        <span className="bg-blue-50 text-blue-700 text-[10px] font-bold px-2.5 py-1 rounded-md border border-blue-100">
-                          Empresa normal
-                        </span>
-                        <span className="bg-zinc-100 text-zinc-600 text-[10px] font-bold px-2.5 py-1 rounded-md border border-zinc-200/50">
-                          RBT12 completo
-                        </span>
-                      </div>
                     </div>
 
                     {/* Middle Column - Competência */}
@@ -4261,156 +4760,215 @@ export default function Page() {
                         />
                       </div>
                     </div>
-
-                    {/* Right Column - Status Box */}
-                    <div className="md:col-span-3 space-y-1.5">
-                      <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Status</label>
-                      <div className="border border-zinc-200 bg-zinc-50/50 rounded-xl p-3 flex flex-col justify-center h-[42px] md:h-[46px]">
-                        <div className="flex items-center gap-1.5 text-zinc-700">
-                          <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse"></span>
-                          <span className="text-[11px] font-black tracking-tight text-zinc-800">{pgdasStatus}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Context Info Banner at bottom */}
-                  <div className="p-3 bg-blue-50/[0.2] rounded-xl border border-blue-100/50 flex gap-3 text-[11px] leading-relaxed text-zinc-600">
-                    <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-bold text-zinc-900">Empresa normal</p>
-                      <p className="text-[11px] text-zinc-500">Apuração com RBT12 dos 12 meses anteriores.</p>
-                    </div>
                   </div>
                 </div>
 
-                {/* 2. Importação e análise dos XMLs Card */}
-                <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-xs space-y-5">
-                  <div className="border-b border-zinc-100 pb-3">
-                    <h3 className="text-[13px] font-black text-zinc-900 uppercase tracking-wider">2. Importação e análise dos XMLs</h3>
-                  </div>
-
-                  <div className="space-y-4">
-                    {/* Select XML Standard */}
-                    <div className="max-w-md space-y-1.5">
-                      <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Padrão dos XMLs</label>
-                      <div className="relative">
-                        <select
-                          value={xmlStandard}
-                          onChange={(e) => setXmlStandard(e.target.value)}
-                          className="w-full pl-3 pr-10 py-2.5 border border-zinc-200 bg-white text-zinc-800 text-xs font-bold rounded-lg focus:outline-none focus:border-[#1e2696] appearance-none"
-                        >
-                          <option value="Portal Nacional — NT 009">Portal Nacional — NT 009</option>
-                          <option value="Prefeitura de São Paulo - NFS-e">Prefeitura de São Paulo - NFS-e</option>
-                          <option value="Prefeitura de Belo Horizonte - BHISS">Prefeitura de Belo Horizonte - BHISS</option>
-                          <option value="SPED Fiscal - EFD ICMS/IPI">SPED Fiscal - EFD ICMS/IPI</option>
-                        </select>
-                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 pointer-events-none" />
+                {/* File Upload Trigger */}
+                <input type="file" ref={pgdasFileInputRef} className="hidden" multiple accept=".xml,.zip" onChange={(e) => {
+                  if (e.target.files && e.target.files.length > 0) {
+                    setIsUploadingPgdas(true);
+                    setTimeout(() => {
+                      setPgdasFiles([
+                        { name: "NFE_202606_001.xml", size: "3.2 KB", status: "sucesso" },
+                        { name: "NFE_202606_002.xml", size: "4.1 KB", status: "sucesso" },
+                        { name: "NFSE_202606_015.xml", size: "2.8 KB", status: "sucesso" }
+                      ]);
+                      setIsUploadingPgdas(false);
+                      addToast("XMLs processados com sucesso!", "success");
+                    }, 1200);
+                  }
+                }} />
+                <div 
+                  onClick={() => {
+                    if (isUploadingPgdas) return;
+                    pgdasFileInputRef.current?.click();
+                  }}
+                  className="border-2 border-dashed border-zinc-200 hover:border-[#1e2696]/60 rounded-2xl p-8 text-center cursor-pointer bg-zinc-50/20 hover:bg-zinc-50/70 transition-all duration-200"
+                >
+                  {isUploadingPgdas ? (
+                    <div className="space-y-3 py-4">
+                      <RefreshCw className="h-8 w-8 text-[#1e2696] animate-spin mx-auto" />
+                      <div className="space-y-1">
+                        <p className="text-xs font-extrabold text-zinc-800">Processando e Validando XMLs...</p>
+                        <p className="text-[10px] text-zinc-400 font-semibold font-mono">Lendo notas e verificando valores...</p>
+                      </div>
+                      <div className="w-48 bg-zinc-200 h-1.5 rounded-full mx-auto overflow-hidden">
+                        <div className="bg-[#1e2696] h-full w-2/3 animate-pulse rounded-full" />
                       </div>
                     </div>
+                  ) : pgdasFiles.length > 0 ? (
+                    <div className="space-y-4 py-2">
+                      <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center mx-auto text-emerald-600">
+                        <Check className="h-5 w-5" strokeWidth={3} />
+                      </div>
+                      <div>
+                        <p className="text-xs font-extrabold text-zinc-800">Arquivos XML Carregados</p>
+                        <p className="text-[10px] text-zinc-400 font-semibold mt-0.5">Clique para carregar novos arquivos ou atualizar</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3 py-4">
+                      <Upload className="h-8 w-8 text-[#1e2696] mx-auto" strokeWidth={1.5} />
+                      <div>
+                        <span className="inline-flex items-center gap-1 text-xs font-extrabold text-[#1e2696]">
+                          Importar XML / ZIP
+                        </span>
+                        <p className="text-[10px] text-zinc-400 font-semibold mt-1">Arraste ou clique para carregar os XMLs fiscais</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
 
-                    {/* Drag and Drop Container with Simulation Trigger */}
-                    <input type="file" ref={pgdasFileInputRef} className="hidden" multiple accept=".xml,.zip" onChange={handleFileChange} />
-                    <div 
-                      onClick={() => {
-                        if (isUploadingPgdas) return;
-                        pgdasFileInputRef.current?.click();
-                      }}
-                      className="border-2 border-dashed border-zinc-200 hover:border-[#1e2696]/60 rounded-2xl p-8 text-center cursor-pointer bg-zinc-50/20 hover:bg-zinc-50/70 transition-all duration-200"
-                    >
-                      {isUploadingPgdas ? (
-                        <div className="space-y-3 py-4">
-                          <RefreshCw className="h-8 w-8 text-[#1e2696] animate-spin mx-auto" />
-                          <div className="space-y-1">
-                            <p className="text-xs font-extrabold text-zinc-800">Processando e Validando XMLs...</p>
-                            <p className="text-[10px] text-zinc-400 font-semibold font-mono">Checando CNPJ, competência, valores e versão do leiaute...</p>
-                          </div>
-                          <div className="w-48 bg-zinc-150 h-1.5 rounded-full mx-auto overflow-hidden">
-                            <div className="bg-[#1e2696] h-full w-2/3 animate-pulse rounded-full" />
-                          </div>
-                        </div>
-                      ) : pgdasFiles.length > 0 ? (
-                        <div className="space-y-4 py-2">
-                          <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center mx-auto text-emerald-600">
-                            <Check className="h-5 w-5" strokeWidth={3} />
-                          </div>
-                          <div>
-                            <p className="text-xs font-extrabold text-zinc-800">3 Arquivos XML Carregados</p>
-                            <p className="text-[10px] text-zinc-400 font-semibold mt-0.5">Clique para carregar novos arquivos ou atualizar</p>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="space-y-3 py-4">
-                          <Upload className="h-8 w-8 text-zinc-400 mx-auto" strokeWidth={1.5} />
-                          <div>
-                            <span className="inline-flex items-center gap-1 text-xs font-extrabold text-[#1e2696]">
-                              Importar XML / ZIP
-                            </span>
-                            <p className="text-[10px] text-zinc-400 font-semibold mt-1">Arraste ou clique para carregar os XMLs fiscais</p>
-                          </div>
-                        </div>
-                      )}
+                {/* 2. Resumo de Processamento (Only if files uploaded or uploading) */}
+                {(isUploadingPgdas || pgdasFiles.length > 0) && (
+                  <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-xs space-y-6">
+                    <div className="border-b border-zinc-100 pb-3 flex items-center justify-between">
+                      <h3 className="text-[13px] font-black text-zinc-900 uppercase tracking-wider flex items-center gap-2">
+                        <span>2. Resumo da Importação</span>
+                        {isUploadingPgdas && (
+                          <span className="flex h-2 w-2 relative">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                          </span>
+                        )}
+                      </h3>
                     </div>
 
-                    {/* Extracted Values Display Box after Upload */}
-                    {pgdasFiles.length > 0 && (
-                      <motion.div 
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="bg-[#f0f2fe]/40 rounded-xl border border-[#1e2696]/10 p-4 space-y-3"
-                      >
-                        <div className="flex justify-between items-center border-b border-zinc-100 pb-2">
-                          <h4 className="text-[11px] font-black text-zinc-900 uppercase">Valores Extraídos dos XMLs</h4>
-                          <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded font-mono">Consolidado</span>
+                    {isUploadingPgdas ? (
+                      /* LOADING SKELETON */
+                      <div className="space-y-6 animate-pulse">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          {[1, 2, 3, 4].map((i) => (
+                            <div key={i} className="bg-zinc-50 p-4 rounded-xl border border-zinc-100 space-y-2">
+                              <div className="h-2.5 bg-zinc-200 rounded w-16" />
+                              <div className="h-6 bg-zinc-300 rounded w-8" />
+                            </div>
+                          ))}
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                          <div className="bg-white p-3 rounded-lg border border-zinc-200/50">
-                            <p className="text-[9px] font-bold text-zinc-400 uppercase">Venda/Comércio</p>
-                            <p className="text-xs font-extrabold text-zinc-800 mt-1">R$ {pgdasDraft.receitaComercio.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+
+                        <div className="overflow-x-auto border border-zinc-100 rounded-xl">
+                          <table className="w-full text-left text-[11px]">
+                            <thead className="bg-zinc-50 border-b border-zinc-100">
+                              <tr className="text-zinc-500 font-bold uppercase">
+                                <th className="px-4 py-3"><div className="h-3 bg-zinc-200 rounded w-16" /></th>
+                                <th className="px-4 py-3"><div className="h-3 bg-zinc-200 rounded w-10" /></th>
+                                <th className="px-4 py-3"><div className="h-3 bg-zinc-200 rounded w-12" /></th>
+                                <th className="px-4 py-3"><div className="h-3 bg-zinc-200 rounded w-16" /></th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-zinc-100 text-zinc-700">
+                              <tr>
+                                <td className="px-4 py-3"><div className="h-3.5 bg-zinc-200 rounded w-14" /></td>
+                                <td className="px-4 py-3"><div className="h-3.5 bg-zinc-100 rounded w-6" /></td>
+                                <td className="px-4 py-3"><div className="h-3.5 bg-zinc-200 rounded w-20" /></td>
+                                <td className="px-4 py-3"><div className="h-3.5 bg-zinc-100 rounded w-6" /></td>
+                              </tr>
+                              <tr>
+                                <td className="px-4 py-3"><div className="h-3.5 bg-zinc-200 rounded w-10" /></td>
+                                <td className="px-4 py-3"><div className="h-3.5 bg-zinc-100 rounded w-6" /></td>
+                                <td className="px-4 py-3"><div className="h-3.5 bg-zinc-300 rounded w-20" /></td>
+                                <td className="px-4 py-3"><div className="h-3.5 bg-zinc-100 rounded w-6" /></td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-[11px] bg-zinc-50 p-4 rounded-xl border border-zinc-100">
+                          <div className="space-y-1.5">
+                            <div className="h-2.5 bg-zinc-200 rounded w-20" />
+                            <div className="h-3.5 bg-zinc-300 rounded w-32" />
                           </div>
-                          <div className="bg-white p-3 rounded-lg border border-zinc-200/50">
-                            <p className="text-[9px] font-bold text-zinc-400 uppercase">Serviços Prestados</p>
-                            <p className="text-xs font-extrabold text-zinc-800 mt-1">R$ {pgdasDraft.receitaServico.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
-                          </div>
-                          <div className="bg-white p-3 rounded-lg border border-zinc-200/50">
-                            <p className="text-[9px] font-bold text-[#1e2696] uppercase">Faturamento Total</p>
-                            <p className="text-xs font-black text-[#1e2696] mt-1">R$ {(pgdasDraft.receitaComercio + pgdasDraft.receitaServico).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+                          <div className="space-y-1.5">
+                            <div className="h-2.5 bg-zinc-200 rounded w-16" />
+                            <div className="h-3.5 bg-zinc-300 rounded w-24" />
                           </div>
                         </div>
-                      </motion.div>
+                      </div>
+                    ) : (
+                      /* ACTUAL CONTENT */
+                      <>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-100">
+                            <p className="text-[9px] font-bold text-zinc-400 uppercase flex items-center gap-1.5"><FileText className="h-3 w-3" /> XMLs lidos</p>
+                            <p className="text-lg font-black text-zinc-800 mt-1">42</p>
+                          </div>
+                          <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-100">
+                            <p className="text-[9px] font-bold text-zinc-400 uppercase flex items-center gap-1.5"><Copy className="h-3 w-3" /> Duplicados</p>
+                            <p className="text-lg font-black text-zinc-800 mt-1">0</p>
+                          </div>
+                          <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-100">
+                            <p className="text-[9px] font-bold text-zinc-400 uppercase flex items-center gap-1.5"><AlertTriangle className="h-3 w-3" /> Rejeitados</p>
+                            <p className="text-lg font-black text-zinc-800 mt-1">0</p>
+                          </div>
+                          <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-100">
+                            <p className="text-[9px] font-bold text-zinc-400 uppercase flex items-center gap-1.5"><Trash2 className="h-3 w-3" /> Descartados</p>
+                            <p className="text-lg font-black text-zinc-800 mt-1">0</p>
+                          </div>
+                        </div>
+
+                        {/* Metrics Table */}
+                        <div className="overflow-x-auto border border-zinc-100 rounded-xl">
+                          <table className="w-full text-left text-[11px]">
+                            <thead className="bg-zinc-50 border-b border-zinc-100">
+                              <tr className="text-zinc-500 font-bold uppercase">
+                                <th className="px-4 py-3">Competência</th>
+                                <th className="px-4 py-3">Notas</th>
+                                <th className="px-4 py-3">Receita</th>
+                                <th className="px-4 py-3">ISS Retido</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-zinc-100 text-zinc-700">
+                              <tr>
+                                <td className="px-4 py-3 font-semibold">2026-06</td>
+                                <td className="px-4 py-3 font-mono text-zinc-500">42</td>
+                                <td className="px-4 py-3 font-bold font-mono">R$ 16.067,19</td>
+                                <td className="px-4 py-3 font-mono">41</td>
+                              </tr>
+                              <tr className="bg-zinc-50/50 font-black">
+                                <td className="px-4 py-3 text-zinc-900">Total</td>
+                                <td className="px-4 py-3">42</td>
+                                <td className="px-4 py-3 text-[#1e2696]">R$ 16.467,19</td>
+                                <td className="px-4 py-3">-</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+
+                        {/* Metadata Details */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-[11px] bg-zinc-50 p-4 rounded-xl border border-zinc-100">
+                          <div>
+                            <p className="text-[9px] font-bold text-zinc-400 uppercase">CNPJ emissor</p>
+                            <p className="font-mono font-bold text-zinc-800 mt-0.5">53.855.352/0001-95</p>
+                          </div>
+                          <div>
+                            <p className="text-[9px] font-bold text-zinc-400 uppercase">Padrão</p>
+                            <p className="font-bold text-zinc-800 mt-0.5">NFS-e Nacional</p>
+                          </div>
+                        </div>
+                      </>
                     )}
-
-                    {/* Help footer note */}
-                    <p className="text-[10px] text-zinc-400 leading-relaxed">
-                      Importe XMLs ou ZIP do padrão selecionado. O sistema rejeitará arquivos de outra família e validará CNPJ, competência, valores, retenção e versão do leiaute.
-                    </p>
                   </div>
-                </div>
+                )}
 
                 {/* Navigation CTA at Bottom */}
-                <div className="flex justify-end pt-2">
+                <div className="flex justify-between items-center pt-2">
+                  <button
+                    onClick={() => setPgdasStep(1)}
+                    className="px-5 py-2.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-black rounded-xl border border-zinc-200 transition-all flex items-center gap-2"
+                  >
+                    <ArrowLeft className="h-4 w-4" /> Voltar ao Contexto
+                  </button>
                   <button
                     onClick={() => {
                       if (pgdasFiles.length === 0) {
-                        // Simulate auto uploading if they didn't upload
-                        setIsUploadingPgdas(true);
-                        setTimeout(() => {
-                          setPgdasFiles([
-                            { name: "NFE_202606_001.xml", size: "3.2 KB", status: "sucesso" },
-                            { name: "NFE_202606_002.xml", size: "4.1 KB", status: "sucesso" },
-                            { name: "NFSE_202606_015.xml", size: "2.8 KB", status: "sucesso" }
-                          ]);
-                          setIsUploadingPgdas(false);
-                          setPgdasStep(2);
-                          addToast("XMLs importados e validados automaticamente!", "success");
-                        }, 1200);
+                        addToast("Por favor, importe os XMLs antes de avançar.", "info");
                       } else {
                         setPgdasStep(2);
                       }
                     }}
                     className="px-6 py-2.5 bg-[#1e2696] text-white hover:bg-[#151c6e] text-xs font-black rounded-xl shadow-xs hover:shadow-md transition-all flex items-center gap-2"
                   >
-                    Avançar para Dados Fiscais <ChevronRight className="h-4 w-4" />
+                    Avançar para Dados fiscais <ChevronRight className="h-4 w-4" />
                   </button>
                 </div>
               </div>
@@ -4419,154 +4977,88 @@ export default function Page() {
             {/* STEP 2: DADOS FISCAIS */}
             {pgdasStep === 2 && (
               <div className="space-y-6">
+                {/* 3. Receitas dos últimos 12 meses */}
                 <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-xs space-y-6">
-                  <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
-                    <h3 className="text-[13px] font-black text-zinc-900 uppercase tracking-wider">Notas Fiscais Processadas e Classificadas</h3>
-                    <span className="text-[10px] bg-emerald-50 text-emerald-700 font-bold px-2.5 py-1 rounded-md border border-emerald-100">
-                      8 Notas Encontradas
-                    </span>
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-base font-bold text-zinc-900 tracking-tight">3. Receitas dos últimos 12 meses</h3>
+                    <button className="px-3 py-1.5 bg-white text-[#1e2696] hover:bg-zinc-50 text-[11px] font-bold rounded-lg border border-zinc-200 shadow-sm transition-all flex items-center gap-1.5">
+                      <ShieldCheck className="h-3.5 w-3.5" /> Buscar receitas na API
+                    </button>
                   </div>
-
+                  
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-200/60">
-                      <span className="text-[9px] font-bold text-zinc-400 uppercase block">Receita de Comércio (Anexo I)</span>
-                      <p className="text-xl font-black text-zinc-800 mt-1">R$ 12.450,00</p>
-                      <span className="text-[10px] text-zinc-500 font-semibold mt-1 block">3 Notas Fiscais Eletrônicas (NF-e)</span>
+                    <div className="bg-zinc-50/50 p-4 rounded-xl border border-zinc-100">
+                      <p className="text-[11px] font-bold text-zinc-500">RBT12 proporcional</p>
+                      <p className="text-xl font-black text-zinc-900 mt-1">R$ 0,00</p>
                     </div>
-                    <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-200/60">
-                      <span className="text-[9px] font-bold text-zinc-400 uppercase block">Receita de Serviços (Anexo III)</span>
-                      <p className="text-xl font-black text-zinc-800 mt-1">R$ 32.780,00</p>
-                      <span className="text-[10px] text-zinc-500 font-semibold mt-1 block">5 Notas de Serviços (NFS-e)</span>
+                    <div className="bg-zinc-50/50 p-4 rounded-xl border border-zinc-100">
+                      <p className="text-[11px] font-bold text-zinc-500">Meses considerados</p>
+                      <p className="text-xl font-black text-zinc-900 mt-1">1/12</p>
                     </div>
-                    <div className="bg-[#1e2696]/[0.02] p-4 rounded-xl border border-[#1e2696]/10">
-                      <span className="text-[9px] font-bold text-[#1e2696] uppercase block">Total Geral da Competência</span>
-                      <p className="text-xl font-black text-[#1e2696] mt-1">R$ 45.230,00</p>
-                      <span className="text-[10px] text-zinc-500 font-semibold mt-1 block">Faturamento consolidado em Junho/2026</span>
+                    <div className="bg-zinc-50/50 p-4 rounded-xl border border-zinc-100">
+                      <p className="text-[11px] font-bold text-zinc-500">Fonte atual</p>
+                      <p className="text-xl font-black text-zinc-900 mt-1">Manual</p>
                     </div>
                   </div>
-
-                  {/* Document List Table */}
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                      <thead>
-                        <tr className="border-b border-zinc-150 text-[10px] font-bold text-zinc-400 uppercase">
-                          <th className="pb-3">Chave / Número</th>
-                          <th className="pb-3">Destinatário</th>
-                          <th className="pb-3">Tipo / Anexo</th>
-                          <th className="pb-3">Valor Bruto</th>
-                          <th className="pb-3">Status</th>
-                          <th className="pb-3 text-right">Ação</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-zinc-100 text-xs text-zinc-700">
-                        {[
-                          { num: "NF-e 2026.012", desc: "ALPHA INDUSTRIAL S/A", type: "Comércio - Anexo I", val: "R$ 4.120,00", key: "3126...1450" },
-                          { num: "NF-e 2026.013", desc: "LACUNAS LTDA", type: "Comércio - Anexo I", val: "R$ 8.330,00", key: "3126...1488" },
-                          { num: "NFS-e 2026.541", desc: "PREFEITURA DE BELO HORIZONTE", type: "Serviço - Anexo III", val: "R$ 15.000,00", key: "NFS-2026-BH" },
-                          { num: "NFS-e 2026.542", desc: "OMEGA COMÉRCIO LTDA", type: "Serviço - Anexo III", val: "R$ 9.780,00", key: "NFS-2026-OM" },
-                          { num: "NFS-e 2026.543", desc: "BETA SERVICES EIRELI", type: "Serviço - Anexo III", val: "R$ 8.000,00", key: "NFS-2026-BT" },
-                        ].map((inv, idx) => (
-                          <tr key={idx} className="hover:bg-zinc-50/50 transition-colors">
-                            <td className="py-3.5 font-bold text-zinc-800 font-mono">{inv.num}</td>
-                            <td className="py-3.5 font-semibold text-zinc-600 truncate max-w-[150px]">{inv.desc}</td>
-                            <td className="py-3.5">
-                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${inv.type.startsWith("Comércio") ? "bg-amber-50 text-amber-700 border border-amber-100" : "bg-indigo-50 text-indigo-700 border border-indigo-100"}`}>
-                                {inv.type}
-                              </span>
-                            </td>
-                            <td className="py-3.5 font-bold font-mono">{inv.val}</td>
-                            <td className="py-3.5">
-                              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600">
-                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span> Consolidada
-                              </span>
-                            </td>
-                            <td className="py-3.5 text-right">
-                              <button 
-                                onClick={() => {
-                                  setSelectedInvoice(inv);
-                                  addToast(`Visualizando ${inv.num}`, "info");
-                                }}
-                                className="text-[#1e2696] hover:underline text-[10px] font-bold cursor-pointer"
-                              >
-                                Visualizar
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                  
+                  <p className="text-[11px] text-zinc-500 font-semibold">RBT12 proporcional: média dos meses em atividade multiplicada por 12.</p>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 pt-2">
+                    {[
+                      "06/2025", "07/2025", "08/2025", 
+                      "09/2025", "10/2025", "11/2025",
+                      "12/2025", "01/2026", "02/2026",
+                      "03/2026", "04/2026", "05/2026"
+                    ].map((month) => (
+                      <div key={month} className="flex border border-zinc-200 rounded-lg overflow-hidden focus-within:border-[#1e2696] focus-within:ring-1 focus-within:ring-[#1e2696]/20 transition-all bg-white shadow-xs">
+                        <div className="px-3 py-2 flex items-center justify-center min-w-[70px]">
+                          <span className="text-[11px] font-semibold text-zinc-500">{month}</span>
+                        </div>
+                        <input type="text" defaultValue="0,00" className="w-full px-3 py-2 text-[13px] text-zinc-800 outline-none" />
+                      </div>
+                    ))}
                   </div>
                 </div>
-
-                {/* Selected Invoice Drawer/Modal (Overlay) */}
-                {selectedInvoice && (
-                  <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-                    <motion.div 
-                      initial={{ scale: 0.95, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      className="bg-white rounded-2xl border border-zinc-200 p-6 max-w-lg w-full space-y-4"
-                    >
-                      <div className="flex justify-between items-center border-b border-zinc-150 pb-3">
-                        <h4 className="text-sm font-black text-zinc-900 uppercase">Detalhamento de Nota Fiscal Eletrônica</h4>
-                        <button onClick={() => setSelectedInvoice(null)} className="p-1 rounded-lg hover:bg-zinc-100 text-zinc-400 hover:text-zinc-600">
-                          <X className="h-5 w-5" />
-                        </button>
-                      </div>
-
-                      <div className="space-y-3 text-xs">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <p className="text-[10px] font-bold text-zinc-400 uppercase">Documento</p>
-                            <p className="font-extrabold text-zinc-800 mt-0.5">{selectedInvoice.num}</p>
-                          </div>
-                          <div>
-                            <p className="text-[10px] font-bold text-zinc-400 uppercase">Chave de Acesso</p>
-                            <p className="font-mono text-zinc-600 text-[10px] break-all mt-0.5">{selectedInvoice.key}</p>
-                          </div>
-                        </div>
-
-                        <div className="border-t border-zinc-100 pt-3">
-                          <p className="text-[10px] font-bold text-zinc-400 uppercase">Prestador / Emissor</p>
-                          <p className="font-extrabold text-zinc-800 mt-0.5">NAIALE AUGUSTINHO CONTABILIDADE LTDA</p>
-                          <p className="text-zinc-500 text-[10px]">CNPJ: {pgdasEmpresaCnpj}</p>
-                        </div>
-
-                        <div className="border-t border-zinc-100 pt-3">
-                          <p className="text-[10px] font-bold text-zinc-400 uppercase">Tomador / Destinatário</p>
-                          <p className="font-extrabold text-zinc-800 mt-0.5">{selectedInvoice.desc}</p>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4 border-t border-zinc-100 pt-3">
-                          <div>
-                            <p className="text-[10px] font-bold text-zinc-400 uppercase">Classificação Fiscal</p>
-                            <p className="font-extrabold text-[#1e2696] mt-0.5">{selectedInvoice.type}</p>
-                          </div>
-                          <div>
-                            <p className="text-[10px] font-bold text-zinc-400 uppercase">Valor Total</p>
-                            <p className="font-extrabold text-zinc-800 mt-0.5 text-sm">{selectedInvoice.val}</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex justify-end border-t border-zinc-100 pt-3">
-                        <button 
-                          onClick={() => setSelectedInvoice(null)}
-                          className="px-4 py-2 bg-[#1e2696] text-white font-extrabold rounded-xl text-xs hover:bg-[#151c6e] cursor-pointer"
-                        >
-                          Concluir Leitura
-                        </button>
-                      </div>
-                    </motion.div>
+                
+                {/* 4. Receita da competência */}
+                <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-xs space-y-5">
+                  <div>
+                    <h3 className="text-base font-bold text-zinc-900 tracking-tight">4. Receita da competência</h3>
                   </div>
-                )}
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-zinc-700">Comércio</label>
+                      <input type="text" defaultValue="0,00" className="w-full px-3 py-2.5 border border-zinc-200 rounded-lg text-sm text-zinc-800 focus:outline-none focus:border-[#1e2696] focus:ring-1 focus:ring-[#1e2696]/20 transition-all shadow-sm" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-zinc-700">Serviço Anexo III</label>
+                      <input type="text" defaultValue="0,00" className="w-full px-3 py-2.5 border border-zinc-200 rounded-lg text-sm text-zinc-800 focus:outline-none focus:border-[#1e2696] focus:ring-1 focus:ring-[#1e2696]/20 transition-all shadow-sm" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-zinc-700">Serviço Anexo IV</label>
+                      <input type="text" defaultValue="0,00" className="w-full px-3 py-2.5 border border-zinc-200 rounded-lg text-sm text-zinc-800 focus:outline-none focus:border-[#1e2696] focus:ring-1 focus:ring-[#1e2696]/20 transition-all shadow-sm" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-zinc-700">Serviço Fator R</label>
+                      <input type="text" defaultValue="0,00" className="w-full px-3 py-2.5 border border-zinc-200 rounded-lg text-sm text-zinc-800 focus:outline-none focus:border-[#1e2696] focus:ring-1 focus:ring-[#1e2696]/20 transition-all shadow-sm" />
+                    </div>
+                  </div>
+                  
+                  <div className="bg-zinc-50/70 p-4 rounded-xl border border-zinc-200 flex justify-between items-center">
+                    <span className="text-[13px] font-semibold text-zinc-500">Total da competência</span>
+                    <span className="text-lg font-black text-zinc-900">R$ 0,00</span>
+                  </div>
+                  
+                  <p className="text-[11px] text-zinc-500 font-semibold pt-1">O estado sem movimento é definido exclusivamente no resumo principal da apuração.</p>
+                </div>
 
-                {/* Back / Forward Actions */}
                 <div className="flex justify-between items-center pt-2">
                   <button
                     onClick={() => setPgdasStep(1)}
                     className="px-5 py-2.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-black rounded-xl border border-zinc-200 transition-all flex items-center gap-2"
                   >
-                    <ArrowLeft className="h-4 w-4" /> Voltar ao Contexto
+                    <ArrowLeft className="h-4 w-4" /> Voltar à Importação
                   </button>
                   <button
                     onClick={() => setPgdasStep(3)}
@@ -4658,7 +5150,7 @@ export default function Page() {
                     onClick={() => setPgdasStep(2)}
                     className="px-5 py-2.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-black rounded-xl border border-zinc-200 transition-all flex items-center gap-2"
                   >
-                    <ArrowLeft className="h-4 w-4" /> Voltar aos Dados Fiscais
+                    <ArrowLeft className="h-4 w-4" /> Voltar à Classificação fiscal
                   </button>
                   <button
                     onClick={() => setPgdasStep(4)}
@@ -4682,7 +5174,7 @@ export default function Page() {
                     <p className="text-xs font-bold leading-relaxed text-zinc-700">
                       Ao transmitir esta apuração, você enviará os dados oficiais de faturamento consolidados para a Receita Federal do Brasil através da integração de outorga digital do escritório de contabilidade.
                     </p>
-                    <div className="p-3 bg-white rounded-lg border border-zinc-150 text-[11px] font-mono text-zinc-600">
+                    <div className="p-3 bg-white rounded-lg border border-zinc-200 text-[11px] font-mono text-zinc-600">
                       <p className="font-extrabold text-zinc-800">Responsável Técnico: NAIALE AUGUSTINHO</p>
                       <p className="mt-1">Escritório Certificado: Contabilidade Alfa Ltda.</p>
                       <p>Protocolo de Chaves: e-CNPJ Escritório Alfa - 45.987.654/0001-32</p>
@@ -4699,7 +5191,7 @@ export default function Page() {
                         "XMLs de faturamento sem divergências",
                         "Faturamento acumulado verificado com RBT12",
                       ].map((term, idx) => (
-                        <div key={idx} className="flex items-center gap-2.5 p-3 rounded-xl border border-zinc-150 bg-white">
+                        <div key={idx} className="flex items-center gap-2.5 p-3 rounded-xl border border-zinc-200 bg-white">
                           <div className="h-5 w-5 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
                             <Check className="h-3.5 w-3.5" strokeWidth={3} />
                           </div>
@@ -4766,7 +5258,7 @@ export default function Page() {
                       <span>Protocolo de Entrega</span>
                       <span className="font-mono text-zinc-600">83D3.2A1D.420F.8789</span>
                     </div>
-                    <div className="border-t border-zinc-150 pt-2.5 space-y-1.5">
+                    <div className="border-t border-zinc-200 pt-2.5 space-y-1.5">
                       <div className="flex justify-between">
                         <span className="font-bold text-zinc-600">Empresa:</span>
                         <span className="font-extrabold text-zinc-800">{pgdasEmpresaName}</span>
@@ -4843,9 +5335,9 @@ export default function Page() {
         {/* ====================================================================
             VIEW: CADASTRO DE EMPRESA (EMPRESAS)
             ==================================================================== */}
-        {currentPage === "empresas" && (
+        {currentPage === "cadastro_empresa" && (
           <motion.div
-            key="empresas"
+            key="cadastro_empresa"
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
@@ -4869,7 +5361,7 @@ export default function Page() {
               {/* Action Buttons */}
               <div className="flex items-center gap-2.5 w-full sm:w-auto">
                 <button
-                  onClick={() => setCurrentPage("dashboard")}
+                  onClick={() => setCurrentPage("empresas")}
                   className="flex-1 sm:flex-none px-4 py-2 bg-white hover:bg-zinc-50 border border-zinc-200 rounded-xl text-zinc-700 font-bold text-xs transition-colors cursor-pointer text-center h-9 flex items-center justify-center"
                   id="btn-cancelar-cad"
                 >
@@ -5272,7 +5764,7 @@ export default function Page() {
               </div>
             </div>
 
-            {/* STEP 3: Dados fiscais */}
+            {/* STEP 3: Parâmetros Fiscais */}
             <div className="bg-white p-6 rounded-2xl border border-zinc-200/65 shadow-[0_2px_8px_rgba(0,0,0,0.01)] space-y-6">
               <h4 className="text-sm font-extrabold text-zinc-900 flex items-center gap-2">
                 <span className="h-5.5 w-5.5 rounded-lg bg-emerald-50 text-emerald-600 font-bold text-xs flex items-center justify-center">3</span>
