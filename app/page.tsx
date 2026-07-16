@@ -19,6 +19,7 @@ import {
   X,
   ChevronDown,
   ChevronRight,
+  ChevronUp,
   BarChart3,
   Home,
   User,
@@ -37,7 +38,8 @@ import {
   Trash2,
   LockKeyhole,
   Plus,
-  Receipt
+  Receipt,
+  LayoutDashboard
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 
@@ -104,8 +106,9 @@ interface Company {
 
 export default function Page() {
   // Navigation State
-  const [currentPage, setCurrentPage] = useState<"dashboard" | "empresas" | "certificados" | "procuracoes" | "relatorios" | "configuracoes" | "perfil_escritorio">("dashboard");
-  const [profileTab, setProfileTab] = useState<"dados" | "responsaveis" | "certificados_integracoes">("dados");
+  const [currentPage, setCurrentPage] = useState<"dashboard" | "empresas" | "certificados" | "procuracoes" | "relatorios" | "configuracoes" | "perfil_escritorio" | "pgdas">("dashboard");
+  const [isFiscalMenuOpen, setIsFiscalMenuOpen] = useState(false);
+  const [profileTab, setProfileTab] = useState<"visao_geral" | "dados" | "responsaveis" | "certificados_integracoes">("visao_geral");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [currentWorkspace, setCurrentWorkspace] = useState<"admin" | "escritorio">("escritorio");
@@ -208,9 +211,45 @@ export default function Page() {
   const [isSearchingCep, setIsSearchingCep] = useState(false);
 
   // ==========================================
-  // STATE: CERTIFICADO E PROCURAÇÃO
+  // STATE: PGDAS-D APURAÇÃO
   // ==========================================
+  const [pgdasStep, setPgdasStep] = useState<1 | 2 | 3 | 4 | 5>(1);
+  const [pgdasEmpresaCnpj, setPgdasEmpresaCnpj] = useState("53.855.322/0001-95");
+  const [pgdasEmpresaName, setPgdasEmpresaName] = useState("NAIALE AUGUSTINHO CONTABILIDADE LTDA");
+  const [pgdasCompetencia, setPgdasCompetencia] = useState("2026-06");
+  const [pgdasStatus, setPgdasStatus] = useState("Em preenchimento");
+  const [xmlStandard, setXmlStandard] = useState("Portal Nacional — NT 009");
+  const [pgdasFiles, setPgdasFiles] = useState<{ name: string; size: string; status: "processando" | "sucesso" | "erro" }[]>([]);
+  const [isUploadingPgdas, setIsUploadingPgdas] = useState(false);
+  const [selectedInvoice, setSelectedInvoice] = useState<any | null>(null);
+  const [pgdasDraft, setPgdasDraft] = useState({
+    receitaComercio: 12450.00,
+    receitaServico: 32780.00,
+    rbt12: 542760.00,
+    isSubmitted: false
+  });
   const [metodoAcesso, setMetodoAcesso] = useState<"certificado" | "procuracao">("certificado");
+  const pgdasFileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    
+    setIsUploadingPgdas(true);
+    setPgdasFiles([]);
+    
+    // Simulate processing
+    setTimeout(() => {
+      const newFiles = Array.from(files).map(f => ({ 
+        name: f.name, 
+        size: (f.size / 1024).toFixed(1) + " KB", 
+        status: "sucesso" as const 
+      }));
+      setPgdasFiles(newFiles);
+      setIsUploadingPgdas(false);
+      addToast(`${files.length} XMLs importados e validados com sucesso!`, "success");
+    }, 2000);
+  };
   const [uploadedFile, setUploadedFile] = useState<{ name: string; size: string; lastModified: string } | null>(null);
   const [senhaCertificado, setSenhaCertificado] = useState("");
   const [mostrarSenha, setMostrarSenha] = useState(false);
@@ -821,8 +860,8 @@ export default function Page() {
 
   const renderUserDropdown = () => (
     <div className="relative group shrink-0" id="header-user-dropdown">
-      <div className="flex items-center gap-2 p-1.5 px-3 rounded-xl hover:bg-zinc-100/80 transition-all cursor-pointer border border-zinc-200/60 bg-white shadow-xs h-9">
-        <div className="h-6 w-6 rounded-lg bg-emerald-500/10 text-emerald-600 font-bold text-xs flex items-center justify-center shrink-0 border border-emerald-500/20 group-hover:bg-emerald-600 group-hover:text-white transition-all">
+      <div className="flex items-center gap-2 p-1.5 px-3 rounded-xl hover:bg-zinc-100/80 transition-all cursor-pointer border border-zinc-200/60 bg-[#f9fafb] text-[#1e2696] shadow-xs h-9">
+        <div className="h-6 w-6 rounded-lg bg-emerald-600 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-sm transition-all">
           NA
         </div>
         <ChevronDown className="h-3.5 w-3.5 text-zinc-400 group-hover:text-zinc-600 shrink-0 transition-colors" />
@@ -902,7 +941,7 @@ export default function Page() {
         <div className="flex items-center gap-3">
           {/* User Profile in Mobile Header */}
           <div className="flex items-center gap-2 p-1 px-2 rounded-lg bg-zinc-800/60 border border-zinc-700/60" id="mobile-header-user">
-            <div className="h-6 w-6 rounded bg-emerald-500/20 text-emerald-400 font-extrabold text-[10px] flex items-center justify-center shrink-0 border border-emerald-500/10">
+            <div className="h-6 w-6 rounded bg-emerald-600 text-white font-extrabold text-[10px] flex items-center justify-center shrink-0 shadow-sm">
               NA
             </div>
             <span className="text-[10px] font-bold text-zinc-300 max-w-[80px] truncate hidden xs:inline">Naiale</span>
@@ -976,17 +1015,15 @@ export default function Page() {
             </>
           ) : (
             <>
-              {/* Menu Item - Perfil do Escritório (Group Header) */}
-              <div className="space-y-1">
+              <div className="space-y-1 relative">
                 <button
                   onClick={() => {
                     setCurrentPage("perfil_escritorio");
-                    setProfileGroupOpen(!profileGroupOpen);
                     setSidebarOpen(false);
                   }}
-                  className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 group text-[13px] font-bold ${
+                  className={`relative w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 group text-[13px] font-bold z-10 ${
                     currentPage === "perfil_escritorio"
-                      ? "bg-[#27272a] text-zinc-100 hover:bg-[#3f3f46]"
+                      ? "bg-[#27272a] text-zinc-100 shadow-sm"
                       : "text-zinc-400 hover:text-zinc-100 hover:bg-[#27272a]/50"
                   }`}
                 >
@@ -994,51 +1031,16 @@ export default function Page() {
                     <div className="w-5 h-5 flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 duration-200">
                       <Briefcase 
                         className={`h-4.5 w-4.5 ${
-                          currentPage === "perfil_escritorio" ? "text-zinc-300 group-hover:text-zinc-100" : "text-zinc-500 group-hover:text-zinc-300"
+                          currentPage === "perfil_escritorio" ? "text-zinc-300" : "text-zinc-500 group-hover:text-zinc-300"
                         }`} 
                         strokeWidth={1.5}
                       />
                     </div>
                     <span className={`transition-opacity duration-200 ${sidebarCollapsed ? "md:opacity-0 md:w-0 overflow-hidden" : "opacity-100"}`}>
-                      Perfil do Escritório
+                      Escritório
                     </span>
                   </div>
-                  {!sidebarCollapsed && (
-                    <ChevronDown className={`h-4 w-4 text-zinc-400 transition-transform duration-200 ${profileGroupOpen ? "rotate-180" : ""}`} />
-                  )}
                 </button>
-
-                {/* Submenu Pages */}
-                {profileGroupOpen && !sidebarCollapsed && (
-                  <div className="pl-4 space-y-1 border-l border-zinc-800 ml-6 py-1">
-                    {[
-                      { id: "dados", label: "Dados do escritório", icon: Building2 },
-                      { id: "responsaveis", label: "Responsável técnico", icon: Shield },
-                      { id: "certificados_integracoes", label: "Certificados e integrações", icon: FileKey },
-                    ].map((subPage) => {
-                      const IconComponent = subPage.icon;
-                      const isSubActive = currentPage === "perfil_escritorio" && profileTab === subPage.id;
-                      return (
-                        <button
-                          key={subPage.id}
-                          onClick={() => {
-                            setCurrentPage("perfil_escritorio");
-                            setProfileTab(subPage.id as any);
-                            setSidebarOpen(false);
-                          }}
-                          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-bold transition-all duration-150 ${
-                            isSubActive
-                              ? "bg-zinc-800 text-emerald-400 border border-zinc-700"
-                              : "text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/30"
-                          }`}
-                        >
-                          <IconComponent className={`h-3.5 w-3.5 shrink-0 ${isSubActive ? "text-emerald-400" : "text-zinc-500"}`} />
-                          <span className="truncate text-left">{subPage.label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
               </div>
 
               {/* Menu Item - Dashboard */}
@@ -1060,32 +1062,43 @@ export default function Page() {
                   />
                 </div>
                 <span className={`transition-opacity duration-200 ${sidebarCollapsed ? "md:opacity-0 md:w-0 overflow-hidden" : "opacity-100"}`}>
-                  Empresas Clientes
+                  Empresas
                 </span>
               </button>
               
-              {/* Menu Item - Certificados */}
+              {/* Menu Item - Fiscal */}
               <button
-                onClick={() => { setCurrentPage("certificados"); setSidebarOpen(false); }}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group text-[13px] font-bold ${
-                  currentPage === "certificados"
-                    ? "bg-[#27272a] text-zinc-100 hover:bg-[#3f3f46]"
+                onClick={() => setIsFiscalMenuOpen(!isFiscalMenuOpen)}
+                className={`w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl transition-all duration-200 group text-[13px] font-bold ${
+                  currentPage === "certificados" || currentPage === "pgdas"
+                    ? "bg-[#27272a] text-zinc-100"
                     : "text-zinc-400 hover:text-zinc-100 hover:bg-[#27272a]/50"
                 }`}
-                id="nav-certificados"
+                id="nav-fiscal"
               >
-                <div className="w-5 h-5 flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 duration-200">
-                  <Receipt 
-                    className={`h-4.5 w-4.5 ${
-                      currentPage === "certificados" ? "text-zinc-300 group-hover:text-zinc-100" : "text-zinc-500 group-hover:text-zinc-300"
-                    }`} 
-                    strokeWidth={1.5}
-                  />
+                <div className="flex items-center gap-3">
+                  <div className="w-5 h-5 flex items-center justify-center shrink-0">
+                    <Receipt
+                      className={`h-4.5 w-4.5 ${
+                        currentPage === "certificados" || currentPage === "pgdas" ? "text-zinc-300" : "text-zinc-500"
+                      }`}
+                      strokeWidth={1.5}
+                    />
+                  </div>
+                  <span className={`transition-opacity duration-200 ${sidebarCollapsed ? "md:opacity-0 md:w-0 overflow-hidden" : "opacity-100"}`}>
+                    Módulo Fiscal
+                  </span>
                 </div>
-                <span className={`transition-opacity duration-200 ${sidebarCollapsed ? "md:opacity-0 md:w-0 overflow-hidden" : "opacity-100"}`}>
-                  Módulo Fiscal
-                </span>
+                {!sidebarCollapsed && (
+                  isFiscalMenuOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
+                )}
               </button>
+              {isFiscalMenuOpen && !sidebarCollapsed && (
+                <div className="pl-10 space-y-1 mt-1">
+                    <button onClick={() => { setCurrentPage("pgdas"); setSidebarOpen(false); }} className={`w-full text-left px-4 py-2 rounded-lg text-xs font-semibold ${currentPage === "pgdas" ? "text-zinc-100" : "text-zinc-400 hover:text-zinc-100"}`}>PGDAS</button>
+                    <button onClick={() => { setCurrentPage("certificados"); setSidebarOpen(false); }} className={`w-full text-left px-4 py-2 rounded-lg text-xs font-semibold ${currentPage === "certificados" ? "text-zinc-100" : "text-zinc-400 hover:text-zinc-100"}`}>Certificados</button>
+                </div>
+              )}
             </>
           )}
         </nav>
@@ -1282,26 +1295,59 @@ export default function Page() {
               </div>
             </div>
 
-            {/* Page Header Indicator */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-zinc-50 border border-zinc-200/60 px-6 py-4 rounded-2xl shadow-xs">
-              <div className="flex items-center gap-2.5 text-xs font-bold text-zinc-500 uppercase tracking-wider">
-                <span>Perfil do Escritório</span>
-                <ChevronRight className="w-3.5 h-3.5 text-zinc-400" />
-                <span className="text-zinc-900 font-extrabold font-display bg-white px-3 py-1.5 rounded-lg border border-zinc-200 shadow-2xs">
-                  {[
-                    { id: "dados", label: "Dados do Escritório" },
-                    { id: "responsaveis", label: "Responsável Técnico" },
-                    { id: "certificados_integracoes", label: "Certificados e Integrações" },
-                  ].find(t => t.id === profileTab)?.label || "Dados do Escritório"}
-                </span>
-              </div>
-              <p className="text-[11px] text-zinc-400 font-medium hidden md:block">
-                Navegue pelas páginas do perfil usando o menu lateral
-              </p>
+            {/* Horizontal Tabs */}
+            <div className="flex items-center gap-1 border-b border-zinc-200 mb-6 overflow-x-auto no-scrollbar">
+              {[
+                { id: "visao_geral", label: "Visão Geral", icon: LayoutDashboard },
+                { id: "dados", label: "Dados do Escritório", icon: Building2 },
+                { id: "responsaveis", label: "Responsável Técnico", icon: Shield },
+                { id: "certificados_integracoes", label: "Certificados e Integrações", icon: FileKey },
+              ].map((tab) => {
+                const IconComponent = tab.icon;
+                const isActive = profileTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setProfileTab(tab.id as any)}
+                    className={`relative flex items-center gap-2 px-5 py-3 text-sm font-bold transition-colors whitespace-nowrap rounded-t-xl ${
+                      isActive 
+                        ? "text-emerald-600 bg-white" 
+                        : "text-zinc-500 hover:text-zinc-700 hover:bg-zinc-100/50"
+                    }`}
+                  >
+                    <IconComponent className={`w-4 h-4 ${isActive ? "text-emerald-500" : "text-zinc-400"}`} />
+                    {tab.label}
+                    {isActive && (
+                      <div className="absolute bottom-[-1px] left-0 right-0 h-[2px] bg-emerald-500" />
+                    )}
+                  </button>
+                );
+              })}
             </div>
 
             {/* Content Tabs */}
             <div className="space-y-6">
+
+              {/* ABA: VISÃO GERAL */}
+              {profileTab === "visao_geral" && (
+                <div className="bg-white rounded-2xl border border-zinc-200 p-6 md:p-8 space-y-6">
+                  <h3 className="text-sm font-black text-zinc-900 uppercase">Visão Geral do Escritório</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="bg-emerald-50 rounded-xl p-6 border border-emerald-100">
+                      <p className="text-xs font-bold text-emerald-600">Empresas Ativas</p>
+                      <p className="text-3xl font-black text-emerald-900 mt-2">{companies.length}</p>
+                    </div>
+                    <div className="bg-blue-50 rounded-xl p-6 border border-blue-100">
+                      <p className="text-xs font-bold text-blue-600">Apurações PGDAS-D (Mês)</p>
+                      <p className="text-3xl font-black text-blue-900 mt-2">12</p>
+                    </div>
+                    <div className="bg-zinc-50 rounded-xl p-6 border border-zinc-200">
+                      <p className="text-xs font-bold text-zinc-600">Status do Sistema</p>
+                      <p className="text-lg font-black text-zinc-900 mt-2">Operacional</p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* ABA 1: DADOS CADASTRAIS */}
               {profileTab === "dados" && (
@@ -3308,6 +3354,735 @@ export default function Page() {
           </motion.div>
         )}
 
+        {/* ====================================================================
+            VIEW: PGDAS-D
+            ==================================================================== */}
+        {currentPage === "pgdas" && (
+          <motion.div
+            key="pgdas"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.3 }}
+            className="space-y-6"
+            id="screen-pgdas"
+          >
+            {/* Header Title & Subtitle */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-zinc-200 pb-5">
+              <div>
+                <h2 className="text-2xl font-black text-zinc-900 tracking-tight font-display">Apuração PGDAS-D</h2>
+                <p className="text-xs md:text-sm text-zinc-500 font-semibold mt-0.5">Do contexto fiscal aos documentos oficiais, com conferência antes da transmissão.</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest bg-zinc-100 px-2.5 py-1 rounded-md border border-zinc-200/50">PGDAS-D v3.2</span>
+              </div>
+            </div>
+
+            {/* Steps Navigation Component */}
+            <div className="bg-white p-4 md:p-5 rounded-2xl border border-zinc-200 shadow-xs">
+              <div className="grid grid-cols-2 md:flex md:items-center md:justify-between gap-3 md:gap-4">
+                {[
+                  { stepNum: 1, label: "Importação" },
+                  { stepNum: 2, label: "Dados fiscais" },
+                  { stepNum: 3, label: "Prévia" },
+                  { stepNum: 4, label: "Confirmação" },
+                  { stepNum: 5, label: "Documentos" },
+                ].map((s, idx) => {
+                  const isActive = pgdasStep === s.stepNum;
+                  const isCompleted = pgdasStep > s.stepNum;
+                  return (
+                    <React.Fragment key={s.stepNum}>
+                      {/* Step Item */}
+                      <button
+                        onClick={() => {
+                          if (isCompleted || s.stepNum <= pgdasStep || pgdasFiles.length > 0) {
+                            setPgdasStep(s.stepNum as any);
+                          } else {
+                            addToast(`Por favor, complete a etapa atual para avançar para ${s.label}.`, "info");
+                          }
+                        }}
+                        className={`flex items-center gap-2.5 text-left transition-all ${
+                          isActive 
+                            ? "text-[#1e2696] scale-[1.02]" 
+                            : isCompleted 
+                              ? "text-emerald-600 hover:text-emerald-700" 
+                              : "text-zinc-400 hover:text-zinc-600"
+                        }`}
+                      >
+                        <div className={`h-6.5 w-6.5 rounded-full flex items-center justify-center text-[11px] font-bold border transition-all ${
+                          isActive 
+                            ? "border-[#1e2696] bg-[#f0f2fe] text-[#1e2696] shadow-sm" 
+                            : isCompleted 
+                              ? "border-emerald-500 bg-emerald-50 text-emerald-600" 
+                              : "border-zinc-200 bg-zinc-50 text-zinc-500"
+                        }`}>
+                          {isCompleted ? <Check className="h-3.5 w-3.5" strokeWidth={3} /> : s.stepNum}
+                        </div>
+                        <div>
+                          <p className={`text-xs ${isActive || isCompleted ? "font-extrabold" : "font-bold"}`}>{s.label}</p>
+                          <span className="text-[9px] text-zinc-400 block -mt-0.5">Etapa 0{s.stepNum}</span>
+                        </div>
+                      </button>
+
+                      {/* Connector line (desktop only) */}
+                      {idx < 4 && (
+                        <div className="hidden md:block flex-1 h-[2px] bg-zinc-150 mx-2 rounded-full relative overflow-hidden">
+                          <div className={`absolute top-0 left-0 h-full transition-all duration-500 ${isCompleted ? "bg-emerald-500 w-full" : isActive ? "bg-[#1e2696]/40 w-1/2" : "bg-zinc-200 w-0"}`} />
+                        </div>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* STEP 1: CONTEXTO (MATCHING THE MOCKUP IMAGE PERFECTLY) */}
+            {pgdasStep === 1 && (
+              <div className="space-y-6">
+                
+                {/* 1. Dados da apuração Card */}
+                <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-xs space-y-5">
+                  <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+                    <h3 className="text-[13px] font-black text-zinc-900 uppercase tracking-wider">1. Dados da apuração</h3>
+                    <span className="text-[10px] text-zinc-400 font-bold flex items-center gap-1.5">
+                      <Clock className="h-3 w-3" /> Atualizado em tempo real
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
+                    {/* Left Column - Empresa Selection */}
+                    <div className="md:col-span-6 space-y-1.5">
+                      <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Empresa</label>
+                      <div className="relative">
+                        <select
+                          value={pgdasEmpresaCnpj}
+                          onChange={(e) => {
+                            setPgdasEmpresaCnpj(e.target.value);
+                            const selectedComp = companies.find(c => c.cnpj === e.target.value);
+                            if (selectedComp) {
+                              setPgdasEmpresaName(selectedComp.razaoSocial);
+                            } else if (e.target.value === "53.855.322/0001-95") {
+                              setPgdasEmpresaName("NAIALE AUGUSTINHO CONTABILIDADE LTDA");
+                            }
+                          }}
+                          className="w-full pl-3 pr-10 py-2.5 border border-zinc-200 bg-white text-zinc-800 text-xs font-bold rounded-lg focus:outline-none focus:border-[#1e2696] focus:ring-1 focus:ring-[#1e2696] appearance-none"
+                        >
+                          <option value="53.855.322/0001-95">NAIALE AUGUSTINHO CONTABILIDADE LTDA</option>
+                          {companies.map(c => (
+                            <option key={c.cnpj} value={c.cnpj}>{c.razaoSocial}</option>
+                          ))}
+                        </select>
+                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 pointer-events-none" />
+                      </div>
+
+                      {/* Info Badges */}
+                      <div className="flex flex-wrap gap-2 mt-3">
+                        <span className="bg-zinc-100 text-zinc-700 text-[10px] font-bold px-2.5 py-1 rounded-md border border-zinc-200/60 font-mono">
+                          {pgdasEmpresaCnpj}
+                        </span>
+                        <span className="bg-emerald-50 text-emerald-700 text-[10px] font-bold px-2.5 py-1 rounded-md border border-emerald-100 flex items-center gap-1">
+                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0"></span> Simples Nacional
+                        </span>
+                        <span className="bg-blue-50 text-blue-700 text-[10px] font-bold px-2.5 py-1 rounded-md border border-blue-100">
+                          Empresa normal
+                        </span>
+                        <span className="bg-zinc-100 text-zinc-600 text-[10px] font-bold px-2.5 py-1 rounded-md border border-zinc-200/50">
+                          RBT12 completo
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Middle Column - Competência */}
+                    <div className="md:col-span-3 space-y-1.5">
+                      <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Competência</label>
+                      <div className="relative">
+                        <input
+                          type="month"
+                          value={pgdasCompetencia}
+                          onChange={(e) => setPgdasCompetencia(e.target.value)}
+                          className="w-full pl-3 pr-3 py-2.5 border border-zinc-200 bg-white text-zinc-800 text-xs font-bold rounded-lg focus:outline-none focus:border-[#1e2696] focus:ring-1 focus:ring-[#1e2696]"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Right Column - Status Box */}
+                    <div className="md:col-span-3 space-y-1.5">
+                      <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Status</label>
+                      <div className="border border-zinc-200 bg-zinc-50/50 rounded-xl p-3 flex flex-col justify-center h-[42px] md:h-[46px]">
+                        <div className="flex items-center gap-1.5 text-zinc-700">
+                          <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                          <span className="text-[11px] font-black tracking-tight text-zinc-800">{pgdasStatus}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Context Info Banner at bottom */}
+                  <div className="p-3 bg-blue-50/[0.2] rounded-xl border border-blue-100/50 flex gap-3 text-[11px] leading-relaxed text-zinc-600">
+                    <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-bold text-zinc-900">Empresa normal</p>
+                      <p className="text-[11px] text-zinc-500">Apuração com RBT12 dos 12 meses anteriores.</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. Importação e análise dos XMLs Card */}
+                <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-xs space-y-5">
+                  <div className="border-b border-zinc-100 pb-3">
+                    <h3 className="text-[13px] font-black text-zinc-900 uppercase tracking-wider">2. Importação e análise dos XMLs</h3>
+                  </div>
+
+                  <div className="space-y-4">
+                    {/* Select XML Standard */}
+                    <div className="max-w-md space-y-1.5">
+                      <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Padrão dos XMLs</label>
+                      <div className="relative">
+                        <select
+                          value={xmlStandard}
+                          onChange={(e) => setXmlStandard(e.target.value)}
+                          className="w-full pl-3 pr-10 py-2.5 border border-zinc-200 bg-white text-zinc-800 text-xs font-bold rounded-lg focus:outline-none focus:border-[#1e2696] appearance-none"
+                        >
+                          <option value="Portal Nacional — NT 009">Portal Nacional — NT 009</option>
+                          <option value="Prefeitura de São Paulo - NFS-e">Prefeitura de São Paulo - NFS-e</option>
+                          <option value="Prefeitura de Belo Horizonte - BHISS">Prefeitura de Belo Horizonte - BHISS</option>
+                          <option value="SPED Fiscal - EFD ICMS/IPI">SPED Fiscal - EFD ICMS/IPI</option>
+                        </select>
+                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 pointer-events-none" />
+                      </div>
+                    </div>
+
+                    {/* Drag and Drop Container with Simulation Trigger */}
+                    <input type="file" ref={pgdasFileInputRef} className="hidden" multiple accept=".xml,.zip" onChange={handleFileChange} />
+                    <div 
+                      onClick={() => {
+                        if (isUploadingPgdas) return;
+                        pgdasFileInputRef.current?.click();
+                      }}
+                      className="border-2 border-dashed border-zinc-200 hover:border-[#1e2696]/60 rounded-2xl p-8 text-center cursor-pointer bg-zinc-50/20 hover:bg-zinc-50/70 transition-all duration-200"
+                    >
+                      {isUploadingPgdas ? (
+                        <div className="space-y-3 py-4">
+                          <RefreshCw className="h-8 w-8 text-[#1e2696] animate-spin mx-auto" />
+                          <div className="space-y-1">
+                            <p className="text-xs font-extrabold text-zinc-800">Processando e Validando XMLs...</p>
+                            <p className="text-[10px] text-zinc-400 font-semibold font-mono">Checando CNPJ, competência, valores e versão do leiaute...</p>
+                          </div>
+                          <div className="w-48 bg-zinc-150 h-1.5 rounded-full mx-auto overflow-hidden">
+                            <div className="bg-[#1e2696] h-full w-2/3 animate-pulse rounded-full" />
+                          </div>
+                        </div>
+                      ) : pgdasFiles.length > 0 ? (
+                        <div className="space-y-4 py-2">
+                          <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center mx-auto text-emerald-600">
+                            <Check className="h-5 w-5" strokeWidth={3} />
+                          </div>
+                          <div>
+                            <p className="text-xs font-extrabold text-zinc-800">3 Arquivos XML Carregados</p>
+                            <p className="text-[10px] text-zinc-400 font-semibold mt-0.5">Clique para carregar novos arquivos ou atualizar</p>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-3 py-4">
+                          <Upload className="h-8 w-8 text-zinc-400 mx-auto" strokeWidth={1.5} />
+                          <div>
+                            <span className="inline-flex items-center gap-1 text-xs font-extrabold text-[#1e2696]">
+                              Importar XML / ZIP
+                            </span>
+                            <p className="text-[10px] text-zinc-400 font-semibold mt-1">Arraste ou clique para carregar os XMLs fiscais</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Extracted Values Display Box after Upload */}
+                    {pgdasFiles.length > 0 && (
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="bg-[#f0f2fe]/40 rounded-xl border border-[#1e2696]/10 p-4 space-y-3"
+                      >
+                        <div className="flex justify-between items-center border-b border-zinc-100 pb-2">
+                          <h4 className="text-[11px] font-black text-zinc-900 uppercase">Valores Extraídos dos XMLs</h4>
+                          <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded font-mono">Consolidado</span>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                          <div className="bg-white p-3 rounded-lg border border-zinc-200/50">
+                            <p className="text-[9px] font-bold text-zinc-400 uppercase">Venda/Comércio</p>
+                            <p className="text-xs font-extrabold text-zinc-800 mt-1">R$ {pgdasDraft.receitaComercio.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+                          </div>
+                          <div className="bg-white p-3 rounded-lg border border-zinc-200/50">
+                            <p className="text-[9px] font-bold text-zinc-400 uppercase">Serviços Prestados</p>
+                            <p className="text-xs font-extrabold text-zinc-800 mt-1">R$ {pgdasDraft.receitaServico.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+                          </div>
+                          <div className="bg-white p-3 rounded-lg border border-zinc-200/50">
+                            <p className="text-[9px] font-bold text-[#1e2696] uppercase">Faturamento Total</p>
+                            <p className="text-xs font-black text-[#1e2696] mt-1">R$ {(pgdasDraft.receitaComercio + pgdasDraft.receitaServico).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+
+                    {/* Help footer note */}
+                    <p className="text-[10px] text-zinc-400 leading-relaxed">
+                      Importe XMLs ou ZIP do padrão selecionado. O sistema rejeitará arquivos de outra família e validará CNPJ, competência, valores, retenção e versão do leiaute.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Navigation CTA at Bottom */}
+                <div className="flex justify-end pt-2">
+                  <button
+                    onClick={() => {
+                      if (pgdasFiles.length === 0) {
+                        // Simulate auto uploading if they didn't upload
+                        setIsUploadingPgdas(true);
+                        setTimeout(() => {
+                          setPgdasFiles([
+                            { name: "NFE_202606_001.xml", size: "3.2 KB", status: "sucesso" },
+                            { name: "NFE_202606_002.xml", size: "4.1 KB", status: "sucesso" },
+                            { name: "NFSE_202606_015.xml", size: "2.8 KB", status: "sucesso" }
+                          ]);
+                          setIsUploadingPgdas(false);
+                          setPgdasStep(2);
+                          addToast("XMLs importados e validados automaticamente!", "success");
+                        }, 1200);
+                      } else {
+                        setPgdasStep(2);
+                      }
+                    }}
+                    className="px-6 py-2.5 bg-[#1e2696] text-white hover:bg-[#151c6e] text-xs font-black rounded-xl shadow-xs hover:shadow-md transition-all flex items-center gap-2"
+                  >
+                    Avançar para Dados Fiscais <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* STEP 2: DADOS FISCAIS */}
+            {pgdasStep === 2 && (
+              <div className="space-y-6">
+                <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-xs space-y-6">
+                  <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+                    <h3 className="text-[13px] font-black text-zinc-900 uppercase tracking-wider">Notas Fiscais Processadas e Classificadas</h3>
+                    <span className="text-[10px] bg-emerald-50 text-emerald-700 font-bold px-2.5 py-1 rounded-md border border-emerald-100">
+                      8 Notas Encontradas
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-200/60">
+                      <span className="text-[9px] font-bold text-zinc-400 uppercase block">Receita de Comércio (Anexo I)</span>
+                      <p className="text-xl font-black text-zinc-800 mt-1">R$ 12.450,00</p>
+                      <span className="text-[10px] text-zinc-500 font-semibold mt-1 block">3 Notas Fiscais Eletrônicas (NF-e)</span>
+                    </div>
+                    <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-200/60">
+                      <span className="text-[9px] font-bold text-zinc-400 uppercase block">Receita de Serviços (Anexo III)</span>
+                      <p className="text-xl font-black text-zinc-800 mt-1">R$ 32.780,00</p>
+                      <span className="text-[10px] text-zinc-500 font-semibold mt-1 block">5 Notas de Serviços (NFS-e)</span>
+                    </div>
+                    <div className="bg-[#1e2696]/[0.02] p-4 rounded-xl border border-[#1e2696]/10">
+                      <span className="text-[9px] font-bold text-[#1e2696] uppercase block">Total Geral da Competência</span>
+                      <p className="text-xl font-black text-[#1e2696] mt-1">R$ 45.230,00</p>
+                      <span className="text-[10px] text-zinc-500 font-semibold mt-1 block">Faturamento consolidado em Junho/2026</span>
+                    </div>
+                  </div>
+
+                  {/* Document List Table */}
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-zinc-150 text-[10px] font-bold text-zinc-400 uppercase">
+                          <th className="pb-3">Chave / Número</th>
+                          <th className="pb-3">Destinatário</th>
+                          <th className="pb-3">Tipo / Anexo</th>
+                          <th className="pb-3">Valor Bruto</th>
+                          <th className="pb-3">Status</th>
+                          <th className="pb-3 text-right">Ação</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-zinc-100 text-xs text-zinc-700">
+                        {[
+                          { num: "NF-e 2026.012", desc: "ALPHA INDUSTRIAL S/A", type: "Comércio - Anexo I", val: "R$ 4.120,00", key: "3126...1450" },
+                          { num: "NF-e 2026.013", desc: "LACUNAS LTDA", type: "Comércio - Anexo I", val: "R$ 8.330,00", key: "3126...1488" },
+                          { num: "NFS-e 2026.541", desc: "PREFEITURA DE BELO HORIZONTE", type: "Serviço - Anexo III", val: "R$ 15.000,00", key: "NFS-2026-BH" },
+                          { num: "NFS-e 2026.542", desc: "OMEGA COMÉRCIO LTDA", type: "Serviço - Anexo III", val: "R$ 9.780,00", key: "NFS-2026-OM" },
+                          { num: "NFS-e 2026.543", desc: "BETA SERVICES EIRELI", type: "Serviço - Anexo III", val: "R$ 8.000,00", key: "NFS-2026-BT" },
+                        ].map((inv, idx) => (
+                          <tr key={idx} className="hover:bg-zinc-50/50 transition-colors">
+                            <td className="py-3.5 font-bold text-zinc-800 font-mono">{inv.num}</td>
+                            <td className="py-3.5 font-semibold text-zinc-600 truncate max-w-[150px]">{inv.desc}</td>
+                            <td className="py-3.5">
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${inv.type.startsWith("Comércio") ? "bg-amber-50 text-amber-700 border border-amber-100" : "bg-indigo-50 text-indigo-700 border border-indigo-100"}`}>
+                                {inv.type}
+                              </span>
+                            </td>
+                            <td className="py-3.5 font-bold font-mono">{inv.val}</td>
+                            <td className="py-3.5">
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600">
+                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span> Consolidada
+                              </span>
+                            </td>
+                            <td className="py-3.5 text-right">
+                              <button 
+                                onClick={() => {
+                                  setSelectedInvoice(inv);
+                                  addToast(`Visualizando ${inv.num}`, "info");
+                                }}
+                                className="text-[#1e2696] hover:underline text-[10px] font-bold cursor-pointer"
+                              >
+                                Visualizar
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Selected Invoice Drawer/Modal (Overlay) */}
+                {selectedInvoice && (
+                  <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+                    <motion.div 
+                      initial={{ scale: 0.95, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      className="bg-white rounded-2xl border border-zinc-200 p-6 max-w-lg w-full space-y-4"
+                    >
+                      <div className="flex justify-between items-center border-b border-zinc-150 pb-3">
+                        <h4 className="text-sm font-black text-zinc-900 uppercase">Detalhamento de Nota Fiscal Eletrônica</h4>
+                        <button onClick={() => setSelectedInvoice(null)} className="p-1 rounded-lg hover:bg-zinc-100 text-zinc-400 hover:text-zinc-600">
+                          <X className="h-5 w-5" />
+                        </button>
+                      </div>
+
+                      <div className="space-y-3 text-xs">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-[10px] font-bold text-zinc-400 uppercase">Documento</p>
+                            <p className="font-extrabold text-zinc-800 mt-0.5">{selectedInvoice.num}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-bold text-zinc-400 uppercase">Chave de Acesso</p>
+                            <p className="font-mono text-zinc-600 text-[10px] break-all mt-0.5">{selectedInvoice.key}</p>
+                          </div>
+                        </div>
+
+                        <div className="border-t border-zinc-100 pt-3">
+                          <p className="text-[10px] font-bold text-zinc-400 uppercase">Prestador / Emissor</p>
+                          <p className="font-extrabold text-zinc-800 mt-0.5">NAIALE AUGUSTINHO CONTABILIDADE LTDA</p>
+                          <p className="text-zinc-500 text-[10px]">CNPJ: {pgdasEmpresaCnpj}</p>
+                        </div>
+
+                        <div className="border-t border-zinc-100 pt-3">
+                          <p className="text-[10px] font-bold text-zinc-400 uppercase">Tomador / Destinatário</p>
+                          <p className="font-extrabold text-zinc-800 mt-0.5">{selectedInvoice.desc}</p>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4 border-t border-zinc-100 pt-3">
+                          <div>
+                            <p className="text-[10px] font-bold text-zinc-400 uppercase">Classificação Fiscal</p>
+                            <p className="font-extrabold text-[#1e2696] mt-0.5">{selectedInvoice.type}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-bold text-zinc-400 uppercase">Valor Total</p>
+                            <p className="font-extrabold text-zinc-800 mt-0.5 text-sm">{selectedInvoice.val}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-end border-t border-zinc-100 pt-3">
+                        <button 
+                          onClick={() => setSelectedInvoice(null)}
+                          className="px-4 py-2 bg-[#1e2696] text-white font-extrabold rounded-xl text-xs hover:bg-[#151c6e] cursor-pointer"
+                        >
+                          Concluir Leitura
+                        </button>
+                      </div>
+                    </motion.div>
+                  </div>
+                )}
+
+                {/* Back / Forward Actions */}
+                <div className="flex justify-between items-center pt-2">
+                  <button
+                    onClick={() => setPgdasStep(1)}
+                    className="px-5 py-2.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-black rounded-xl border border-zinc-200 transition-all flex items-center gap-2"
+                  >
+                    <ArrowLeft className="h-4 w-4" /> Voltar ao Contexto
+                  </button>
+                  <button
+                    onClick={() => setPgdasStep(3)}
+                    className="px-6 py-2.5 bg-[#1e2696] text-white hover:bg-[#151c6e] text-xs font-black rounded-xl shadow-xs hover:shadow-md transition-all flex items-center gap-2"
+                  >
+                    Avançar para Prévia de Impostos <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* STEP 3: PRÉVIA */}
+            {pgdasStep === 3 && (
+              <div className="space-y-6">
+                <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-xs space-y-6">
+                  <div className="border-b border-zinc-100 pb-3">
+                    <h3 className="text-[13px] font-black text-zinc-900 uppercase tracking-wider">Simulador de Tributos Simples Nacional (DAS)</h3>
+                  </div>
+
+                  {/* Summary Indicators */}
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-200/50">
+                      <span className="text-[9px] font-bold text-zinc-400 uppercase block">Faturamento Acumulado (RBT12)</span>
+                      <p className="text-lg font-black text-zinc-800 mt-1">R$ 542.760,00</p>
+                      <span className="text-[10px] text-[#1e2696] font-semibold block mt-0.5">Simples Faixa 3</span>
+                    </div>
+                    <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-200/50">
+                      <span className="text-[9px] font-bold text-zinc-400 uppercase block">Alíquota Efetiva Comércio</span>
+                      <p className="text-lg font-black text-amber-600 mt-1">4.00%</p>
+                      <span className="text-[10px] text-zinc-400 block mt-0.5">Anexo I da Lei Complementar</span>
+                    </div>
+                    <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-200/50">
+                      <span className="text-[9px] font-bold text-zinc-400 uppercase block">Alíquota Efetiva Serviços</span>
+                      <p className="text-lg font-black text-indigo-600 mt-1">6.00%</p>
+                      <span className="text-[10px] text-zinc-400 block mt-0.5">Anexo III da Lei Complementar</span>
+                    </div>
+                    <div className="bg-[#1e2696]/[0.02] p-4 rounded-xl border border-[#1e2696]/10">
+                      <span className="text-[9px] font-bold text-[#1e2696] uppercase block">Valor Total das Guias DAS</span>
+                      <p className="text-lg font-black text-[#1e2696] mt-1">R$ 2.464,80</p>
+                      <span className="text-[10px] text-emerald-600 font-semibold block mt-0.5">Guia única consolidada</span>
+                    </div>
+                  </div>
+
+                  {/* Detailed Tax breakdown table */}
+                  <div className="border border-zinc-200 rounded-xl overflow-hidden">
+                    <div className="bg-zinc-50 p-3 border-b border-zinc-200 text-xs font-extrabold text-zinc-700">
+                      Detalhamento do Cálculo dos Impostos
+                    </div>
+                    <div className="divide-y divide-zinc-200 text-xs text-zinc-700">
+                      <div className="p-3 flex justify-between items-center">
+                        <div>
+                          <p className="font-bold text-zinc-800">Comércio (Anexo I)</p>
+                          <p className="text-[10px] text-zinc-400">Receita Bruta: R$ 12.450,00 | Alíquota nominal: 4.0%</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-extrabold font-mono text-zinc-900">R$ 498,00</p>
+                          <p className="text-[9px] text-zinc-400 font-bold">DAS Comércio</p>
+                        </div>
+                      </div>
+
+                      <div className="p-3 flex justify-between items-center">
+                        <div>
+                          <p className="font-bold text-zinc-800">Prestação de Serviços (Anexo III)</p>
+                          <p className="text-[10px] text-zinc-400">Receita Bruta: R$ 32.780,00 | Alíquota nominal: 6.0%</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-extrabold font-mono text-zinc-900">R$ 1.966,80</p>
+                          <p className="text-[9px] text-zinc-400 font-bold">DAS Serviços</p>
+                        </div>
+                      </div>
+
+                      <div className="p-3.5 flex justify-between items-center bg-[#f0f2fe]/20">
+                        <div>
+                          <p className="font-black text-[#1e2696]">Consolidado Simples Nacional</p>
+                          <p className="text-[10px] text-zinc-500 font-semibold">Valor final calculado para recolhimento</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-black font-mono text-[#1e2696]">R$ 2.464,80</p>
+                          <p className="text-[9px] text-[#1e2696] font-bold">Soma dos anexos</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Back / Forward Actions */}
+                <div className="flex justify-between items-center pt-2">
+                  <button
+                    onClick={() => setPgdasStep(2)}
+                    className="px-5 py-2.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-black rounded-xl border border-zinc-200 transition-all flex items-center gap-2"
+                  >
+                    <ArrowLeft className="h-4 w-4" /> Voltar aos Dados Fiscais
+                  </button>
+                  <button
+                    onClick={() => setPgdasStep(4)}
+                    className="px-6 py-2.5 bg-[#1e2696] text-white hover:bg-[#151c6e] text-xs font-black rounded-xl shadow-xs hover:shadow-md transition-all flex items-center gap-2"
+                  >
+                    Avançar para Confirmação de Declaração <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* STEP 4: CONFIRMAÇÃO */}
+            {pgdasStep === 4 && (
+              <div className="space-y-6">
+                <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-xs space-y-6">
+                  <div className="border-b border-zinc-100 pb-3">
+                    <h3 className="text-[13px] font-black text-zinc-900 uppercase tracking-wider">Declaração e Termo de Envio</h3>
+                  </div>
+
+                  <div className="p-4 bg-zinc-50/50 rounded-xl border border-zinc-200 space-y-3.5">
+                    <p className="text-xs font-bold leading-relaxed text-zinc-700">
+                      Ao transmitir esta apuração, você enviará os dados oficiais de faturamento consolidados para a Receita Federal do Brasil através da integração de outorga digital do escritório de contabilidade.
+                    </p>
+                    <div className="p-3 bg-white rounded-lg border border-zinc-150 text-[11px] font-mono text-zinc-600">
+                      <p className="font-extrabold text-zinc-800">Responsável Técnico: NAIALE AUGUSTINHO</p>
+                      <p className="mt-1">Escritório Certificado: Contabilidade Alfa Ltda.</p>
+                      <p>Protocolo de Chaves: e-CNPJ Escritório Alfa - 45.987.654/0001-32</p>
+                    </div>
+                  </div>
+
+                  {/* Checklist Section */}
+                  <div className="space-y-3">
+                    <h4 className="text-[11px] font-black text-zinc-900 uppercase tracking-wider">Validações de Segurança Pré-Envio</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {[
+                        "Certificado digital válido e ativo",
+                        "Competência junho/2026 aberta para transmissão",
+                        "XMLs de faturamento sem divergências",
+                        "Faturamento acumulado verificado com RBT12",
+                      ].map((term, idx) => (
+                        <div key={idx} className="flex items-center gap-2.5 p-3 rounded-xl border border-zinc-150 bg-white">
+                          <div className="h-5 w-5 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                            <Check className="h-3.5 w-3.5" strokeWidth={3} />
+                          </div>
+                          <span className="text-[11px] font-bold text-zinc-700">{term}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Back / Submit Actions */}
+                <div className="flex justify-between items-center pt-2">
+                  <button
+                    onClick={() => setPgdasStep(3)}
+                    className="px-5 py-2.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-black rounded-xl border border-zinc-200 transition-all flex items-center gap-2"
+                  >
+                    <ArrowLeft className="h-4 w-4" /> Voltar à Prévia
+                  </button>
+                  <button
+                    onClick={() => {
+                      setIsUploadingPgdas(true);
+                      setTimeout(() => {
+                        setIsUploadingPgdas(false);
+                        setPgdasStep(5);
+                        addToast("Declaração PGDAS-D enviada com sucesso!", "success");
+                      }, 2500);
+                    }}
+                    disabled={isUploadingPgdas}
+                    className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black rounded-xl shadow-xs hover:shadow-md transition-all flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+                  >
+                    {isUploadingPgdas ? (
+                      <>
+                        <RefreshCw className="h-4 w-4 animate-spin" /> Transmitindo à Receita Federal...
+                      </>
+                    ) : (
+                      <>
+                        <FileCheck className="h-4 w-4" /> Transmitir Declaração Oficial
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* STEP 5: DOCUMENTOS (SUCCESS & FILE DOWNLOAD) */}
+            {pgdasStep === 5 && (
+              <div className="space-y-6">
+                <div className="bg-white p-8 rounded-2xl border border-zinc-200 shadow-sm text-center space-y-6">
+                  {/* Big animated success check */}
+                  <div className="h-16 w-16 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-full flex items-center justify-center mx-auto shadow-xs">
+                    <Check className="h-8 w-8 animate-pulse" strokeWidth={2.5} />
+                  </div>
+
+                  <div className="space-y-2">
+                    <h3 className="text-xl font-black text-zinc-900 tracking-tight">Apuração Concluída e Transmitida!</h3>
+                    <p className="text-xs text-zinc-500 max-w-md mx-auto font-semibold">
+                      Os dados da competência <strong className="text-zinc-800">junho de 2026</strong> foram processados e a declaração oficial está assinada digitalmente.
+                    </p>
+                  </div>
+
+                  {/* Summary receipt box */}
+                  <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-200 max-w-md mx-auto text-left space-y-3.5 text-xs">
+                    <div className="flex justify-between text-[11px] text-zinc-400 font-bold uppercase">
+                      <span>Protocolo de Entrega</span>
+                      <span className="font-mono text-zinc-600">83D3.2A1D.420F.8789</span>
+                    </div>
+                    <div className="border-t border-zinc-150 pt-2.5 space-y-1.5">
+                      <div className="flex justify-between">
+                        <span className="font-bold text-zinc-600">Empresa:</span>
+                        <span className="font-extrabold text-zinc-800">{pgdasEmpresaName}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="font-bold text-zinc-600">CNPJ:</span>
+                        <span className="font-mono text-zinc-800">{pgdasEmpresaCnpj}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="font-bold text-zinc-600">DAS Calculado:</span>
+                        <span className="font-extrabold font-mono text-emerald-600">R$ 2.464,80</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Document downloads row */}
+                  <div className="space-y-3 max-w-lg mx-auto pt-2">
+                    <h4 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest text-left">Arquivos Oficiais Disponíveis</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <button 
+                        onClick={() => addToast("Baixando guia DAS (PDF)...", "success")}
+                        className="flex items-center justify-between p-3.5 bg-white border border-zinc-200 hover:border-[#1e2696] rounded-xl hover:shadow-xs transition-all text-left"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <div className="h-8 w-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-xs shrink-0">
+                            <FileText className="h-4.5 w-4.5" />
+                          </div>
+                          <div>
+                            <p className="text-xs font-extrabold text-zinc-800">Guia DAS Faturamento</p>
+                            <span className="text-[9px] text-zinc-400 block -mt-0.5 font-mono">PDF • 45.2 KB</span>
+                          </div>
+                        </div>
+                        <ChevronRight className="h-4 w-4 text-zinc-400" />
+                      </button>
+
+                      <button 
+                        onClick={() => addToast("Baixando Recibo de Entrega (PDF)...", "success")}
+                        className="flex items-center justify-between p-3.5 bg-white border border-zinc-200 hover:border-[#1e2696] rounded-xl hover:shadow-xs transition-all text-left"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <div className="h-8 w-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-xs shrink-0">
+                            <FileCheck className="h-4.5 w-4.5" />
+                          </div>
+                          <div>
+                            <p className="text-xs font-extrabold text-zinc-800">Recibo de Transmissão</p>
+                            <span className="text-[9px] text-zinc-400 block -mt-0.5 font-mono">PDF • 28.1 KB</span>
+                          </div>
+                        </div>
+                        <ChevronRight className="h-4 w-4 text-zinc-400" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Restart action button */}
+                  <div className="pt-4">
+                    <button
+                      onClick={() => {
+                        setPgdasFiles([]);
+                        setPgdasStep(1);
+                        addToast("Nova apuração iniciada.", "info");
+                      }}
+                      className="px-6 py-2.5 bg-zinc-900 text-white hover:bg-zinc-800 text-xs font-black rounded-xl shadow-xs transition-all"
+                    >
+                      Realizar Nova Apuração
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </motion.div>
+        )}
+        
+        
         {/* ====================================================================
             VIEW: CADASTRO DE EMPRESA (EMPRESAS)
             ==================================================================== */}
