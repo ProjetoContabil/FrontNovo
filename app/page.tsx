@@ -25,6 +25,7 @@ import {
   BarChart3,
   Home,
   User,
+  UserCircle,
   Settings,
   Layers,
   Lock,
@@ -257,7 +258,7 @@ export default function Page() {
   const [currentPage, setCurrentPage] = useState<"dashboard" | "empresas" | "cadastro_empresa" | "certificados" | "procuracoes" | "relatorios" | "configuracoes" | "perfil_escritorio" | "pgdas">("dashboard");
   const [isFiscalMenuOpen, setIsFiscalMenuOpen] = useState(false);
   const [isConfigMenuOpen, setIsConfigMenuOpen] = useState(false);
-  const [profileTab, setProfileTab] = useState<"visao_geral" | "dados" | "responsaveis" | "equipe" | "preferencias">("visao_geral");
+  const [profileTab, setProfileTab] = useState<"dados" | "responsaveis" | "equipe" | "preferencias">("dados");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [currentWorkspace, setCurrentWorkspace] = useState<"admin" | "escritorio">("escritorio");
@@ -1497,13 +1498,13 @@ export default function Page() {
             </>
           ) : (
             <>
-              {/* SECTION: VISÃO GERAL */}
-              {!sidebarCollapsed && <div className="px-4 text-[10px] font-black text-zinc-500 uppercase tracking-wider mb-2 mt-4">Visão Geral</div>}
+              {/* SECTION: PRINCIPAL */}
+              {!sidebarCollapsed && <div className="px-4 text-[10px] font-black text-zinc-500 uppercase tracking-wider mb-2 mt-4">Principal</div>}
 
               {/* Menu Item - Dashboard */}
               <button
                 onClick={() => { setCurrentPage("dashboard"); setSidebarOpen(false); }}
-                className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 group text-[13px] font-bold ${
+                className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl transition-all duration-200 group text-[13px] font-bold ${
                   currentPage === "dashboard"
                     ? "bg-[#27272a] text-zinc-100 shadow-sm"
                     : "text-zinc-400 hover:text-zinc-100 hover:bg-[#27272a]/50"
@@ -1514,19 +1515,19 @@ export default function Page() {
                   <div className="w-5 h-5 flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 duration-200">
                     <LayoutDashboard 
                       className={`h-4.5 w-4.5 ${
-                        currentPage === "dashboard" ? "text-zinc-300" : "text-zinc-500 group-hover:text-zinc-300"
+                        currentPage === "dashboard" ? "text-emerald-400" : "text-zinc-500 group-hover:text-zinc-300"
                       }`} 
                       strokeWidth={1.75}
                     />
                   </div>
                   <span className={`transition-opacity duration-200 ${sidebarCollapsed ? "md:opacity-0 md:w-0 overflow-hidden" : "opacity-100"}`}>
-                    Dashboard
+                    Painel Geral
                   </span>
                 </div>
               </button>
 
-              {/* SECTION: MEU ESCRITÓRIO */}
-              {!sidebarCollapsed && <div className="px-4 text-[10px] font-black text-zinc-500 uppercase tracking-wider mb-2 mt-6">Meu Escritório</div>}
+              {/* SECTION: ESCRITÓRIO */}
+              {!sidebarCollapsed && <div className="px-4 text-[10px] font-black text-zinc-500 uppercase tracking-wider mb-2 mt-6">Escritório</div>}
 
               {/* Menu Item - Perfil */}
               <button
@@ -1534,8 +1535,38 @@ export default function Page() {
                   setCurrentPage("perfil_escritorio");
                   setSidebarOpen(false);
                 }}
-                className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 group text-[13px] font-bold ${
+                className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl transition-all duration-200 group text-[13px] font-bold ${
                   currentPage === "perfil_escritorio"
+                    ? "bg-[#27272a] text-zinc-100 shadow-sm"
+                    : "text-zinc-400 hover:text-zinc-100 hover:bg-[#27272a]/50"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-5 h-5 flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 duration-200">
+                    <UserCircle 
+                      className={`h-4.5 w-4.5 ${
+                        currentPage === "perfil_escritorio" ? "text-indigo-400" : "text-zinc-500 group-hover:text-zinc-300"
+                      }`} 
+                      strokeWidth={1.75}
+                    />
+                  </div>
+                  <span className={`transition-opacity duration-200 ${sidebarCollapsed ? "md:opacity-0 md:w-0 overflow-hidden" : "opacity-100"}`}>
+                    Perfil do Escritório
+                  </span>
+                </div>
+              </button>
+
+              {/* SECTION: GESTÃO DE CLIENTES */}
+              {!sidebarCollapsed && <div className="px-4 text-[10px] font-black text-zinc-500 uppercase tracking-wider mb-2 mt-6">Gestão de Clientes</div>}
+
+              {/* Menu Item - Empresas */}
+              <button
+                onClick={() => {
+                  setCurrentPage("empresas");
+                  setSidebarOpen(false);
+                }}
+                className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl transition-all duration-200 group text-[13px] font-bold ${
+                  (currentPage === "empresas" || currentPage === "cadastro_empresa")
                     ? "bg-[#27272a] text-zinc-100 shadow-sm"
                     : "text-zinc-400 hover:text-zinc-100 hover:bg-[#27272a]/50"
                 }`}
@@ -1544,13 +1575,13 @@ export default function Page() {
                   <div className="w-5 h-5 flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 duration-200">
                     <Building2 
                       className={`h-4.5 w-4.5 ${
-                        currentPage === "perfil_escritorio" ? "text-zinc-300" : "text-zinc-500 group-hover:text-zinc-300"
+                        (currentPage === "empresas" || currentPage === "cadastro_empresa") ? "text-emerald-400" : "text-zinc-500 group-hover:text-zinc-300"
                       }`} 
                       strokeWidth={1.75}
                     />
                   </div>
                   <span className={`transition-opacity duration-200 ${sidebarCollapsed ? "md:opacity-0 md:w-0 overflow-hidden" : "opacity-100"}`}>
-                    Perfil & Equipe
+                    Lista de Empresas
                   </span>
                 </div>
               </button>
@@ -1561,7 +1592,7 @@ export default function Page() {
                   setCurrentPage("certificados");
                   setSidebarOpen(false);
                 }}
-                className={`w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl transition-all duration-200 group text-[13px] font-bold ${
+                className={`w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 group text-[13px] font-bold ${
                   currentPage === "certificados"
                     ? "bg-[#27272a] text-zinc-100 shadow-sm"
                     : "text-zinc-400 hover:text-zinc-100 hover:bg-[#27272a]/50"
@@ -1572,7 +1603,7 @@ export default function Page() {
                   <div className="w-5 h-5 flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 duration-200">
                     <ShieldCheck
                       className={`h-4.5 w-4.5 ${
-                        currentPage === "certificados" ? "text-zinc-300" : "text-zinc-500 group-hover:text-zinc-300"
+                        currentPage === "certificados" ? "text-amber-400" : "text-zinc-500 group-hover:text-zinc-300"
                       }`}
                       strokeWidth={1.75}
                     />
@@ -1583,40 +1614,13 @@ export default function Page() {
                 </div>
               </button>
 
-              {/* SECTION: MÓDULOS OPERACIONAIS */}
-              {!sidebarCollapsed && <div className="px-4 text-[10px] font-black text-zinc-500 uppercase tracking-wider mb-2 mt-6">Módulos Operacionais</div>}
-
-              {/* Menu Item - Empresas */}
-              <button
-                onClick={() => {
-                  setCurrentPage("empresas");
-                  setSidebarOpen(false);
-                }}
-                className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 group text-[13px] font-bold ${
-                  (currentPage === "empresas" || currentPage === "cadastro_empresa")
-                    ? "bg-[#27272a] text-zinc-100 shadow-sm"
-                    : "text-zinc-400 hover:text-zinc-100 hover:bg-[#27272a]/50"
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-5 h-5 flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 duration-200">
-                    <Building2 
-                      className={`h-4.5 w-4.5 ${
-                        (currentPage === "empresas" || currentPage === "cadastro_empresa") ? "text-zinc-300" : "text-zinc-500 group-hover:text-zinc-300"
-                      }`} 
-                      strokeWidth={1.75}
-                    />
-                  </div>
-                  <span className={`transition-opacity duration-200 ${sidebarCollapsed ? "md:opacity-0 md:w-0 overflow-hidden" : "opacity-100"}`}>
-                    Gestão de Empresas
-                  </span>
-                </div>
-              </button>
+              {/* SECTION: DEPARTAMENTO FISCAL */}
+              {!sidebarCollapsed && <div className="px-4 text-[10px] font-black text-zinc-500 uppercase tracking-wider mb-2 mt-6">Departamento Fiscal</div>}
 
               {/* Menu Item - Fiscal */}
               <button
                 onClick={() => setIsFiscalMenuOpen(!isFiscalMenuOpen)}
-                className={`w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl transition-all duration-200 group text-[13px] font-bold ${
+                className={`w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 group text-[13px] font-bold ${
                   currentPage === "pgdas"
                     ? "bg-[#27272a] text-zinc-100 shadow-sm"
                     : "text-zinc-400 hover:text-zinc-100 hover:bg-[#27272a]/50"
@@ -1627,13 +1631,13 @@ export default function Page() {
                   <div className="w-5 h-5 flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 duration-200">
                     <Receipt
                       className={`h-4.5 w-4.5 ${
-                        currentPage === "pgdas" ? "text-zinc-300" : "text-zinc-500 group-hover:text-zinc-300"
+                        currentPage === "pgdas" ? "text-blue-400" : "text-zinc-500 group-hover:text-zinc-300"
                       }`}
                       strokeWidth={1.75}
                     />
                   </div>
                   <span className={`transition-opacity duration-200 ${sidebarCollapsed ? "md:opacity-0 md:w-0 overflow-hidden" : "opacity-100"}`}>
-                    Módulo Fiscal
+                    Obrigações Fiscais
                   </span>
                 </div>
                 {!sidebarCollapsed && (
@@ -1663,13 +1667,7 @@ export default function Page() {
                       Apuração PGDAS
                     </button>
                     
-                    <button 
-                      onClick={() => { addToast("Módulo em desenvolvimento", "info"); }} 
-                      className="w-full flex items-center gap-3 pl-4 pr-3 py-2 rounded-lg text-[12px] font-bold text-zinc-500 hover:text-zinc-300 hover:bg-[#27272a]/30 transition-all relative group"
-                    >
-                      <Layers className="h-3.5 w-3.5 text-zinc-600 group-hover:text-zinc-500" strokeWidth={2} />
-                      Simples Nacional
-                    </button>
+
                   </div>
                 </div>
               )}
@@ -1708,10 +1706,6 @@ export default function Page() {
             <div className="bg-white rounded-2xl border border-zinc-200/65 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.02)] overflow-hidden">
               <div className="h-24 bg-zinc-900/5 relative overflow-hidden">
                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-15 mix-blend-overlay"></div>
-                <div className="absolute top-4 right-4 bg-zinc-900/10 backdrop-blur-md text-zinc-700 text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1.5 border border-zinc-200/20">
-                  <Shield className="w-3.5 h-3.5 text-zinc-600" />
-                  Painel Administrativo Geral
-                </div>
               </div>
               <div className="px-6 sm:px-8 pb-8 pt-0 relative flex flex-col sm:flex-row gap-6 items-start sm:items-end -mt-12">
                 <div className="h-24 w-24 rounded-2xl bg-white p-2 border-4 border-white shadow-lg overflow-hidden shrink-0 flex items-center justify-center relative group">
@@ -1741,65 +1735,11 @@ export default function Page() {
                         <h1 className="text-2xl font-black text-zinc-900 tracking-tight font-display leading-none">
                           {escritorioNomeFantasia}
                         </h1>
-                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                          escritorioStatus === "Ativo" ? "bg-emerald-50 text-emerald-700 border border-emerald-200" :
-                          escritorioStatus === "Em implantação" ? "bg-blue-50 text-blue-700 border border-blue-200" :
-                          escritorioStatus === "Suspenso" ? "bg-amber-50 text-amber-700 border border-amber-200" :
-                          "bg-zinc-100 text-zinc-600 border border-zinc-300"
-                        }`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${
-                            escritorioStatus === "Ativo" ? "bg-emerald-500" :
-                            escritorioStatus === "Em implantação" ? "bg-blue-500" :
-                            escritorioStatus === "Suspenso" ? "bg-amber-500" :
-                            "bg-zinc-400"
-                          }`}></span>
-                          {escritorioStatus}
-                        </span>
                       </div>
                       <p className="text-sm font-semibold text-zinc-500 mt-1.5">{escritorioRazaoSocial}</p>
                     </div>
 
                     <div className="flex flex-wrap gap-2 shrink-0">
-                      {/* Admin-only simulation controls to Suspend, Cancel, Reactivate */}
-                      <div className="flex items-center gap-1.5 bg-zinc-50 border border-zinc-200 rounded-xl p-1 text-[11px] font-bold">
-                        <span className="text-zinc-400 px-1 text-[10px] uppercase">Ações do Admin Geral:</span>
-                        {escritorioStatus !== "Ativo" && (
-                          <button 
-                            onClick={() => {
-                              setEscritorioStatus("Ativo");
-                              addToast("Escritório reativado com sucesso pelo Administrador Geral!", "success");
-                            }}
-                            className="px-2 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg transition-colors cursor-pointer"
-                          >
-                            Reativar
-                          </button>
-                        )}
-                        {escritorioStatus === "Ativo" && (
-                          <button 
-                            onClick={() => {
-                              setEscritorioStatus("Suspenso");
-                              addToast("Escritório suspenso temporariamente por decisão administrativa.", "error");
-                            }}
-                            className="px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-lg transition-colors cursor-pointer"
-                          >
-                            Suspender
-                          </button>
-                        )}
-                        {escritorioStatus !== "Cancelado" && (
-                          <button 
-                            onClick={() => {
-                              if (confirm("ATENÇÃO: Deseja realmente cancelar esta conta de escritório? Esta ação é extrema e suspende todos os acessos das empresas.")) {
-                                setEscritorioStatus("Cancelado");
-                                addToast("Conta do escritório alterada para CANCELADA.", "error");
-                              }
-                            }}
-                            className="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg transition-colors cursor-pointer"
-                          >
-                            Cancelar conta
-                          </button>
-                        )}
-                      </div>
-
                       {isEditingProfileForm ? (
                         <div className="flex gap-2">
                           <button 
@@ -1860,51 +1800,16 @@ export default function Page() {
                       <Briefcase className="w-3.5 h-3.5 text-indigo-500" />
                       {escritorioPlano}
                     </span>
-                    <span className="flex items-center gap-1.5 text-[11px] font-bold text-zinc-500 bg-zinc-50 px-2 py-1 rounded-md">
-                      <Clock className="w-3.5 h-3.5 text-zinc-400" />
-                      Desde {escritorioDataAbertura}
-                    </span>
                   </div>
                 </div>
               </div>
-            </div>
-
-            {/* Horizontal Tabs */}
-            <div className="flex items-center gap-1 border-b border-zinc-200 mb-6 overflow-x-auto no-scrollbar">
-              {[
-                { id: "visao_geral", label: "Visão Geral", icon: LayoutDashboard },
-                { id: "dados", label: "Dados do Escritório", icon: Building2 },
-                { id: "responsaveis", label: "Responsáveis Técnicos", icon: Shield },
-                { id: "equipe", label: "Equipe e Acessos", icon: Users },
-                { id: "preferencias", label: "Preferências", icon: Settings },
-              ].map((tab) => {
-                const IconComponent = tab.icon;
-                const isActive = profileTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setProfileTab(tab.id as any)}
-                    className={`relative flex items-center gap-2 px-5 py-3 text-sm font-bold transition-colors whitespace-nowrap rounded-t-xl ${
-                      isActive 
-                        ? "text-emerald-600 bg-white" 
-                        : "text-zinc-500 hover:text-zinc-700 hover:bg-zinc-100/50"
-                    }`}
-                  >
-                    <IconComponent className={`w-4 h-4 ${isActive ? "text-emerald-500" : "text-zinc-400"}`} />
-                    {tab.label}
-                    {isActive && (
-                      <div className="absolute bottom-[-1px] left-0 right-0 h-[2px] bg-emerald-500" />
-                    )}
-                  </button>
-                );
-              })}
             </div>
 
             {/* Content Tabs */}
             <div className="space-y-6">
               <AnimatePresence mode="wait">
                 {/* ABA: VISÃO GERAL */}
-                {profileTab === "visao_geral" && (
+                {false && (
                   <motion.div
                     key="visao_geral"
                     initial={{ opacity: 0, y: 8 }}
@@ -2274,7 +2179,6 @@ export default function Page() {
                   {/* BLOCO 1: DADOS DA EMPRESA */}
                   <div className="space-y-4">
                     <h3 className="text-sm font-extrabold text-zinc-950 uppercase tracking-wider border-b border-zinc-100 pb-2 flex items-center gap-2">
-                      <Building2 className="w-4 h-4 text-emerald-500" />
                       1. Dados da empresa
                     </h3>
 
@@ -2412,7 +2316,6 @@ export default function Page() {
                   <div className="space-y-4">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-zinc-100 pb-2">
                       <h3 className="text-sm font-extrabold text-zinc-950 uppercase tracking-wider flex items-center gap-2">
-                        <MapPin className="w-4 h-4 text-emerald-500" />
                         2. Endereço comercial
                       </h3>
                       {isEditingProfileForm && (
@@ -2515,7 +2418,6 @@ export default function Page() {
                   {/* BLOCO 3: CONTATOS */}
                   <div className="space-y-4">
                     <h3 className="text-sm font-extrabold text-zinc-950 uppercase tracking-wider border-b border-zinc-100 pb-2 flex items-center gap-2">
-                      <Mail className="w-4 h-4 text-emerald-500" />
                       3. Contatos e e-mails de canais
                     </h3>
 
@@ -2591,7 +2493,7 @@ export default function Page() {
               )}
 
               {/* ABA 3: RESPONSÁVEL TÉCNICO */}
-              {profileTab === "responsaveis" && (
+              {false && (
                 <motion.div
                   key="responsaveis"
                   initial={{ opacity: 0, y: 8 }}
@@ -2776,7 +2678,7 @@ export default function Page() {
 
 
               {/* ABA 4: EQUIPE E ACESSOS */}
-              {profileTab === "equipe" && (
+              {false && (
                 <motion.div
                   key="equipe"
                   initial={{ opacity: 0, y: 8 }}
@@ -3013,7 +2915,7 @@ export default function Page() {
               )}
 
               {/* ABA 5: PREFERÊNCIAS */}
-              {profileTab === "preferencias" && (
+              {false && (
                 <motion.div
                   key="preferencias"
                   initial={{ opacity: 0, y: 8 }}
@@ -3687,12 +3589,6 @@ export default function Page() {
             </div>
             <h2 className="text-2xl md:text-3xl font-extrabold text-zinc-900 tracking-tight font-display text-center">Dashboard Principal</h2>
             <p className="text-sm text-zinc-500 text-center max-w-md">Visão geral do sistema e principais métricas do escritório em breve.</p>
-            <button 
-              onClick={() => setCurrentPage("empresas")}
-              className="mt-4 px-6 py-2.5 bg-[#1e2696] hover:bg-[#151c6e] text-white text-xs font-bold rounded-xl transition-all shadow-sm flex items-center gap-2"
-            >
-              Ir para Gestão de Empresas <ChevronRight className="h-4 w-4" />
-            </button>
           </motion.div>
         )}
 
@@ -3955,11 +3851,7 @@ export default function Page() {
                                     setCurrentPage("certificados");
                                     addToast(`Configurando acesso fiscal para ${company.razaoSocial}`, "info");
                                   }}
-                                  className={`px-3 py-1.5 rounded-lg text-[10px] font-bold shadow-xs transition-all cursor-pointer ${
-                                    company.statusAcesso === "Não Configurado"
-                                      ? "bg-zinc-900 hover:bg-zinc-800 text-white"
-                                      : "bg-emerald-600 hover:bg-emerald-700 text-white"
-                                  }`}
+                                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-bold shadow-xs transition-all cursor-pointer"
                                 >
                                   {company.statusAcesso === "Não Configurado" ? "Configurar" : "Gerenciar"}
                                 </button>
