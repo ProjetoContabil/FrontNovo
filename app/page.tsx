@@ -38,6 +38,7 @@ import {
   FileText,
   Clock,
   ArrowLeft,
+  ArrowUpRight,
   Trash2,
   LockKeyhole,
   Plus,
@@ -47,7 +48,12 @@ import {
   Copy,
   AlertTriangle,
   Calculator,
-  Sparkles
+  Sparkles,
+  Globe,
+  CheckCircle2,
+  Send,
+  Download,
+  Share2
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 
@@ -251,7 +257,34 @@ interface Company {
   statusPgdas: "Entregue" | "Pendente" | "Processando" | "Sem Movimento";
   periodoApuracao: string;
   statusEmpresa: "Ativa" | "Inativa" | "Suspensa";
+  logoUrl?: string | null;
 }
+
+// Framer Motion Variants for Staggered Lists
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.04,
+      delayChildren: 0.05
+    },
+  },
+} as const;
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 12 },
+  visible: { 
+    opacity: 1, 
+    y: 0,
+    transition: {
+      type: "spring",
+      stiffness: 120,
+      damping: 14,
+      mass: 0.8
+    }
+  },
+} as const;
 
 export default function Page() {
   // Navigation State
@@ -594,6 +627,7 @@ export default function Page() {
 
   const [selectedCompanyCnpj, setSelectedCompanyCnpj] = useState<string>("66.378.843/0001-34");
   const [searchTerm, setSearchTerm] = useState("");
+  const [dashboardSearch, setDashboardSearch] = useState("");
   const [filterRegime, setFilterRegime] = useState("all");
   const [filterAcesso, setFilterAcesso] = useState("all");
 
@@ -657,26 +691,86 @@ export default function Page() {
   const [observacoesFiscais, setObservacoesFiscais] = useState("");
   const [isSearchingCnpj, setIsSearchingCnpj] = useState(false);
   const [isSearchingCep, setIsSearchingCep] = useState(false);
+  const [companyLogoUrl, setCompanyLogoUrl] = useState<string | null>(null);
+  const [isSavingCompany, setIsSavingCompany] = useState(false);
+  const [isSaveSuccess, setIsSaveSuccess] = useState(false);
 
   // ==========================================
-  // STATE: PGDAS-D APURAÇÃO
+  // STATE: PGDAS-D APURAÇÃO (REWRITTEN MODULO FISCAL)
   // ==========================================
-  const [pgdasStep, setPgdasStep] = useState<1 | 2 | 3 | 4 | 5>(1);
+  const [pgdasStep, setPgdasStep] = useState<1 | 2 | 3>(1);
   const [pgdasEmpresaCnpj, setPgdasEmpresaCnpj] = useState("53.855.322/0001-95");
   const [pgdasEmpresaName, setPgdasEmpresaName] = useState("NAIALE AUGUSTINHO CONTABILIDADE LTDA");
   const [pgdasCompetencia, setPgdasCompetencia] = useState("2026-06");
-  const [pgdasStatus, setPgdasStatus] = useState("Em preenchimento");
-  const [xmlStandard, setXmlStandard] = useState("Portal Nacional — NT 009");
+  const [pgdasApuracaoModo, setPgdasApuracaoModo] = useState("APURAÇÃO REAL");
+  
+  // Página 1 States
+  const [pgdasHistorico, setPgdasHistorico] = useState({
+    rbt12: 1580000.00,
+    folha: 490000.00,
+    fatorR: 31.01,
+    resultado: "Anexo III",
+    competenciasEncontradas: 12,
+    folhaCompleta: true,
+    ajusteManual: true
+  });
+  const [pgdasImportSummary, setPgdasImportSummary] = useState({
+    importados: 248,
+    aceitos: 239,
+    duplicados: 4,
+    cancelados: 3,
+    rejeitados: 2
+  });
+  const [pgdasDocs, setPgdasDocs] = useState([
+    { id: "1", data: "03/06/26", doc: "NF-e 001245", tipo: "Venda", valor: 5200.00, origem: "XML", situacao: "✓ Aceito" },
+    { id: "2", data: "05/06/26", doc: "NFS-e 000088", tipo: "Serviço", valor: 3800.00, origem: "XML", situacao: "⚠ Revisar" },
+    { id: "3", data: "08/06/26", doc: "NF-e 001252", tipo: "Venda", valor: 7100.00, origem: "XML", situacao: "✓ Aceito" },
+    { id: "4", data: "10/06/26", doc: "NFS-e 000091", tipo: "Serviço", valor: 2400.00, origem: "XML", situacao: "✕ Erro" },
+  ]);
+  const [showDocCorrection, setShowDocCorrection] = useState(false);
+  const [correctingDoc, setCorrectingDoc] = useState<any>(null);
+
+  // Página 2 States
+  const [pgdasClassificacoes, setPgdasClassificacoes] = useState([
+    { id: "c1", atividade: "Consultoria", evidencia: "LC 116 17.01", receita: 82000.00, tratamento: "Anexo III", status: "✓ OK" },
+    { id: "c2", atividade: "Software", evidencia: "cTribNac", receita: 54500.00, tratamento: "Fator R/Anexo III", status: "✓ OK" },
+    { id: "c3", atividade: "Licenciamento", evidencia: "CNAE apenas", receita: 29700.00, tratamento: "Não definido", status: "⚠ Ver" },
+    { id: "c4", atividade: "Mercadoria mono.", evidencia: "NCM/CFOP", receita: 8300.00, tratamento: "Monofásico", status: "✓ OK" },
+    { id: "c5", atividade: "Comércio normal", evidencia: "NCM/CFOP", receita: 10000.00, tratamento: "Anexo I", status: "✓ OK" },
+  ]);
+  const [pgdasPreviewInterna, setPgdasPreviewInterna] = useState({
+    receitaTotal: 184500.00,
+    receitaTributavel: 176200.00,
+    aliquotaEfetiva: 4.78,
+    dasCalculado: 8420.36,
+    detalhes: {
+      irpj: 920.48, csll: 710.15, cofins: 690.63, pis: 149.75, cpp: 3165.40, iss: 2170.25, outros: 613.70
+    }
+  });
+  const [pgdasPreviewOficial, setPgdasPreviewOficial] = useState<any>(null);
+  const [isValidatingOficial, setIsValidatingOficial] = useState(false);
+
+  // Página 3 States
+  const [pgdasTransmissionState, setPgdasTransmissionState] = useState<"pronta" | "processando" | "incerto" | "transmitida" | "concluida">("pronta");
+  const [transmissionConfirmed, setTransmissionConfirmed] = useState(false);
+  const [pgdasRecibo, setPgdasRecibo] = useState("•••••••••6789");
+  const [pgdasTransmissionSubStep, setPgdasTransmissionSubStep] = useState<number>(0);
+  const [pgdasDasValor, setPgdasDasValor] = useState(8420.36);
+  const [pgdasVencimento, setPgdasVencimento] = useState("20/07/2026");
+
   const [pgdasFiles, setPgdasFiles] = useState<{ name: string; size: string; status: "processando" | "sucesso" | "erro" }[]>([]);
   const [isUploadingPgdas, setIsUploadingPgdas] = useState(false);
-  const [selectedInvoice, setSelectedInvoice] = useState<any | null>(null);
-  const [pgdasDraft, setPgdasDraft] = useState({
-    receitaComercio: 12450.00,
-    receitaServico: 32780.00,
-    rbt12: 542760.00,
-    isSubmitted: false
-  });
-  const [metodoAcesso, setMetodoAcesso] = useState<"certificado" | "procuracao">("certificado");
+  const [companyToDelete, setCompanyToDelete] = useState<string | null>(null);
+
+  // Helper for deleting a company
+  const handleDeleteCompany = () => {
+    if (companyToDelete) {
+      setCompanies(prev => prev.filter(c => c.cnpj !== companyToDelete));
+      addToast("Empresa removida com sucesso.", "success");
+      setCompanyToDelete(null);
+      setCurrentPage("dashboard");
+    }
+  };
   const pgdasFileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -704,6 +798,7 @@ export default function Page() {
   const [responsavelConfig, setResponsavelConfig] = useState("Naiale Augustinho");
   const [isValidatingCert, setIsValidatingCert] = useState(false);
   const [isValidatedCert, setIsValidatedCert] = useState(false);
+  const [fileSizeError, setFileSizeError] = useState<string | null>(null);
   const [validationProgressMessage, setValidationProgressMessage] = useState("");
   const [certValidationProgress, setCertValidationProgress] = useState(0);
   const [certExpiryDate, setCertExpiryDate] = useState("");
@@ -740,8 +835,59 @@ export default function Page() {
   const [escritorioEmailNotificacoes, setEscritorioEmailNotificacoes] = useState("alertas@contabilidadealfa.com.br");
   const [escritorioContatoAdministrativo, setEscritorioContatoAdministrativo] = useState("Carlos Alberto");
   const [escritorioStatus, setEscritorioStatus] = useState<"Em implantação" | "Ativo" | "Suspenso" | "Inativo" | "Cancelado">("Ativo");
+  
+  // State for SERPRO Credentials (as per reference image)
+  const [ambienteFiscal, setAmbienteFiscal] = useState("Homologação");
+  const [metodoAcesso, setMetodoAcesso] = useState<"certificado" | "procuracao">("certificado");
+  const [consumerKey, setConsumerKey] = useState("env://INTEGRA_CONTADOR_KEY");
+  const [consumerSecret, setConsumerSecret] = useState("env://INTEGRA_CONTADOR_SECRET");
+  const [cnpjTitular, setCnpjTitular] = useState("53.855.352/0001-95");
+  const [arquivoCertRef, setArquivoCertRef] = useState("env://INTEGRA_CONTADOR_CERT_PATH");
+  const [senhaCertRef, setSenhaCertRef] = useState("env://INTEGRA_CONTADOR_CERT_PASS");
+  const [identificadorCertificado, setIdentificadorCertificado] = useState("53855352000195 - AC SOLUTI");
+  const [emissorCertificado, setEmissorCertificado] = useState("AC SOLUTI Multipla v5");
+  const [validoDe, setValidoDe] = useState("2026-01-01");
+  const [validoAte, setValidoAte] = useState("2027-01-01");
+
   const [escritorioPlano, setEscritorioPlano] = useState("Plano Profissional");
   const [escritorioLogoLetter, setEscritorioLogoLetter] = useState("A");
+  const [escritorioLogoUrl, setEscritorioLogoUrl] = useState<string | null>(null);
+  const [platformLogoUrl, setPlatformLogoUrl] = useState<string | null>(null);
+
+  const escritorioLogoInputRef = useRef<HTMLInputElement>(null);
+  const platformLogoInputRef = useRef<HTMLInputElement>(null);
+
+  const handleEscritorioLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        addToast("A imagem deve ter no máximo 2MB", "error");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        setEscritorioLogoUrl(reader.result as string);
+        addToast("Logotipo do escritório carregado com sucesso!", "success");
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handlePlatformLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        addToast("A imagem deve ter no máximo 2MB", "error");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        setPlatformLogoUrl(reader.result as string);
+        addToast("Logotipo da plataforma carregado com sucesso!", "success");
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   // State for original/saved CNPJ to handle validation of CNPJ changes
   const [savedCnpj, setSavedCnpj] = useState("12.345.678/0001-99");
@@ -1166,13 +1312,22 @@ export default function Page() {
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
+    setFileSizeError(null);
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       const file = e.dataTransfer.files[0];
+      
+      if (file.size > 10 * 1024 * 1024) {
+        setFileSizeError("O arquivo excede o limite de 10MB.");
+        return;
+      }
+
       const ext = file.name.split(".").pop()?.toLowerCase();
       if (ext === "pfx" || ext === "p12") {
         setUploadedFile({
           name: file.name,
-          size: `${(file.size / 1024).toFixed(1)} KB`,
+          size: file.size > 1024 * 1024 
+                ? `${(file.size / (1024 * 1024)).toFixed(1)} MB` 
+                : `${(file.size / 1024).toFixed(1)} KB`,
           lastModified: new Date(file.lastModified).toLocaleDateString("pt-BR")
         });
         setIsValidatedCert(false);
@@ -1184,11 +1339,20 @@ export default function Page() {
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFileSizeError(null);
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
+
+      if (file.size > 10 * 1024 * 1024) {
+        setFileSizeError("O arquivo excede o limite de 10MB.");
+        return;
+      }
+
       setUploadedFile({
         name: file.name,
-        size: `${(file.size / 1024).toFixed(1)} KB`,
+        size: file.size > 1024 * 1024 
+              ? `${(file.size / (1024 * 1024)).toFixed(1)} MB` 
+              : `${(file.size / 1024).toFixed(1)} KB`,
         lastModified: new Date().toLocaleDateString("pt-BR")
       });
       setIsValidatedCert(false);
@@ -1258,38 +1422,81 @@ export default function Page() {
       return;
     }
     
-    // Normalize CNPJ
-    const targetCnpj = cnpj || "99.999.999/0001-99";
-    const exists = companies.some(c => c.cnpj === targetCnpj);
+    setIsSavingCompany(true);
+    setIsSaveSuccess(false);
 
-    if (exists) {
-      setCompanies(prev => prev.map(c => c.cnpj === targetCnpj ? {
-        ...c,
-        razaoSocial: razaoSocial.toUpperCase(),
-        nomeFantasia: nomeFantasia ? nomeFantasia.toUpperCase() : razaoSocial.toUpperCase(),
-        regimeTributario,
-        uf: uf || "MG",
-        municipio: municipio || "Belo Horizonte",
-        statusEmpresa: status
-      } : c));
-      addToast(`Empresa "${razaoSocial.toUpperCase()}" atualizada com sucesso!`, "success");
-    } else {
-      const newCompany: Company = {
-        cnpj: targetCnpj,
-        razaoSocial: razaoSocial.toUpperCase(),
-        nomeFantasia: nomeFantasia ? nomeFantasia.toUpperCase() : razaoSocial.toUpperCase(),
-        regimeTributario,
-        uf: uf || "MG",
-        municipio: municipio || "Belo Horizonte",
-        statusAcesso: "Não Configurado",
-        statusPgdas: "Pendente",
-        periodoApuracao: "Junho/2026",
-        statusEmpresa: status
-      };
-      setCompanies(prev => [newCompany, ...prev]);
-      addToast(`Empresa "${razaoSocial.toUpperCase()}" cadastrada com sucesso!`, "success");
-      setShowNextStep(true);
-    }
+    // Simulate database persistence delay of 1.5 seconds
+    setTimeout(() => {
+      // Normalize CNPJ
+      const targetCnpj = cnpj || "99.999.999/0001-99";
+      const exists = companies.some(c => c.cnpj === targetCnpj);
+
+      if (exists) {
+        setCompanies(prev => prev.map(c => c.cnpj === targetCnpj ? {
+          ...c,
+          razaoSocial: razaoSocial.toUpperCase(),
+          nomeFantasia: nomeFantasia ? nomeFantasia.toUpperCase() : razaoSocial.toUpperCase(),
+          regimeTributario,
+          uf: uf || "MG",
+          municipio: municipio || "Belo Horizonte",
+          statusEmpresa: status,
+          logoUrl: companyLogoUrl
+        } : c));
+        addToast(`Empresa "${razaoSocial.toUpperCase()}" atualizada com sucesso!`, "success");
+      } else {
+        const newCompany: Company = {
+          cnpj: targetCnpj,
+          razaoSocial: razaoSocial.toUpperCase(),
+          nomeFantasia: nomeFantasia ? nomeFantasia.toUpperCase() : razaoSocial.toUpperCase(),
+          regimeTributario,
+          uf: uf || "MG",
+          municipio: municipio || "Belo Horizonte",
+          statusAcesso: "Não Configurado",
+          statusPgdas: "Pendente",
+          periodoApuracao: "Junho/2026",
+          statusEmpresa: status,
+          logoUrl: companyLogoUrl
+        };
+        setCompanies(prev => [newCompany, ...prev]);
+        addToast(`Empresa "${razaoSocial.toUpperCase()}" cadastrada com sucesso!`, "success");
+        setShowNextStep(true);
+      }
+      
+      // Visual checkmark transition
+      setIsSavingCompany(false);
+      setIsSaveSuccess(true);
+
+      // Wait 1.2 seconds for the user to enjoy the high-fidelity checkmark feedback, then transition pages
+      setTimeout(() => {
+        setIsSaveSuccess(false);
+        setCurrentPage("empresas");
+      }, 1200);
+
+    }, 1500);
+  };
+
+  const createNewCompany = () => {
+    setCnpj("");
+    setRazaoSocial("");
+    setNomeFantasia("");
+    setRegimeTributario("Simples Nacional");
+    setUf("MG");
+    setMunicipio("Belo Horizonte");
+    setStatus("Ativa");
+    setCep("");
+    setLogradouro("");
+    setBairro("");
+    setNumero("");
+    setComplemento("");
+    setEmail("");
+    setTelefone("");
+    setCnaePrincipal("");
+    setCnaeSecundarios("");
+    setMunicipioIncidencia("");
+    setDataAbertura("");
+    setDataBaixa("");
+    setCompanyLogoUrl(null);
+    setCurrentPage("cadastro_empresa");
   };
 
   const editCompany = (company: Company) => {
@@ -1300,6 +1507,7 @@ export default function Page() {
     setUf(company.uf);
     setMunicipio(company.municipio);
     setStatus(company.statusEmpresa || "Ativa");
+    setCompanyLogoUrl(company.logoUrl || null);
     
     const mockDbEntry = mockCnpjData[company.cnpj] || {};
     setCep(mockDbEntry.cep || "30140-061");
@@ -1323,7 +1531,7 @@ export default function Page() {
 
   const renderUserDropdown = () => (
     <div className="relative group shrink-0" id="header-user-dropdown">
-      <div className="flex items-center gap-2 p-1.5 px-3 rounded-xl hover:bg-zinc-100/80 transition-all cursor-pointer border border-zinc-200/60 bg-[#f9fafb] text-[#1e2696] shadow-xs h-9">
+      <div className="flex items-center gap-2 p-1.5 px-3 rounded-xl hover:bg-zinc-100/80 transition-all cursor-pointer border border-zinc-200/60 bg-zinc-50 text-blue-900 shadow-xs h-9">
         <div className="h-6 w-6 rounded-lg bg-emerald-600 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-sm transition-all">
           NA
         </div>
@@ -1334,7 +1542,6 @@ export default function Page() {
       <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-lg border border-zinc-100 p-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
         <div className="p-2 border-b border-zinc-100 mb-1">
           <p className="text-xs font-black text-zinc-900 leading-none">NAIALE AUGUSTINHO</p>
-          <p className="text-[9px] text-zinc-400 font-bold mt-1">tenant: naiale-augustinho...</p>
         </div>
         <button 
           onClick={() => addToast("Meu Perfil indisponível neste protótipo.", "info")}
@@ -1417,8 +1624,12 @@ export default function Page() {
       {/* MOBILE TOP HEADER BAR */}
       <header className="md:hidden bg-zinc-900 text-white px-5 py-4 flex justify-between items-center shadow-sm sticky top-0 z-30">
         <div className="flex items-center gap-3">
-          <div className="h-8 w-8 rounded-lg bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center font-bold text-sm tracking-wider shadow-inner">
-            {platformInitials}
+          <div className="h-8 w-8 rounded-lg bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center font-bold text-sm tracking-wider shadow-inner overflow-hidden">
+            {platformLogoUrl ? (
+              <img src={platformLogoUrl || undefined} alt="Logo" className="h-full w-full object-cover" />
+            ) : (
+              platformInitials
+            )}
           </div>
           <div>
             <h1 className="font-extrabold text-sm tracking-tight leading-none text-zinc-100">{platformName}</h1>
@@ -1454,8 +1665,12 @@ export default function Page() {
         {/* Sidebar Header */}
         <div className="p-5 border-b border-zinc-900/60 flex justify-between items-center h-16 shrink-0">
           <div className={`flex items-center gap-3 transition-all duration-300 ${sidebarCollapsed ? "opacity-0 md:opacity-100 scale-90" : "opacity-100"}`}>
-            <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-white flex items-center justify-center font-black tracking-widest text-base shadow-md shadow-emerald-500/15 shrink-0">
-              {platformInitials}
+            <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-white flex items-center justify-center font-black tracking-widest text-base shadow-md shadow-emerald-500/15 shrink-0 overflow-hidden">
+              {platformLogoUrl ? (
+                <img src={platformLogoUrl || undefined} alt="Logo" className="h-full w-full object-cover" />
+              ) : (
+                platformInitials
+              )}
             </div>
             {!sidebarCollapsed && (
               <div>
@@ -1483,7 +1698,7 @@ export default function Page() {
               {/* Menu Item - Escritórios Contábeis */}
               <button
                 onClick={() => { setCurrentPage("dashboard"); setSidebarOpen(false); addToast("Módulo de Escritórios indisponível neste protótipo", "info") }}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group text-[13px] font-bold bg-[#27272a] text-zinc-100 hover:bg-[#3f3f46]"
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group text-[13px] font-bold bg-zinc-800 text-zinc-100 hover:bg-zinc-700"
               >
                 <div className="w-5 h-5 flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 duration-200">
                   <Layers 
@@ -1499,15 +1714,15 @@ export default function Page() {
           ) : (
             <>
               {/* SECTION: PRINCIPAL */}
-              {!sidebarCollapsed && <div className="px-4 text-[10px] font-black text-zinc-500 uppercase tracking-wider mb-2 mt-4">Principal</div>}
+              {!sidebarCollapsed && <div className="px-4 text-[10px] font-extrabold text-zinc-500 uppercase tracking-wider mb-2 mt-4">Principal</div>}
 
               {/* Menu Item - Dashboard */}
               <button
                 onClick={() => { setCurrentPage("dashboard"); setSidebarOpen(false); }}
                 className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl transition-all duration-200 group text-[13px] font-bold ${
                   currentPage === "dashboard"
-                    ? "bg-[#27272a] text-zinc-100 shadow-sm"
-                    : "text-zinc-400 hover:text-zinc-100 hover:bg-[#27272a]/50"
+                    ? "bg-zinc-800 text-zinc-100 shadow-sm"
+                    : "text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50"
                 }`}
                 id="nav-dashboard"
               >
@@ -1527,7 +1742,7 @@ export default function Page() {
               </button>
 
               {/* SECTION: ESCRITÓRIO */}
-              {!sidebarCollapsed && <div className="px-4 text-[10px] font-black text-zinc-500 uppercase tracking-wider mb-2 mt-6">Escritório</div>}
+              {!sidebarCollapsed && <div className="px-4 text-[10px] font-extrabold text-zinc-500 uppercase tracking-wider mb-2 mt-6">Escritório</div>}
 
               {/* Menu Item - Perfil */}
               <button
@@ -1537,8 +1752,8 @@ export default function Page() {
                 }}
                 className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl transition-all duration-200 group text-[13px] font-bold ${
                   currentPage === "perfil_escritorio"
-                    ? "bg-[#27272a] text-zinc-100 shadow-sm"
-                    : "text-zinc-400 hover:text-zinc-100 hover:bg-[#27272a]/50"
+                    ? "bg-zinc-800 text-zinc-100 shadow-sm"
+                    : "text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50"
                 }`}
               >
                 <div className="flex items-center gap-3">
@@ -1557,7 +1772,7 @@ export default function Page() {
               </button>
 
               {/* SECTION: GESTÃO DE CLIENTES */}
-              {!sidebarCollapsed && <div className="px-4 text-[10px] font-black text-zinc-500 uppercase tracking-wider mb-2 mt-6">Gestão de Clientes</div>}
+              {!sidebarCollapsed && <div className="px-4 text-[10px] font-extrabold text-zinc-500 uppercase tracking-wider mb-2 mt-6">Gestão de Clientes</div>}
 
               {/* Menu Item - Empresas */}
               <button
@@ -1567,8 +1782,8 @@ export default function Page() {
                 }}
                 className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl transition-all duration-200 group text-[13px] font-bold ${
                   (currentPage === "empresas" || currentPage === "cadastro_empresa")
-                    ? "bg-[#27272a] text-zinc-100 shadow-sm"
-                    : "text-zinc-400 hover:text-zinc-100 hover:bg-[#27272a]/50"
+                    ? "bg-zinc-800 text-zinc-100 shadow-sm"
+                    : "text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50"
                 }`}
               >
                 <div className="flex items-center gap-3">
@@ -1594,8 +1809,8 @@ export default function Page() {
                 }}
                 className={`w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 group text-[13px] font-bold ${
                   currentPage === "certificados"
-                    ? "bg-[#27272a] text-zinc-100 shadow-sm"
-                    : "text-zinc-400 hover:text-zinc-100 hover:bg-[#27272a]/50"
+                    ? "bg-zinc-800 text-zinc-100 shadow-sm"
+                    : "text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50"
                 }`}
                 id="nav-certificados"
               >
@@ -1615,15 +1830,15 @@ export default function Page() {
               </button>
 
               {/* SECTION: DEPARTAMENTO FISCAL */}
-              {!sidebarCollapsed && <div className="px-4 text-[10px] font-black text-zinc-500 uppercase tracking-wider mb-2 mt-6">Departamento Fiscal</div>}
+              {!sidebarCollapsed && <div className="px-4 text-[10px] font-extrabold text-zinc-500 uppercase tracking-wider mb-2 mt-6">Departamento Fiscal</div>}
 
               {/* Menu Item - Fiscal */}
               <button
                 onClick={() => setIsFiscalMenuOpen(!isFiscalMenuOpen)}
                 className={`w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 group text-[13px] font-bold ${
                   currentPage === "pgdas"
-                    ? "bg-[#27272a] text-zinc-100 shadow-sm"
-                    : "text-zinc-400 hover:text-zinc-100 hover:bg-[#27272a]/50"
+                    ? "bg-zinc-800 text-zinc-100 shadow-sm"
+                    : "text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50"
                 }`}
                 id="nav-fiscal"
               >
@@ -1649,25 +1864,24 @@ export default function Page() {
               
               {/* Fiscal Submenu */}
               {isFiscalMenuOpen && !sidebarCollapsed && (
-                <div className="pl-12 pr-4 space-y-1 mt-1 overflow-hidden transition-all">
-                  <div className="relative before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[1px] before:bg-zinc-800 py-1 space-y-1">
+                <div className="pl-9 pr-4 mt-1 transition-all duration-300">
+                  <div className="relative border-l border-zinc-800/80 py-1 space-y-0.5 ml-2.5">
                     <button 
                       onClick={() => { setCurrentPage("pgdas"); setSidebarOpen(false); }} 
-                      className={`w-full flex items-center gap-3 pl-4 pr-3 py-2 rounded-lg text-[12px] font-bold transition-all relative group ${
+                      className={`w-full flex items-center gap-3 pl-5 pr-3 py-2 rounded-lg text-[12px] font-semibold transition-all relative group ${
                         currentPage === "pgdas" 
-                          ? "text-zinc-100 bg-[#27272a]" 
-                          : "text-zinc-400 hover:text-zinc-200 hover:bg-[#27272a]/50"
+                          ? "text-zinc-100 bg-zinc-800/40" 
+                          : "text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800/20"
                       }`}
                     >
-                      {/* Active indicator dot */}
-                      {currentPage === "pgdas" && (
-                        <div className="absolute left-[-2px] top-1/2 -translate-y-1/2 w-1 h-1 rounded-full bg-emerald-500 ring-4 ring-emerald-500/20"></div>
-                      )}
-                      <FileCheck className={`h-3.5 w-3.5 ${currentPage === "pgdas" ? "text-emerald-500" : "text-zinc-500 group-hover:text-zinc-400"}`} strokeWidth={2} />
+                      {/* Node indicator */}
+                      <div className={`absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full border border-zinc-800 transition-colors ${
+                        currentPage === "pgdas" ? "bg-blue-500 border-blue-500/50" : "bg-zinc-900"
+                      }`}></div>
+
+                      <FileCheck className={`h-3.5 w-3.5 transition-colors ${currentPage === "pgdas" ? "text-blue-400" : "text-zinc-600 group-hover:text-zinc-400"}`} strokeWidth={2.5} />
                       Apuração PGDAS
                     </button>
-                    
-
                   </div>
                 </div>
               )}
@@ -1709,23 +1923,56 @@ export default function Page() {
               </div>
               <div className="px-6 sm:px-8 pb-8 pt-0 relative flex flex-col sm:flex-row gap-6 items-start sm:items-end -mt-12">
                 <div className="h-24 w-24 rounded-2xl bg-white p-2 border-4 border-white shadow-lg overflow-hidden shrink-0 flex items-center justify-center relative group">
-                  <div className="bg-emerald-600 w-full h-full rounded-xl flex items-center justify-center text-white font-display font-black text-3xl uppercase shadow-inner">
-                    {escritorioLogoLetter || "A"}
-                  </div>
-                  {isEditingProfileForm && (
-                    <button 
-                      onClick={() => {
-                        const nextLetters = ["A", "B", "C", "K", "S", "X"];
-                        const currentIdx = nextLetters.indexOf(escritorioLogoLetter);
-                        const nextLetter = nextLetters[(currentIdx + 1) % nextLetters.length];
-                        setEscritorioLogoLetter(nextLetter);
-                        addToast(`Logotipo alterado para a letra "${nextLetter}"`, "info");
-                      }}
-                      className="absolute inset-0 bg-black/60 text-white text-[10px] font-extrabold flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl cursor-pointer"
-                    >
-                      Alterar Letra
-                    </button>
+                  {escritorioLogoUrl ? (
+                    <img src={escritorioLogoUrl || undefined} alt="Logo" className="w-full h-full rounded-xl object-cover" />
+                  ) : (
+                    <div className="bg-emerald-600 w-full h-full rounded-xl flex items-center justify-center text-white font-display font-black text-3xl uppercase shadow-inner">
+                      {escritorioLogoLetter || "A"}
+                    </div>
                   )}
+                  {isEditingProfileForm && (
+                    <div className="absolute inset-0 bg-black/60 text-white flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl gap-1">
+                      <button 
+                        onClick={() => {
+                          escritorioLogoInputRef.current?.click();
+                        }}
+                        className="text-[9px] font-black hover:underline cursor-pointer flex items-center gap-1"
+                      >
+                        <Upload className="h-3 w-3" /> Imagem
+                      </button>
+                      <button 
+                        onClick={() => {
+                          const nextLetters = ["A", "B", "C", "K", "S", "X"];
+                          const currentIdx = nextLetters.indexOf(escritorioLogoLetter);
+                          const nextLetter = nextLetters[(currentIdx + 1) % nextLetters.length];
+                          setEscritorioLogoLetter(nextLetter);
+                          setEscritorioLogoUrl(null);
+                          addToast(`Logotipo alterado para a letra "${nextLetter}"`, "info");
+                        }}
+                        className="text-[9px] font-black hover:underline cursor-pointer"
+                      >
+                        Alternar Letras
+                      </button>
+                      {escritorioLogoUrl && (
+                        <button 
+                          onClick={() => {
+                            setEscritorioLogoUrl(null);
+                            addToast("Logotipo do escritório removido.", "info");
+                          }}
+                          className="text-[9px] font-black text-rose-300 hover:underline cursor-pointer"
+                        >
+                          Remover
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  <input 
+                    type="file"
+                    ref={escritorioLogoInputRef}
+                    onChange={handleEscritorioLogoUpload}
+                    accept="image/*"
+                    className="hidden"
+                  />
                 </div>
                 
                 <div className="flex-1 space-y-2 pt-2">
@@ -1778,9 +2025,8 @@ export default function Page() {
                             setIsEditingProfileForm(true);
                             addToast("Modo de edição cadastral ativado!", "info");
                           }}
-                          className="px-4 py-2 bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer flex items-center gap-1.5 shadow-sm"
+                          className="px-4 py-2 bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer flex items-center justify-center shadow-sm"
                         >
-                          <Save className="w-3.5 h-3.5" />
                           Editar cadastro
                         </button>
                       )}
@@ -1803,6 +2049,36 @@ export default function Page() {
                   </div>
                 </div>
               </div>
+            </div>
+
+            {/* Tab Navigation */}
+            <div className="flex items-center gap-1 border-b border-zinc-200/80 pb-px overflow-x-auto scrollbar-none">
+              {[
+                { id: "dados", label: "Dados Cadastrais", icon: FileText },
+                { id: "responsaveis", label: "Responsáveis Técnicos", icon: Shield },
+                { id: "equipe", label: "Equipe e Acessos", icon: Users },
+                { id: "preferencias", label: "Preferências White Label", icon: Sparkles },
+              ].map((tab) => {
+                const Icon = tab.icon;
+                const isActive = profileTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => {
+                      setProfileTab(tab.id as any);
+                      setIsEditingProfileForm(false);
+                    }}
+                    className={`flex items-center gap-2 px-5 py-3 border-b-2 font-bold text-xs uppercase tracking-wider transition-all duration-200 cursor-pointer whitespace-nowrap ${
+                      isActive
+                        ? "border-zinc-900 text-zinc-950 font-black"
+                        : "border-transparent text-zinc-400 hover:text-zinc-600 hover:border-zinc-200"
+                    }`}
+                  >
+                    <Icon className={`w-4 h-4 ${isActive ? "text-zinc-900" : "text-zinc-400"}`} />
+                    {tab.label}
+                  </button>
+                );
+              })}
             </div>
 
             {/* Content Tabs */}
@@ -2286,6 +2562,33 @@ export default function Page() {
                       </div>
 
                       <div className="space-y-1">
+                        <label className="text-[11px] font-bold text-zinc-500 uppercase">Logotipo do Escritório (Imagem)</label>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            disabled={!isEditingProfileForm}
+                            onClick={() => escritorioLogoInputRef.current?.click()}
+                            className="flex-1 py-2 bg-zinc-50/70 hover:bg-zinc-100 disabled:bg-zinc-100/50 disabled:text-zinc-400 border border-zinc-200 rounded-xl text-zinc-700 font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+                          >
+                            <Upload className="h-3.5 w-3.5" /> {escritorioLogoUrl ? "Alterar Logo" : "Upload Imagem"}
+                          </button>
+                          {escritorioLogoUrl && (
+                            <button
+                              type="button"
+                              disabled={!isEditingProfileForm}
+                              onClick={() => {
+                                setEscritorioLogoUrl(null);
+                                addToast("Logotipo de imagem do escritório removido.", "info");
+                              }}
+                              className="px-2.5 py-2 bg-rose-50 hover:bg-rose-100 disabled:bg-zinc-100/50 border border-rose-100 rounded-xl text-rose-600 font-bold text-xs cursor-pointer transition-colors"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
                         <label className="text-[11px] font-bold text-zinc-500 uppercase">Nome da Plataforma (Menu)</label>
                         <input 
                           type="text" 
@@ -2307,6 +2610,40 @@ export default function Page() {
                           onChange={(e) => setPlatformInitials(e.target.value.toUpperCase())}
                           className="w-full bg-zinc-50/70 border border-zinc-200 disabled:bg-zinc-100/50 disabled:text-zinc-600 rounded-xl px-3.5 py-2 text-xs font-bold outline-none focus:border-emerald-500 transition-colors text-center font-mono"
                           placeholder="Ex: PG"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[11px] font-bold text-zinc-500 uppercase">Logotipo da Plataforma (Imagem)</label>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            disabled={!isEditingProfileForm}
+                            onClick={() => platformLogoInputRef.current?.click()}
+                            className="flex-1 py-2 bg-zinc-50/70 hover:bg-zinc-100 disabled:bg-zinc-100/50 disabled:text-zinc-400 border border-zinc-200 rounded-xl text-zinc-700 font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+                          >
+                            <Upload className="h-3.5 w-3.5" /> {platformLogoUrl ? "Alterar Logo" : "Upload Imagem"}
+                          </button>
+                          {platformLogoUrl && (
+                            <button
+                              type="button"
+                              disabled={!isEditingProfileForm}
+                              onClick={() => {
+                                setPlatformLogoUrl(null);
+                                addToast("Logotipo de imagem da plataforma removido.", "info");
+                              }}
+                              className="px-2.5 py-2 bg-rose-50 hover:bg-rose-100 disabled:bg-zinc-100/50 border border-rose-100 rounded-xl text-rose-600 font-bold text-xs cursor-pointer transition-colors"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </div>
+                        <input 
+                          type="file"
+                          ref={platformLogoInputRef}
+                          onChange={handlePlatformLogoUpload}
+                          accept="image/*"
+                          className="hidden"
                         />
                       </div>
                     </div>
@@ -2493,7 +2830,7 @@ export default function Page() {
               )}
 
               {/* ABA 3: RESPONSÁVEL TÉCNICO */}
-              {false && (
+              {profileTab === "responsaveis" && (
                 <motion.div
                   key="responsaveis"
                   initial={{ opacity: 0, y: 8 }}
@@ -2678,7 +3015,7 @@ export default function Page() {
 
 
               {/* ABA 4: EQUIPE E ACESSOS */}
-              {false && (
+              {profileTab === "equipe" && (
                 <motion.div
                   key="equipe"
                   initial={{ opacity: 0, y: 8 }}
@@ -2915,7 +3252,7 @@ export default function Page() {
               )}
 
               {/* ABA 5: PREFERÊNCIAS */}
-              {false && (
+              {profileTab === "preferencias" && (
                 <motion.div
                   key="preferencias"
                   initial={{ opacity: 0, y: 8 }}
@@ -2932,11 +3269,11 @@ export default function Page() {
                         Personalização da Marca / Plataforma (White Label)
                       </h3>
                       <p className="text-xs text-zinc-500 mt-1">
-                        Configure o nome e as iniciais da plataforma que aparecem no menu lateral e cabeçalhos do sistema. Ideal para escritórios que utilizam white-label ou desejam personalizar a identidade visual do portal do cliente.
+                        Configure o nome, as iniciais e a logotipo de imagem da plataforma que aparecem no menu lateral e cabeçalhos do sistema. Ideal para escritórios que utilizam white-label ou desejam personalizar a identidade visual do portal do cliente.
                       </p>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                       <div className="space-y-1.5 text-xs font-semibold">
                         <label className="text-[10px] font-bold text-zinc-400 uppercase">Nome da Plataforma (No Menu)</label>
                         <input 
@@ -2962,16 +3299,46 @@ export default function Page() {
                           className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-emerald-500 text-zinc-700 font-mono"
                           placeholder="Ex: PG"
                         />
-                        <p className="text-[10px] text-zinc-400 font-medium">Até 3 letras. É o logotipo circular/quadrado do sistema.</p>
+                        <p className="text-[10px] text-zinc-400 font-medium">Até 3 letras. É a sigla de fallback usada se não houver imagem.</p>
+                      </div>
+
+                      <div className="space-y-1.5 text-xs font-semibold">
+                        <label className="text-[10px] font-bold text-zinc-400 uppercase">Logotipo da Plataforma (Imagem)</label>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => platformLogoInputRef.current?.click()}
+                            className="flex-1 py-2 bg-zinc-50 hover:bg-zinc-100 border border-zinc-200 rounded-xl text-zinc-700 font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+                          >
+                            <Upload className="h-3.5 w-3.5" /> {platformLogoUrl ? "Alterar Logo" : "Upload Imagem"}
+                          </button>
+                          {platformLogoUrl && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setPlatformLogoUrl(null);
+                                addToast("Logotipo de imagem da plataforma removido.", "info");
+                              }}
+                              className="px-2.5 py-2 bg-rose-50 hover:bg-rose-100 border border-rose-100 rounded-xl text-rose-600 font-bold text-xs cursor-pointer transition-colors"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </div>
+                        <p className="text-[10px] text-zinc-400 font-medium">Imagem quadrada recomendada. Limite de 2MB.</p>
                       </div>
 
                       {/* LIVE SIDEBAR PREVIEW BOX */}
-                      <div className="bg-zinc-950 rounded-xl p-4 flex items-center justify-between border border-zinc-900 shadow-inner">
+                      <div className="bg-zinc-950 rounded-xl p-4 flex items-center justify-between border border-zinc-900 shadow-inner font-sans">
                         <div className="space-y-1.5 flex-1">
                           <p className="text-[9px] font-extrabold text-zinc-500 uppercase tracking-widest">Pré-visualização do Menu</p>
                           <div className="flex items-center gap-3">
-                            <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-white flex items-center justify-center font-black tracking-widest text-base shadow-md shadow-emerald-500/15 shrink-0">
-                              {platformInitials || "PG"}
+                            <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-white flex items-center justify-center font-black tracking-widest text-base shadow-md shadow-emerald-500/15 shrink-0 overflow-hidden">
+                              {platformLogoUrl ? (
+                                <img src={platformLogoUrl || undefined} alt="Logo" className="h-full w-full object-cover" />
+                              ) : (
+                                platformInitials || "PG"
+                              )}
                             </div>
                             <div className="min-w-0">
                               <p className="font-extrabold text-white text-xs tracking-tight truncate leading-none font-display">
@@ -3578,17 +3945,376 @@ export default function Page() {
         {currentPage === "dashboard" && (
           <motion.div
             key="dashboard"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
             transition={{ duration: 0.3 }}
-            className="space-y-8 flex flex-col items-center justify-center h-[70vh]"
+            className="space-y-8"
           >
-            <div className="w-16 h-16 bg-zinc-100 rounded-full flex items-center justify-center mb-4 border border-zinc-200">
-              <LayoutDashboard className="h-8 w-8 text-zinc-400" />
+            {/* Top Header Banner with Deep Teal/Emerald Gradient */}
+            <div className="relative overflow-hidden bg-gradient-to-r from-emerald-950 via-emerald-900 to-zinc-900 rounded-3xl p-6 md:p-8 text-white shadow-xl shadow-zinc-200/50">
+              <div className="absolute top-0 right-0 -mt-12 -mr-12 w-64 h-64 rounded-full bg-emerald-500/10 blur-3xl pointer-events-none" />
+              <div className="absolute bottom-0 left-1/3 -mb-20 w-80 h-80 rounded-full bg-teal-500/10 blur-3xl pointer-events-none" />
+              
+              <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+                <div className="space-y-2">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-800/40 border border-emerald-700/50 text-[10px] font-black uppercase tracking-widest text-emerald-300">
+                    <Sparkles className="h-3 w-3 text-emerald-400" />
+                    <span>Painel de Controle do Escritório</span>
+                  </div>
+                  <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight font-display">
+                    Bom dia, Naiale Augustinho
+                  </h1>
+                  <p className="text-xs md:text-sm text-emerald-200/80 font-medium max-w-2xl leading-relaxed">
+                    Sua plataforma de processamento em lote e apuração do Simples Nacional está totalmente operacional. Monitore certificados, obrigações e pendências.
+                  </p>
+                </div>
+                
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="relative bg-emerald-900/50 border border-emerald-800 rounded-xl px-3 py-2 flex items-center gap-2 text-xs font-bold text-emerald-100">
+                    <Calendar className="h-3.5 w-3.5 text-emerald-400" />
+                    <select 
+                      className="bg-transparent outline-none cursor-pointer text-emerald-50 font-black pr-4 appearance-none"
+                      defaultValue="2026"
+                    >
+                      <option value="2026" className="text-zinc-850">Exercício 2026</option>
+                      <option value="2025" className="text-zinc-850">Exercício 2025</option>
+                    </select>
+                    <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-emerald-400 pointer-events-none" />
+                  </div>
+                  
+                  <button 
+                    onClick={() => {
+                      addToast("Gerando relatório analítico em formato CSV de todas as empresas do escritório...", "info");
+                      setTimeout(() => {
+                        addToast("Relatório baixado com sucesso!", "success");
+                      }, 1550);
+                    }}
+                    className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black shadow-md hover:shadow-lg transition-all cursor-pointer h-[38px] uppercase tracking-wider text-[10px]"
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    <span>Exportar Relatório</span>
+                  </button>
+
+                  <button 
+                    onClick={createNewCompany}
+                    className="flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-zinc-100 text-zinc-900 rounded-xl text-xs font-black shadow-md hover:shadow-lg transition-all cursor-pointer h-[38px] uppercase tracking-wider text-[10px]"
+                  >
+                    <Plus className="h-3.5 w-3.5 text-zinc-900" />
+                    <span>Nova Empresa</span>
+                  </button>
+                </div>
+              </div>
             </div>
-            <h2 className="text-2xl md:text-3xl font-extrabold text-zinc-900 tracking-tight font-display text-center">Dashboard Principal</h2>
-            <p className="text-sm text-zinc-500 text-center max-w-md">Visão geral do sistema e principais métricas do escritório em breve.</p>
+
+            {/* Metrics cards (aligned with the design in second image) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+              {[
+                { 
+                  title: "Empresas Ativas", 
+                  value: companies.length.toString(), 
+                  change: `${companies.filter(c => c.statusEmpresa === "Ativa").length} em plena operação`, 
+                  icon: Building2, 
+                  color: "text-emerald-600 bg-emerald-50 border-emerald-100/50",
+                  action: () => {
+                    setFilterRegime("all");
+                    setFilterAcesso("all");
+                    setCurrentPage("empresas");
+                  }
+                },
+                { 
+                  title: "Acessos Configurados", 
+                  value: companies.filter(c => c.statusAcesso !== "Não Configurado").length.toString(), 
+                  change: "Prontos para transmissão", 
+                  icon: FileCheck, 
+                  color: "text-blue-600 bg-blue-50 border-blue-100/50", 
+                  action: () => {
+                    setFilterRegime("all");
+                    setFilterAcesso("Configurado");
+                    setCurrentPage("empresas");
+                  }
+                },
+                { 
+                  title: "Pendente de Configuração", 
+                  value: companies.filter(c => c.statusAcesso === "Não Configurado").length.toString(), 
+                  change: "Ação de cadastro necessária", 
+                  icon: AlertCircle, 
+                  color: "text-amber-600 bg-amber-50 border-amber-100/50", 
+                  action: () => {
+                    setFilterRegime("all");
+                    setFilterAcesso("Não Configurado");
+                    setCurrentPage("empresas");
+                  }
+                },
+                { 
+                  title: "Obrigações Entregues (PGDAS)", 
+                  value: `${companies.length > 0 ? Math.round((companies.filter(c => c.statusPgdas === "Entregue").length / companies.length) * 100) : 100}%`, 
+                  change: `${companies.filter(c => c.statusPgdas === "Entregue").length} de ${companies.length} concluídas`, 
+                  icon: Clock, 
+                  color: "text-indigo-600 bg-indigo-50 border-indigo-100/50", 
+                  action: () => {
+                    setCurrentPage("pgdas");
+                  }
+                }
+              ].map((stat, i) => {
+                const Icon = stat.icon;
+                return (
+                  <div 
+                    key={i} 
+                    onClick={stat.action}
+                    className="bg-white p-6 rounded-3xl border border-zinc-200/80 shadow-[0_2px_8px_rgba(0,0,0,0.01)] hover:shadow-md hover:border-zinc-300 transition-all duration-300 flex items-center justify-between gap-4 group cursor-pointer relative overflow-hidden"
+                  >
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">{stat.title}</p>
+                      <div className="flex items-baseline gap-1.5">
+                        <p className="text-3xl font-black text-zinc-900 font-display tracking-tighter">{stat.value}</p>
+                      </div>
+                      <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-tighter flex items-center gap-1">
+                        <span className="h-1.5 w-1.5 rounded-full bg-zinc-450 animate-pulse inline-block" />
+                        {stat.change}
+                      </p>
+                    </div>
+                    <div className={`p-3 rounded-2xl border shrink-0 transition-all duration-300 group-hover:scale-105 ${stat.color}`}>
+                      <Icon className="h-5.5 w-5.5" strokeWidth={2} />
+                    </div>
+                    {/* Hover Arrow Icon top-right */}
+                    <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-all duration-300 text-zinc-400 translate-y-1 group-hover:translate-y-0 translate-x--1 group-hover:translate-x-0">
+                      <ArrowUpRight className="h-3.5 w-3.5" />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Bento Grid Layout (Two columns) */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+              {/* Column 1: Monitoring / Recent Transmissions List */}
+              <div className="lg:col-span-8 bg-white rounded-3xl border border-zinc-200/80 shadow-[0_2px_12px_rgba(0,0,0,0.01)] p-6 space-y-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1">
+                  <div>
+                    <h3 className="text-base font-black text-zinc-900 tracking-tight font-display uppercase">Monitor de Apurações Recentes</h3>
+                    <p className="text-[11px] text-zinc-500 font-semibold">Acompanhe e controle individualmente as obrigações fiscais ativas.</p>
+                  </div>
+                  {/* Local Dashboard Search */}
+                  <div className="relative w-full sm:w-64">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-400" />
+                    <input
+                      type="text"
+                      placeholder="Pesquisar por cliente..."
+                      value={dashboardSearch}
+                      onChange={(e) => setDashboardSearch(e.target.value)}
+                      className="w-full pl-9 pr-4 py-1.5 bg-zinc-50 border border-zinc-200 focus:border-zinc-350 focus:bg-white text-xs font-semibold rounded-full outline-none transition-all placeholder:text-zinc-400 h-9"
+                    />
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr className="border-b border-zinc-100 text-left text-[10px] font-black text-zinc-400 uppercase tracking-widest">
+                        <th className="py-3 px-2">Empresa</th>
+                        <th className="py-3 px-2 hidden md:table-cell">Regime</th>
+                        <th className="py-3 px-2">Sua Conexão</th>
+                        <th className="py-3 px-2">PGDAS (06/2026)</th>
+                        <th className="py-3 px-2 text-right">Ação</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-100/70">
+                      {companies
+                        .filter(c => 
+                          c.razaoSocial.toLowerCase().includes(dashboardSearch.toLowerCase()) || 
+                          c.cnpj.includes(dashboardSearch)
+                        )
+                        .slice(0, 5)
+                        .map((c) => {
+                          const initial = c.razaoSocial.substring(0, 2).toUpperCase();
+                          const colorHash = c.cnpj.replace(/\D/g, "");
+                          const sum = Array.from(colorHash).reduce((acc, char) => acc + parseInt(char, 10), 0);
+                          const colorSchemes = [
+                            "bg-blue-50 text-blue-600 border-blue-100",
+                            "bg-purple-50 text-purple-600 border-purple-100",
+                            "bg-emerald-50 text-emerald-600 border-emerald-100",
+                            "bg-orange-50 text-orange-600 border-orange-100",
+                            "bg-rose-50 text-rose-600 border-rose-100"
+                          ];
+                          const colorClass = colorSchemes[sum % colorSchemes.length];
+
+                          return (
+                            <tr key={c.cnpj} className="group hover:bg-zinc-50/50 transition-colors">
+                              <td className="py-4 px-2">
+                                <div className="flex items-center gap-3">
+                                  {c.logoUrl ? (
+                                    <div className="h-8 w-8 rounded-lg overflow-hidden shrink-0 border border-zinc-200 bg-zinc-50">
+                                      <img src={c.logoUrl} alt={c.razaoSocial} className="h-full w-full object-cover" referrerPolicy="no-referrer" />
+                                    </div>
+                                  ) : (
+                                    <div className={`h-8 w-8 rounded-lg ${colorClass} flex items-center justify-center font-extrabold text-[11px] shrink-0 border border-current/10 font-display`}>
+                                      {initial}
+                                    </div>
+                                  )}
+                                  <div className="min-w-0">
+                                    <p className="font-extrabold text-xs text-zinc-900 truncate max-w-[160px] md:max-w-xs font-display">{c.razaoSocial}</p>
+                                    <p className="text-[10px] text-zinc-400 font-bold tracking-tight">{c.cnpj}</p>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="py-4 px-2 hidden md:table-cell">
+                                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-tight">{c.regimeTributario}</span>
+                              </td>
+                              <td className="py-4 px-2">
+                                <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                                  c.statusAcesso !== "Não Configurado" 
+                                    ? "bg-emerald-50 text-emerald-700 border border-emerald-100" 
+                                    : "bg-amber-50 text-amber-700 border border-amber-100"
+                                }`}>
+                                  <span className={`h-1.5 w-1.5 rounded-full ${c.statusAcesso !== "Não Configurado" ? "bg-emerald-500" : "bg-amber-500"}`} />
+                                  {c.statusAcesso !== "Não Configurado" ? "Ativo" : "Pendente"}
+                                </span>
+                              </td>
+                              <td className="py-4 px-2">
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-widest ${
+                                  c.statusPgdas === "Entregue"
+                                    ? "bg-emerald-500 text-white"
+                                    : c.statusPgdas === "Processando"
+                                    ? "bg-blue-500 text-white animate-pulse"
+                                    : "bg-zinc-100 text-zinc-600 border border-zinc-200"
+                                }`}>
+                                  {c.statusPgdas}
+                                </span>
+                              </td>
+                              <td className="py-4 px-2 text-right">
+                                <button
+                                  onClick={() => {
+                                    setSelectedCompanyCnpj(c.cnpj);
+                                    setPgdasEmpresaCnpj(c.cnpj);
+                                    setPgdasEmpresaName(c.razaoSocial);
+                                    setCurrentPage("pgdas");
+                                    addToast(`Módulo fiscal da empresa "${c.razaoSocial}" selecionado com sucesso.`, "success");
+                                  }}
+                                  className="px-3 py-1 bg-zinc-900 hover:bg-zinc-800 text-white font-black text-[9px] rounded-lg uppercase tracking-wider transition-all shadow-xs shrink-0 cursor-pointer"
+                                >
+                                  Gerenciar
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <button 
+                    onClick={() => {
+                      setFilterRegime("all");
+                      setFilterAcesso("all");
+                      setCurrentPage("empresas");
+                    }}
+                    className="text-[10px] font-black text-[#005cff] hover:text-blue-700 uppercase tracking-widest flex items-center gap-1 transition-colors cursor-pointer"
+                  >
+                    <span>Ver todas as {companies.length} empresas</span>
+                    <ArrowUpRight className="h-3 w-3" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Column 2: Bento Deadlines & Alerts & Certificates Health */}
+              <div className="lg:col-span-4 space-y-6">
+                {/* Bento Card A: Próximos Vencimentos */}
+                <div className="bg-white rounded-3xl border border-zinc-200/80 shadow-[0_2px_12px_rgba(0,0,0,0.01)] p-6 space-y-4">
+                  <div>
+                    <h3 className="text-base font-black text-zinc-900 tracking-tight font-display uppercase">Agenda Tributária</h3>
+                    <p className="text-[11px] text-zinc-500 font-semibold">Fique atento aos principais prazos de entrega do mês.</p>
+                  </div>
+
+                  <div className="space-y-4">
+                    {[
+                      {
+                        day: "20",
+                        month: "JUL",
+                        title: "PGDAS-D Competência Junho/2026",
+                        desc: "Prazo final de entrega e pagamento do Simples Nacional",
+                        urgency: "Urgente",
+                        urgencyColor: "bg-rose-50 text-rose-600 border-rose-100"
+                      },
+                      {
+                        day: "31",
+                        month: "JUL",
+                        title: "Renovação de Certificados",
+                        desc: "Atualização cadastral de 3 empresas ativas",
+                        urgency: "Alerta",
+                        urgencyColor: "bg-amber-50 text-amber-600 border-amber-100"
+                      },
+                      {
+                        day: "20",
+                        month: "AGO",
+                        title: "Início do Fechamento de Julho",
+                        desc: "Coleta e verificação primária de notas de serviço tomadas",
+                        urgency: "Planejado",
+                        urgencyColor: "bg-zinc-50 text-zinc-500 border-zinc-100"
+                      }
+                    ].map((deadline, index) => (
+                      <div key={index} className="flex gap-3 items-start p-3 hover:bg-zinc-50/50 rounded-2xl border border-transparent hover:border-zinc-100 transition-all">
+                        <div className="h-10 w-10 rounded-xl bg-zinc-900 text-white flex flex-col items-center justify-center font-display shrink-0 shadow-sm">
+                          <span className="text-[13px] font-black leading-none">{deadline.day}</span>
+                          <span className="text-[7px] font-black opacity-80 mt-0.5 tracking-wider">{deadline.month}</span>
+                        </div>
+                        <div className="min-w-0 flex-1 space-y-1">
+                          <div className="flex items-center gap-1.5 justify-between">
+                            <h4 className="text-[11px] font-black text-zinc-900 tracking-tight truncate leading-none uppercase" title={deadline.title}>{deadline.title}</h4>
+                            <span className={`px-1.5 py-0.5 rounded text-[7px] font-black uppercase tracking-wider border shrink-0 ${deadline.urgencyColor}`}>
+                              {deadline.urgency}
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-zinc-500 font-medium leading-normal">{deadline.desc}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Bento Card B: Saúde dos Certificados Digitais */}
+                <div className="bg-white rounded-3xl border border-zinc-200/80 shadow-[0_2px_12px_rgba(0,0,0,0.01)] p-6 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-base font-black text-zinc-900 tracking-tight font-display uppercase">Certificados Digitais</h3>
+                      <p className="text-[11px] text-zinc-500 font-semibold">Monitoramento em tempo real de expiração.</p>
+                    </div>
+                    <div className="h-8 w-8 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100/50 flex items-center justify-center">
+                      <ShieldCheck className="h-4.5 w-4.5" />
+                    </div>
+                  </div>
+
+                  {/* High fidelity progress visualizer */}
+                  <div className="space-y-3.5">
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
+                        <span>Certificados Saudáveis</span>
+                        <span className="text-emerald-600 font-extrabold">100% Ativos</span>
+                      </div>
+                      <div className="h-2 w-full bg-zinc-100 rounded-full overflow-hidden">
+                        <div className="h-full bg-emerald-500 rounded-full" style={{ width: "100%" }} />
+                      </div>
+                    </div>
+
+                    <div className="p-3 bg-zinc-50 rounded-2xl border border-zinc-100 flex items-center justify-between gap-3">
+                      <div className="space-y-0.5">
+                        <p className="text-[10px] font-black text-zinc-800 uppercase tracking-wide leading-none">Status Geral</p>
+                        <p className="text-[11px] text-zinc-500 font-bold">Nenhum certificado expirado ou revogado.</p>
+                      </div>
+                      <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                    </div>
+
+                    <button
+                      onClick={() => setCurrentPage("certificados")}
+                      className="w-full py-2 bg-zinc-50 hover:bg-zinc-100 border border-zinc-200 text-zinc-800 font-black text-[10px] rounded-xl uppercase tracking-widest transition-all cursor-pointer text-center"
+                    >
+                      Gerenciar Certificados
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </motion.div>
         )}
 
@@ -3597,7 +4323,7 @@ export default function Page() {
             ==================================================================== */}
         {currentPage === "empresas" && (
           <motion.div
-            key="dashboard"
+            key="empresas"
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
@@ -3609,17 +4335,16 @@ export default function Page() {
               <div>
                 <div className="flex items-center gap-2 text-[10px] font-bold text-zinc-400 tracking-wider uppercase mb-1">
                   <span>Empresas</span>
+                  <ChevronRight className="h-2.5 w-2.5" />
+                  <span className="text-zinc-600">Lista de Empresas</span>
                 </div>
-                <h2 className="text-2xl md:text-3xl font-extrabold text-zinc-900 tracking-tight font-display">Lista de Clientes</h2>
-                <p className="text-sm text-zinc-500 mt-1">Monitore e gerencie com exclusividade as credenciais fiscais das suas empresas contratantes.</p>
               </div>
               <div className="flex items-center gap-3 shrink-0 w-full sm:w-auto justify-between sm:justify-start">
                 <button
-                  onClick={() => setCurrentPage("cadastro_empresa")}
-                  className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer hover:shadow-md h-9"
+                  onClick={createNewCompany}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-zinc-900 hover:bg-zinc-800 text-white rounded-2xl text-[11px] font-black shadow-xl shadow-zinc-200 transition-all cursor-pointer h-10 uppercase tracking-widest"
                   id="btn-nova-empresa-top"
                 >
-                  <Plus className="h-4 w-4" />
                   Nova Empresa
                 </button>
                 <div className="hidden md:block">
@@ -3636,40 +4361,40 @@ export default function Page() {
                   value: companies.length.toString(), 
                   change: "Atualizado em tempo real", 
                   icon: Building2, 
-                  color: "text-emerald-600 bg-emerald-50/75 border-emerald-100" 
+                  color: "text-emerald-600 bg-emerald-50 border-emerald-100" 
                 },
                 { 
                   title: "Acessos Configurados", 
                   value: companies.filter(c => c.statusAcesso !== "Não Configurado").length.toString(), 
                   change: "Prontos para transmissão", 
                   icon: FileCheck, 
-                  color: "text-teal-600 bg-teal-50/75 border-teal-100" 
+                  color: "text-zinc-900 bg-zinc-50 border-zinc-200" 
                 },
                 { 
                   title: "Pendentes de Configuração", 
                   value: companies.filter(c => c.statusAcesso === "Não Configurado").length.toString(), 
                   change: "Necessita de credencial", 
                   icon: AlertCircle, 
-                  color: "text-amber-600 bg-amber-50/75 border-amber-100" 
+                  color: "text-amber-600 bg-amber-50 border-amber-100" 
                 },
                 { 
                   title: "Obrigações Entregues", 
                   value: `${companies.length > 0 ? Math.round((companies.filter(c => c.statusPgdas === "Entregue").length / companies.length) * 100) : 100}%`, 
                   change: "Sem atrasos no período", 
                   icon: Clock, 
-                  color: "text-zinc-600 bg-zinc-100/75 border-zinc-200" 
+                  color: "text-zinc-600 bg-zinc-100 border-zinc-200" 
                 }
               ].map((stat, i) => {
                 const Icon = stat.icon;
                 return (
-                  <div key={i} className="bg-white p-5 rounded-2xl border border-zinc-200/65 shadow-[0_2px_8px_rgba(0,0,0,0.02)] hover:shadow-sm hover:scale-[1.01] transition-all duration-200 flex items-center justify-between gap-4">
+                  <div key={i} className="bg-white p-6 rounded-3xl border border-zinc-200 shadow-sm hover:shadow-md transition-all duration-300 flex items-center justify-between gap-4 group">
                     <div>
-                      <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">{stat.title}</p>
-                      <p className="text-2xl font-black text-zinc-900 mt-1 font-display">{stat.value}</p>
-                      <p className="text-[10px] text-zinc-500 font-medium mt-1">{stat.change}</p>
+                      <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">{stat.title}</p>
+                      <p className="text-3xl font-black text-zinc-900 mt-1 font-display tracking-tighter">{stat.value}</p>
+                      <p className="text-[10px] text-zinc-500 font-bold mt-1 uppercase tracking-tighter opacity-0 group-hover:opacity-100 transition-opacity">{stat.change}</p>
                     </div>
-                    <div className={`p-3 rounded-xl border shrink-0 ${stat.color}`}>
-                      <Icon className="h-5 w-5" strokeWidth={1.75} />
+                    <div className={`p-3.5 rounded-2xl border shrink-0 transition-transform group-hover:scale-110 ${stat.color}`}>
+                      <Icon className="h-6 w-6" strokeWidth={2} />
                     </div>
                   </div>
                 );
@@ -3677,191 +4402,180 @@ export default function Page() {
             </div>
 
             {/* Beautiful Interactive List of Active Clients in Dashboard */}
-            <div className="bg-white rounded-2xl border border-zinc-200/65 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.02)] p-6 space-y-5">
-              <div className="flex flex-col sm:flex-row items-center gap-3 w-full">
+            <div className="bg-white rounded-2xl border border-zinc-200/65 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.02)] p-6 space-y-6">
+              <div className="flex flex-col sm:flex-row items-center gap-4 w-full">
                 {/* Search and Filters */}
                 <div className="relative flex-1 w-full">
-                  <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-zinc-400" />
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
                   <input
                     type="text"
                     placeholder="Buscar por razão social ou CNPJ..."
                     value={searchTerm}
                     onChange={(e) => { setSearchTerm(e.target.value); setCompaniesPage(1); }}
-                    className="w-full pl-9 pr-4 py-1.5 bg-zinc-50/50 border border-zinc-200 focus:border-emerald-500 focus:bg-white text-xs font-semibold rounded-xl outline-none transition-all placeholder:text-zinc-400 h-9"
+                    className="w-full pl-11 pr-4 py-2.5 bg-zinc-50 border border-zinc-200 focus:border-zinc-400 focus:bg-white text-[13px] font-medium rounded-full outline-none transition-all placeholder:text-zinc-400 h-11"
                   />
                 </div>
-                <div className="flex w-full sm:w-auto gap-2">
-                  <select
-                    value={filterRegime}
-                    onChange={(e) => { setFilterRegime(e.target.value); setCompaniesPage(1); }}
-                    className="flex-1 sm:flex-none px-2.5 py-1.5 bg-zinc-50/50 border border-zinc-200 focus:border-emerald-500 text-xs font-bold rounded-xl outline-none cursor-pointer transition-all text-zinc-600 h-9"
-                  >
-                    <option value="all">Todos os Regimes</option>
-                    <option value="Simples Nacional">Simples Nacional</option>
-                    <option value="Lucro Presumido">Lucro Presumido</option>
-                  </select>
-                  <select
-                    value={filterAcesso}
-                    onChange={(e) => { setFilterAcesso(e.target.value); setCompaniesPage(1); }}
-                    className="flex-1 sm:flex-none px-2.5 py-1.5 bg-zinc-50/50 border border-zinc-200 focus:border-emerald-500 text-xs font-bold rounded-xl outline-none cursor-pointer transition-all text-zinc-600 h-9"
-                  >
-                    <option value="all">Todos os Acessos</option>
-                    <option value="Configurado">Configurado</option>
-                    <option value="Não Configurado">Não Configurado</option>
-                  </select>
+                <div className="flex w-full sm:w-auto gap-3">
+                  <div className="relative min-w-[180px]">
+                    <select
+                      value={filterRegime}
+                      onChange={(e) => { setFilterRegime(e.target.value); setCompaniesPage(1); }}
+                      className="w-full appearance-none px-4 py-2.5 bg-zinc-50 border border-zinc-200 focus:border-zinc-400 text-[13px] font-bold rounded-full outline-none cursor-pointer transition-all text-zinc-700 h-11 pr-10"
+                    >
+                      <option value="all">Todos os Regimes</option>
+                      <option value="Simples Nacional">Simples Nacional</option>
+                      <option value="Lucro Presumido">Lucro Presumido</option>
+                    </select>
+                    <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 pointer-events-none" />
+                  </div>
+                  <div className="relative min-w-[180px]">
+                    <select
+                      value={filterAcesso}
+                      onChange={(e) => { setFilterAcesso(e.target.value); setCompaniesPage(1); }}
+                      className="w-full appearance-none px-4 py-2.5 bg-zinc-50 border border-zinc-200 focus:border-zinc-400 text-[13px] font-bold rounded-full outline-none cursor-pointer transition-all text-zinc-700 h-11 pr-10"
+                    >
+                      <option value="all">Todas as Apurações</option>
+                      <option value="Configurado">Configurado</option>
+                      <option value="Não Configurado">Não Configurado</option>
+                    </select>
+                    <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 pointer-events-none" />
+                  </div>
                 </div>
               </div>
 
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
-                    <tr className="text-zinc-400 font-bold uppercase tracking-widest text-[9px] border-b border-zinc-100">
-                      <th className="pb-3.5 font-semibold">Empresa / CNPJ</th>
-                      <th className="pb-3.5 font-semibold">Regime / Localidade</th>
-                      <th className="pb-3.5 font-semibold">Acesso Fiscal</th>
-                      <th className="pb-3.5 font-semibold">Status da Empresa</th>
-                      <th className="pb-3.5 font-semibold text-right">Ação</th>
+                    <tr className="text-zinc-400 font-extrabold uppercase tracking-widest text-[10px] border-b border-zinc-100">
+                      <th className="pb-4 px-2 font-display">Empresa / CNPJ</th>
+                      <th className="pb-4 px-2 font-display">Regime / Localidade</th>
+                      <th className="pb-4 px-2 font-display">Apuração PGDAS-D</th>
+                      <th className="pb-4 px-2 font-display">Status da Empresa</th>
+                      <th className="pb-4 text-right px-2 font-display">Ação</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-zinc-100 font-medium text-zinc-700">
+                  <motion.tbody 
+                    className="divide-y divide-zinc-50/80 font-medium text-zinc-700"
+                    variants={containerVariants}
+                    initial="hidden"
+                    animate="visible"
+                    key={`${companiesPage}-${searchTerm}-${filterRegime}-${filterAcesso}`}
+                  >
                     {isLoadingCompanies ? (
                       Array.from({ length: Math.min(companiesPerPage, 5) }).map((_, idx) => (
-                        <tr key={idx} className="animate-pulse">
-                          <td className="py-4">
-                            <div className="flex items-center gap-3">
-                              <div className="h-8 w-8 rounded-lg bg-zinc-200 shrink-0" />
+                        <motion.tr key={idx} variants={itemVariants} className="animate-pulse">
+                          <td className="py-5 px-2">
+                            <div className="flex items-center gap-4">
+                              <div className="h-10 w-10 rounded-lg bg-zinc-100 shrink-0" />
                               <div className="space-y-2 flex-1 min-w-0">
-                                <div className="h-3.5 bg-zinc-200 rounded w-48 sm:w-64" />
-                                <div className="h-2.5 bg-zinc-100 rounded w-32" />
+                                <div className="h-4 bg-zinc-100 rounded w-48 sm:w-64" />
+                                <div className="h-3 bg-zinc-50 rounded w-32" />
                               </div>
                             </div>
                           </td>
-                          <td className="py-4">
+                          <td className="py-5 px-2">
                             <div className="space-y-2">
-                              <div className="h-3.5 bg-zinc-200 rounded w-28" />
-                              <div className="h-2.5 bg-zinc-100 rounded w-20" />
+                              <div className="h-4 bg-zinc-100 rounded w-28" />
+                              <div className="h-3 bg-zinc-50 rounded w-20" />
                             </div>
                           </td>
-                          <td className="py-4">
-                            <div className="h-5.5 bg-zinc-200 rounded-full w-24" />
+                          <td className="py-5 px-2">
+                            <div className="h-6 bg-zinc-100 rounded-full w-24" />
                           </td>
-                          <td className="py-4">
-                            <div className="h-5.5 bg-zinc-200 rounded-full w-16" />
+                          <td className="py-5 px-2">
+                            <div className="h-6 bg-zinc-100 rounded-full w-16" />
                           </td>
-                          <td className="py-4 text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              <div className="h-7 bg-zinc-200 rounded-lg w-12" />
-                              <div className="h-7 bg-zinc-200 rounded-lg w-16" />
-                            </div>
+                          <td className="py-5 px-2 text-right">
+                            <div className="h-8 bg-zinc-100 rounded-lg w-20 ml-auto" />
                           </td>
-                        </tr>
+                        </motion.tr>
                       ))
                     ) : paginatedCompanies.length === 0 ? (
-                      <tr>
-                        <td colSpan={5} className="py-12 text-center">
-                          <Building2 className="h-8 w-8 text-zinc-300 mx-auto mb-2" strokeWidth={1.5} />
-                          <p className="text-zinc-400 text-xs font-bold">Nenhuma empresa encontrada com os filtros selecionados.</p>
+                      <motion.tr variants={itemVariants}>
+                        <td colSpan={5} className="py-16 text-center">
+                          <Building2 className="h-10 w-10 text-zinc-200 mx-auto mb-3" strokeWidth={1} />
+                          <p className="text-zinc-400 text-sm font-bold">Nenhuma empresa encontrada com os filtros selecionados.</p>
                           <button 
                             onClick={() => { setSearchTerm(""); setFilterRegime("all"); setFilterAcesso("all"); }}
-                            className="mt-3 text-emerald-600 hover:text-emerald-700 text-[11px] font-black underline cursor-pointer"
+                            className="mt-4 text-emerald-600 hover:text-emerald-700 text-[12px] font-extrabold underline cursor-pointer"
                           >
                             Limpar Filtros
                           </button>
                         </td>
-                      </tr>
+                      </motion.tr>
                     ) : (
-                      paginatedCompanies.map((company) => {
-                        const initial = company.razaoSocial.charAt(0);
+                      paginatedCompanies.map((company, idx) => {
+                        const initial = company.razaoSocial.substring(0, 2).toUpperCase();
+                        // Cycle through some nice colors for the initials
+                        const bgColors = ["bg-emerald-50 text-emerald-600", "bg-blue-50 text-blue-600", "bg-teal-50 text-teal-600", "bg-indigo-50 text-indigo-600", "bg-cyan-50 text-cyan-600"];
+                        const colorClass = bgColors[idx % bgColors.length];
+                        
                         return (
-                          <tr key={company.cnpj} className="hover:bg-zinc-50/50 transition-colors duration-150">
-                            <td className="py-4">
-                              <div className="flex items-center gap-3">
-                                <div className="h-8 w-8 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-bold text-xs border border-emerald-500/10 shadow-xs shrink-0">
-                                  {initial}
-                                </div>
+                          <motion.tr 
+                            key={company.cnpj} 
+                            variants={itemVariants}
+                            className="hover:bg-zinc-50/40 transition-colors duration-150"
+                          >
+                            <td className="py-5 px-2">
+                              <div className="flex items-center gap-4">
+                                {company.logoUrl ? (
+                                  <div className="h-10 w-10 rounded-lg overflow-hidden shrink-0 border border-zinc-200">
+                                    <img src={company.logoUrl} alt={company.razaoSocial} className="h-full w-full object-cover" referrerPolicy="no-referrer" />
+                                  </div>
+                                ) : (
+                                  <div className={`h-10 w-10 rounded-lg ${colorClass} flex items-center justify-center font-extrabold text-[13px] shrink-0 border border-current/10 font-display`}>
+                                    {initial}
+                                  </div>
+                                )}
                                 <div className="min-w-0">
-                                  <p className="font-extrabold text-zinc-900 truncate max-w-[200px] sm:max-w-xs" title={company.razaoSocial}>
+                                  <p className="font-extrabold text-[13px] text-zinc-900 tracking-tight truncate max-w-[200px] sm:max-w-md font-display" title={company.razaoSocial}>
                                     {highlightText(company.razaoSocial, searchTerm)}
                                   </p>
-                                  {company.nomeFantasia && company.nomeFantasia !== company.razaoSocial && (
-                                    <p className="text-[10px] text-zinc-500 truncate max-w-[200px] sm:max-w-xs" title={company.nomeFantasia}>
-                                      {highlightText(company.nomeFantasia, searchTerm)}
-                                    </p>
-                                  )}
-                                  <p className="text-[10px] text-zinc-400 font-mono mt-0.5">
+                                  <p className="text-[11px] text-zinc-400 font-bold mt-0.5">
                                     CNPJ: {highlightCnpj(company.cnpj, searchTerm)}
                                   </p>
                                 </div>
                               </div>
                             </td>
-                            <td className="py-4">
-                              <p className="text-zinc-800 font-bold">{company.regimeTributario}</p>
-                              <p className="text-[10px] text-zinc-400 mt-0.5">{company.municipio} - {company.uf}</p>
+                            <td className="py-5 px-2">
+                              <p className="text-zinc-900 font-extrabold text-[13px] tracking-tight font-display">{company.regimeTributario}</p>
+                              <p className="text-[11px] text-zinc-400 font-bold mt-0.5">{company.municipio} - {company.uf}</p>
                             </td>
-                            <td className="py-4">
-                              {company.statusAcesso === "Não Configurado" ? (
-                                <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 text-[10px] font-bold border border-amber-100/50 shadow-xs">
-                                  <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse"></span>
-                                  Não Configurado
+                            <td className="py-5 px-2">
+                              <div className="flex flex-col gap-1">
+                                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-50 text-orange-700 text-[10px] font-extrabold w-fit">
+                                  <span className="h-1.5 w-1.5 rounded-full bg-orange-500"></span>
+                                  Em andamento
                                 </div>
-                              ) : company.statusAcesso === "e-CNPJ Ativo" ? (
-                                <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-100/50 shadow-xs">
-                                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
-                                  e-CNPJ Ativo
-                                </div>
-                              ) : (
-                                <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-teal-50 text-teal-700 text-[10px] font-bold border border-teal-100/50 shadow-xs">
-                                  <span className="h-1.5 w-1.5 rounded-full bg-teal-500"></span>
-                                  Procuração Ativa
-                                </div>
-                              )}
-                            </td>
-                            <td className="py-4">
-                              {company.statusEmpresa === "Ativa" ? (
-                                <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-100/50 shadow-xs">
-                                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
-                                  Ativa
-                                </div>
-                              ) : company.statusEmpresa === "Inativa" ? (
-                                <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 text-[10px] font-bold border border-amber-100/50 shadow-xs">
-                                  <span className="h-1.5 w-1.5 rounded-full bg-amber-500"></span>
-                                  Inativa
-                                </div>
-                              ) : (
-                                <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 text-[10px] font-bold border border-rose-100/50 shadow-xs">
-                                  <span className="h-1.5 w-1.5 rounded-full bg-rose-500 animate-pulse"></span>
-                                  Suspensa
-                                </div>
-                              )}
-                            </td>
-                            <td className="py-4 text-right">
-                              <div className="flex items-center justify-end gap-2">
-                                <button
-                                  onClick={() => editCompany(company)}
-                                  className="px-2.5 py-1.5 bg-zinc-100 text-zinc-700 rounded-lg text-[10px] font-bold hover:bg-zinc-200/80 transition-all cursor-pointer border border-zinc-200/20"
-                                >
-                                  Editar
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    setSelectedCompanyCnpj(company.cnpj);
-                                    if (company.statusAcesso !== "Não Configurado") {
-                                      setMetodoAcesso(company.statusAcesso === "e-CNPJ Ativo" ? "certificado" : "procuracao");
-                                    }
-                                    setCurrentPage("certificados");
-                                    addToast(`Configurando acesso fiscal para ${company.razaoSocial}`, "info");
-                                  }}
-                                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-bold shadow-xs transition-all cursor-pointer"
-                                >
-                                  {company.statusAcesso === "Não Configurado" ? "Configurar" : "Gerenciar"}
-                                </button>
+                                <span className="text-[11px] text-zinc-400 font-bold ml-1">Importação fiscal</span>
                               </div>
                             </td>
-                          </tr>
+                            <td className="py-5 px-2">
+                              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-extrabold w-fit">
+                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                                Ativo
+                              </div>
+                            </td>
+                            <td className="py-5 px-2 text-right">
+                              <button
+                                onClick={() => {
+                                  setSelectedCompanyCnpj(company.cnpj);
+                                  if (company.statusAcesso !== "Não Configurado") {
+                                    setMetodoAcesso(company.statusAcesso === "e-CNPJ Ativo" ? "certificado" : "procuracao");
+                                  }
+                                  setCurrentPage("certificados");
+                                  addToast(`Configurando acesso fiscal para ${company.razaoSocial}`, "info");
+                                }}
+                                className="px-5 py-2 bg-zinc-900 hover:bg-black text-white rounded-lg text-[11px] font-extrabold shadow-sm transition-all cursor-pointer"
+                              >
+                                Gerenciar
+                              </button>
+                            </td>
+                          </motion.tr>
                         );
                       })
                     )}
-                  </tbody>
+                  </motion.tbody>
                 </table>
               </div>
 
@@ -3967,7 +4681,6 @@ export default function Page() {
 
           </motion.div>
         )}
-
         {/* ====================================================================
             VIEW: CERTIFICADO E PROCURAÇÃO (CERTIFICADOS)
             ==================================================================== */}
@@ -3983,518 +4696,401 @@ export default function Page() {
           >
             
             {/* Header Area */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-zinc-200 pb-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
               <div>
-                <div className="flex items-center gap-2 text-[10px] font-bold text-zinc-400 tracking-wider uppercase mb-1">
-                  <span>Módulos de Configuração</span>
-                  <ChevronRight className="h-3 w-3 text-zinc-300" />
-                  <span className="text-zinc-600">Acesso Fiscal</span>
+                <div className="flex items-center gap-1 text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1">
+                  <span>Configurações</span>
+                  <ChevronRight className="h-2.5 w-2.5" />
+                  <span>Módulo fiscal</span>
+                  <ChevronRight className="h-2.5 w-2.5" />
+                  <span className="text-zinc-600">Certificado</span>
                 </div>
-                <h2 className="text-2xl md:text-3xl font-extrabold text-zinc-900 tracking-tight font-display">Certificado e Procuração</h2>
-                <p className="text-sm text-zinc-500 mt-0.5">Defina as permissões e credenciais de conexão com o portal oficial da Receita Federal.</p>
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center gap-2.5 w-full sm:w-auto">
+              <div className="flex items-center gap-2">
                 <button
                   onClick={() => setCurrentPage("dashboard")}
-                  className="flex-1 sm:flex-none px-4 py-2 bg-white hover:bg-zinc-50 border border-zinc-200 rounded-xl text-zinc-700 font-bold text-xs transition-colors cursor-pointer text-center h-9 flex items-center justify-center"
-                  id="btn-voltar-cert"
+                  className="px-4 py-2 bg-white hover:bg-zinc-50 border border-zinc-200 rounded-xl text-zinc-700 font-extrabold text-[11px] transition-colors cursor-pointer text-center h-10 flex items-center justify-center gap-2 shadow-xs uppercase tracking-wider"
                 >
-                  Voltar ao Início
+                  Voltar
                 </button>
                 <button
                   onClick={saveCertificateConfig}
-                  className="flex-1 sm:flex-none px-4.5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs shadow-sm transition-colors cursor-pointer flex items-center justify-center gap-1.5 h-9"
-                  id="btn-salvar-config-top"
+                  className="px-4 py-2 bg-[#005cff] hover:bg-blue-700 text-white rounded-xl font-extrabold text-[11px] shadow-sm transition-colors cursor-pointer flex items-center justify-center gap-2 h-10 uppercase tracking-wider"
                 >
-                  <Save className="h-3.5 w-3.5" />
-                  Salvar Configuração
+                  <Save className="h-4 w-4" />
+                  Salvar configuração
                 </button>
-                <div className="hidden md:block">
-                  {renderUserDropdown()}
-                </div>
               </div>
             </div>
 
-            {/* Selected Company Banner Card */}
+            {/* Active Company Bar */}
             {(() => {
-              const currentSelectedCompany = companies.find(c => c.cnpj === selectedCompanyCnpj) || companies[0] || {
-                razaoSocial: "LACUNAS LTDA",
-                cnpj: "66.378.843/0001-34",
-                regimeTributario: "Simples Nacional",
-                municipio: "Belo Horizonte",
-                uf: "MG",
-                statusAcesso: "Não Configurado"
-              };
-              const hasAccess = currentSelectedCompany.statusAcesso !== "Não Configurado";
+              const activeCompany = companies.find(c => c.cnpj === selectedCompanyCnpj) || companies[0];
+              const maskedCnpj = activeCompany?.cnpj ? activeCompany.cnpj.replace(/^(\d{2})\.(\d{3})\.(\d{3})\/(\d{4})-(\d{2})$/, "$1.***.***/****-$5") : "66.***.***/****-34";
+              const rawCnpj = activeCompany?.cnpj ? "cnpj-" + activeCompany.cnpj.replace(/\D/g, "") : "cnpj-66378843000134";
+
               return (
-                <div className="bg-white p-6 rounded-2xl border border-zinc-200/65 shadow-[0_2px_8px_rgba(0,0,0,0.01)] flex flex-col md:flex-row md:items-center justify-between gap-5 relative overflow-hidden">
-                  <div className={`absolute top-0 left-0 h-full w-1.5 ${hasAccess ? "bg-emerald-500" : "bg-amber-500"}`}></div>
-                  
-                  <div className="space-y-1.5 pl-2">
-                    <div className="flex flex-wrap gap-2 text-[10px] font-bold text-zinc-500">
-                      <span className="bg-zinc-100 px-2 py-0.5 rounded">CNPJ: {currentSelectedCompany.cnpj}</span>
-                      <span className="bg-zinc-100 px-2 py-0.5 rounded">{currentSelectedCompany.regimeTributario}</span>
-                      <span className="bg-zinc-100 px-2 py-0.5 rounded">{currentSelectedCompany.municipio} - {currentSelectedCompany.uf}</span>
+                <div className="bg-white p-6 rounded-2xl border border-zinc-200/65 shadow-[0_2px_12px_rgba(0,0,0,0.01)] flex flex-col md:flex-row md:items-center justify-between gap-6">
+                  <div className="flex items-center gap-4 flex-1">
+                    {activeCompany?.logoUrl ? (
+                      <div className="h-12 w-12 rounded-xl overflow-hidden shrink-0 border border-zinc-200 bg-zinc-50">
+                        <img src={activeCompany.logoUrl} alt={activeCompany.razaoSocial} className="h-full w-full object-cover" referrerPolicy="no-referrer" />
+                      </div>
+                    ) : (
+                      <div className="h-12 w-12 rounded-xl border border-zinc-200 bg-zinc-50 flex items-center justify-center text-zinc-400 shrink-0">
+                        <Building2 className="h-6 w-6" />
+                      </div>
+                    )}
+                    <div className="space-y-1 flex-1 min-w-[240px]">
+                      <div className="flex items-center gap-2">
+                        <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Empresa selecionada</p>
+                        <span className="text-[8px] bg-blue-50 text-[#005cff] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider border border-blue-100">Alterar seleção</span>
+                      </div>
+                      <div className="relative max-w-sm mt-1">
+                        <select
+                          value={selectedCompanyCnpj}
+                          onChange={(e) => {
+                            const newCnpj = e.target.value;
+                            setSelectedCompanyCnpj(newCnpj);
+                            setUploadedFile(null);
+                            setSenhaCertificado("");
+                            setIsValidatedCert(false);
+                          }}
+                          className="w-full h-10 pl-3 pr-10 border border-zinc-200 rounded-xl text-sm font-black text-zinc-800 bg-white hover:border-zinc-350 focus:border-blue-500 outline-none appearance-none cursor-pointer tracking-tight"
+                        >
+                          {companies.map((c) => (
+                            <option key={c.cnpj} value={c.cnpj}>
+                              {c.razaoSocial}
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 pointer-events-none" />
+                      </div>
+                      <p className="text-[11px] text-zinc-500 font-bold mt-1">
+                        {maskedCnpj} · {activeCompany?.regimeTributario || "Simples Nacional"} · {activeCompany?.municipio || "Belo Horizonte"} - {activeCompany?.uf || "MG"}
+                      </p>
                     </div>
                   </div>
-
-                  <div className="flex items-center gap-6 md:gap-10 pl-2 md:pl-0">
+                  <div className="flex gap-12 md:gap-16">
                     <div>
-                      <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider">Identificador único</p>
-                      <p className="text-xs font-mono font-bold text-zinc-600 mt-1">cnpj-{currentSelectedCompany.cnpj.replace(/\D/g, "")}</p>
+                      <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1">Empresa ID</p>
+                      <p className="text-xs font-bold text-zinc-700 font-mono">{rawCnpj}</p>
                     </div>
                     <div>
-                      <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider">Status de acesso</p>
-                      {hasAccess ? (
-                        <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-600 mt-1">
-                          <span className="h-2 w-2 rounded-full bg-emerald-500"></span>
-                          {currentSelectedCompany.statusAcesso}
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-1.5 text-xs font-bold text-amber-600 mt-1">
-                          <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse"></span>
-                          Módulo Não Integrado
-                        </div>
-                      )}
+                      <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1">Status PGDAS-D</p>
+                      <p className={`text-xs font-black ${activeCompany?.statusAcesso !== "Não Configurado" ? "text-emerald-600" : "text-amber-600"}`}>
+                        {activeCompany?.statusAcesso !== "Não Configurado" ? "Acesso Configurado" : "Módulo fiscal não configurado"}
+                      </p>
                     </div>
                   </div>
                 </div>
               );
             })()}
 
-            {/* STEP 1: Método de acesso fiscal */}
-            <div className="bg-white p-6 rounded-2xl border border-zinc-200/65 shadow-[0_2px_8px_rgba(0,0,0,0.01)] space-y-4">
-              <h4 className="text-sm font-extrabold text-zinc-900 flex items-center gap-2">
-                <span className="h-5.5 w-5.5 rounded-lg bg-emerald-50 text-emerald-600 font-bold text-xs flex items-center justify-center">1</span>
-                Selecione o método de acesso fiscal
+            {/* SECTION 1: Método de acesso fiscal */}
+            <div className="bg-white p-6 rounded-2xl border border-zinc-200/65 shadow-[0_2px_12px_rgba(0,0,0,0.01)] space-y-4">
+              <h4 className="text-sm font-extrabold text-zinc-900 uppercase tracking-wider">
+                1. Método de acesso fiscal
               </h4>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Option Card A: Certificado próprio */}
-                <div
+                {/* Certificado da empresa */}
+                <div 
                   onClick={() => setMetodoAcesso("certificado")}
-                  className={`p-4.5 rounded-xl border-2 transition-all duration-200 cursor-pointer relative flex gap-4 ${
-                    metodoAcesso === "certificado"
-                      ? "border-emerald-600 bg-emerald-500/[0.02] shadow-[0_4px_16px_rgba(16,185,129,0.04)]"
-                      : "border-zinc-100 bg-zinc-50/50 hover:border-zinc-250 hover:bg-zinc-50"
-                  }`}
-                  id="opt-certificado-proprio"
+                  className={`p-5 rounded-2xl border-2 flex items-center justify-between cursor-pointer transition-all ${metodoAcesso === "certificado" ? "bg-[#f4f8ff] border-[#005cff] text-[#005cff]" : "bg-white border-zinc-200 hover:border-zinc-300 text-zinc-700"}`}
                 >
-                  <div className={`p-2.5 rounded-xl shrink-0 h-10 w-10 flex items-center justify-center ${metodoAcesso === "certificado" ? "bg-emerald-600 text-white" : "bg-zinc-100 text-zinc-600"}`}>
-                    <FileKey className="h-5 w-5" />
-                  </div>
-                  <div className="flex-1 pr-6">
-                    <h5 className="font-bold text-zinc-900 text-xs">Certificado Digital próprio (e-CNPJ)</h5>
-                    <p className="text-[11px] text-zinc-500 mt-1 leading-relaxed">Fazer upload do arquivo de chaves de assinatura do cliente.</p>
+                  <div className="flex items-center gap-4">
+                    <div className={`p-2.5 rounded-xl ${metodoAcesso === "certificado" ? "bg-blue-100/60 text-[#005cff]" : "bg-zinc-100 text-zinc-400"}`}>
+                      <FileText className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="font-extrabold text-xs text-zinc-900">Certificado da empresa</p>
+                      <p className="text-[11px] text-zinc-500 font-bold">A empresa usa o próprio e-CNPJ.</p>
+                    </div>
                   </div>
                   {metodoAcesso === "certificado" && (
-                    <div className="absolute top-4 right-4 h-4.5 w-4.5 rounded-full bg-emerald-600 text-white flex items-center justify-center">
-                      <Check className="h-3 w-3 stroke-[3]" />
+                    <div className="bg-[#005cff] text-white p-1 rounded-full">
+                      <Check className="h-3 w-3" strokeWidth={3} />
                     </div>
                   )}
                 </div>
 
-                {/* Option Card B: Procuração escritório */}
-                <div
+                {/* Procuração para o escritório */}
+                <div 
                   onClick={() => setMetodoAcesso("procuracao")}
-                  className={`p-4.5 rounded-xl border-2 transition-all duration-200 cursor-pointer relative flex gap-4 ${
-                    metodoAcesso === "procuracao"
-                      ? "border-emerald-600 bg-emerald-500/[0.02] shadow-[0_4px_16px_rgba(16,185,129,0.04)]"
-                      : "border-zinc-100 bg-zinc-50/50 hover:border-zinc-250 hover:bg-zinc-50"
-                  }`}
-                  id="opt-procuracao-escritorio"
+                  className={`p-5 rounded-2xl border-2 flex items-center justify-between cursor-pointer transition-all ${metodoAcesso === "procuracao" ? "bg-[#f4f8ff] border-[#005cff] text-[#005cff]" : "bg-white border-zinc-200 hover:border-zinc-300 text-zinc-700"}`}
                 >
-                  <div className={`p-2.5 rounded-xl shrink-0 h-10 w-10 flex items-center justify-center ${metodoAcesso === "procuracao" ? "bg-emerald-600 text-white" : "bg-zinc-100 text-zinc-600"}`}>
-                    <Shield className="h-5 w-5" />
-                  </div>
-                  <div className="flex-1 pr-6">
-                    <h5 className="font-bold text-zinc-900 text-xs">Procuração Eletrônica (Outorga)</h5>
-                    <p className="text-[11px] text-zinc-500 mt-1 leading-relaxed">Utilizar a procuração digital do escritório junto à Receita Federal.</p>
+                  <div className="flex items-center gap-4">
+                    <div className={`p-2.5 rounded-xl ${metodoAcesso === "procuracao" ? "bg-blue-100/60 text-[#005cff]" : "bg-zinc-100 text-zinc-400"}`}>
+                      <Shield className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="font-extrabold text-xs text-zinc-900">Procuração para o escritório</p>
+                      <p className="text-[11px] text-zinc-500 font-bold">O escritório opera autorizado pela empresa.</p>
+                    </div>
                   </div>
                   {metodoAcesso === "procuracao" && (
-                    <div className="absolute top-4 right-4 h-4.5 w-4.5 rounded-full bg-emerald-600 text-white flex items-center justify-center">
-                      <Check className="h-3 w-3 stroke-[3]" />
+                    <div className="bg-[#005cff] text-white p-1 rounded-full">
+                      <Check className="h-3 w-3" strokeWidth={3} />
                     </div>
                   )}
                 </div>
               </div>
             </div>
 
-            {/* STEP 2: Certificado da empresa (Form details) */}
-            <div className="bg-white p-6 rounded-2xl border border-zinc-200/65 shadow-[0_2px_8px_rgba(0,0,0,0.01)] space-y-6">
-              <div className="flex justify-between items-center pb-2 border-b border-zinc-100">
-                <h4 className="text-sm font-extrabold text-zinc-900 flex items-center gap-2">
-                  <span className="h-5.5 w-5.5 rounded-lg bg-emerald-50 text-emerald-600 font-bold text-xs flex items-center justify-center">2</span>
-                  {metodoAcesso === "certificado" ? "Configurar chaves do certificado e-CNPJ" : "Parâmetros de Procuração Fiscal"}
-                </h4>
-                {metodoAcesso === "certificado" && (
-                  <button
-                    onClick={() => {
-                      setUploadedFile({ name: "certificado_lacunas_2026.pfx", size: "8.4 KB", lastModified: "08/07/2026" });
-                      setSenhaCertificado("senha_exemplo_123");
-                      addToast("Mock de arquivo preenchido para validação rápida!", "info");
-                    }}
-                    className="text-xs text-emerald-600 hover:text-emerald-700 font-bold transition-all hover:underline"
+            {/* SECTION 2: Certificado da empresa */}
+            <div className="bg-white p-6 rounded-2xl border border-zinc-200/65 shadow-[0_2px_12px_rgba(0,0,0,0.01)] space-y-6">
+              <h4 className="text-sm font-extrabold text-zinc-900 uppercase tracking-wider">
+                {metodoAcesso === "certificado" ? "2. Certificado da empresa" : "2. Procuração do escritório"}
+              </h4>
+
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
+                <div className="space-y-1.5 text-xs font-semibold">
+                  <label className="text-[10px] font-bold text-zinc-500 uppercase">Arquivo do certificado *</label>
+                  <div 
+                    onClick={() => fileInputRef.current?.click()}
+                    onDragOver={handleDragOver}
+                    onDrop={handleDrop}
+                    className="border border-dashed border-zinc-300 hover:border-zinc-400 bg-zinc-50/20 hover:bg-zinc-50/50 rounded-xl p-3 flex items-center justify-center gap-2 cursor-pointer text-zinc-500 text-xs font-semibold h-[42px] transition-colors"
                   >
-                    Auto-preencher arquivo (.pfx)
-                  </button>
-                )}
-              </div>
+                    <Upload className="h-4 w-4 text-zinc-400 shrink-0" />
+                    <span className="truncate">{uploadedFile ? uploadedFile.name : "Selecionar .pfx ou .p12"}</span>
+                  </div>
+                  <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    onChange={handleFileSelect} 
+                    accept=".pfx,.p12" 
+                    className="hidden" 
+                  />
+                </div>
 
-              {metodoAcesso === "certificado" ? (
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                  {/* Left Column: Drag & Drop Area */}
-                  <div className="lg:col-span-5 space-y-2">
-                    <label className="text-[10px] font-bold text-zinc-600 uppercase tracking-wider block">
-                      Arquivo do certificado digital <span className="text-rose-500">*</span>
-                    </label>
+                <div className="space-y-1.5 text-xs font-semibold">
+                  <label className="text-[10px] font-bold text-zinc-500 uppercase">Senha do certificado *</label>
+                  <input 
+                    type="password" 
+                    placeholder="Senha do certificado"
+                    value={senhaCertificado}
+                    onChange={(e) => setSenhaCertificado(e.target.value)}
+                    className="w-full h-[42px] px-3 border border-zinc-200 rounded-xl text-xs font-bold focus:border-blue-500 bg-white text-zinc-800 outline-none"
+                  />
+                </div>
 
-                    <div
-                      onDragOver={handleDragOver}
-                      onDrop={handleDrop}
-                      onClick={triggerUploadClick}
-                      className={`border-2 border-dashed rounded-xl p-5 flex flex-col items-center justify-center text-center cursor-pointer min-h-[170px] transition-all duration-200 ${
-                        uploadedFile
-                          ? "border-emerald-500/40 bg-emerald-500/[0.01]"
-                          : "border-zinc-200 bg-zinc-50/50 hover:border-zinc-350 hover:bg-zinc-50"
-                      }`}
-                      id="cert-dropzone"
+                <div className="space-y-1.5 text-xs font-semibold">
+                  <label className="text-[10px] font-bold text-zinc-500 uppercase">Tipo esperado</label>
+                  <input 
+                    type="text" 
+                    value={metodoAcesso === "certificado" ? "e-CNPJ" : "Procuração"} 
+                    disabled 
+                    className="w-full h-[42px] px-3 border border-zinc-200 bg-zinc-50/70 text-zinc-500 rounded-xl text-xs font-bold"
+                  />
+                </div>
+
+                <div className="space-y-1.5 text-xs font-semibold">
+                  <label className="text-[10px] font-bold text-zinc-500 uppercase">CNPJ esperado</label>
+                  {(() => {
+                    const activeCompany = companies.find(c => c.cnpj === selectedCompanyCnpj) || companies[0];
+                    const maskedCnpj = activeCompany?.cnpj ? activeCompany.cnpj.replace(/^(\d{2})\.(\d{3})\.(\d{3})\/(\d{4})-(\d{2})$/, "$1.***.***/****-$5") : "66.***.***/****-34";
+                    return (
+                      <input 
+                        type="text" 
+                        value={maskedCnpj} 
+                        disabled 
+                        className="w-full h-[42px] px-3 border border-zinc-200 bg-zinc-50/70 text-zinc-500 rounded-xl text-xs font-bold font-mono"
+                      />
+                    );
+                  })()}
+                </div>
+
+                <div className="md:col-span-2 space-y-1.5 text-xs font-semibold">
+                  <label className="text-[10px] font-bold text-zinc-500 uppercase">Responsável pela configuração *</label>
+                  <div className="relative">
+                    <select 
+                      value={responsavelConfig} 
+                      onChange={(e) => setResponsavelConfig(e.target.value)}
+                      className="w-full h-[42px] pl-3 pr-10 border border-zinc-200 rounded-xl text-xs font-bold bg-white text-zinc-800 outline-none appearance-none"
                     >
-                      <input
-                        type="file"
-                        ref={fileInputRef}
-                        onChange={handleFileSelect}
-                        accept=".pfx,.p12"
-                        className="hidden"
-                      />
-                      {uploadedFile ? (
-                        <div className="space-y-3">
-                          <div className="mx-auto h-10 w-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100">
-                            <FileCheck className="h-5 w-5" />
-                          </div>
-                          <div>
-                            <p className="text-xs font-bold text-zinc-800 truncate max-w-[220px]">{uploadedFile.name}</p>
-                            <p className="text-[10px] text-zinc-400 mt-0.5">{uploadedFile.size} · Modificado em {uploadedFile.lastModified}</p>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setUploadedFile(null);
-                              setIsValidatedCert(false);
-                              addToast("Arquivo removido.", "info");
-                            }}
-                            className="text-[10px] font-bold text-rose-600 hover:text-rose-700 hover:underline inline-flex items-center gap-1 mx-auto"
-                          >
-                            <Trash2 className="h-3 w-3" /> Remover arquivo
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="space-y-3">
-                          <div className="mx-auto h-10 w-10 rounded-full bg-zinc-100 text-zinc-500 flex items-center justify-center">
-                            <Upload className="h-4.5 w-4.5" />
-                          </div>
-                          <div>
-                            <p className="text-xs font-bold text-emerald-600">Procurar arquivo de chaves</p>
-                            <p className="text-[10px] text-zinc-400 mt-1">Clique para selecionar ou arraste e solte o arquivo .pfx ou .p12</p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Right Column: Key Form Inputs */}
-                  <div className="lg:col-span-7 flex flex-col justify-between gap-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {/* Input - Senha */}
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold text-zinc-600 uppercase tracking-wider block">
-                          Senha do certificado <span className="text-rose-500">*</span>
-                        </label>
-                        <div className="relative">
-                          <input
-                            key="input-senha-certificado-propria"
-                            type={mostrarSenha ? "text" : "password"}
-                            value={senhaCertificado}
-                            onChange={(e) => setSenhaCertificado(e.target.value)}
-                            placeholder="Informe a senha"
-                            className="w-full px-3 py-2 border border-zinc-200 bg-white rounded-lg text-xs font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/15 focus:border-emerald-600 text-zinc-800"
-                            id="input-senha-cert"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setMostrarSenha(!mostrarSenha)}
-                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-zinc-400 hover:text-zinc-600 font-bold"
-                          >
-                            {mostrarSenha ? "Ocultar" : "Mostrar"}
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Input - Tipo esperado (Disabled) */}
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold text-zinc-600 uppercase tracking-wider block">
-                          Tipo esperado
-                        </label>
-                        <input
-                          key="input-tipo-esperado-propria"
-                          type="text"
-                          value="e-CNPJ"
-                          disabled
-                          className="w-full px-3 py-2 border border-zinc-200 bg-zinc-50 rounded-lg text-xs text-zinc-500 font-bold"
-                        />
-                      </div>
-
-                      {/* Input - CNPJ esperado (Disabled) */}
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold text-zinc-600 uppercase tracking-wider block">
-                          CNPJ de correspondência
-                        </label>
-                        <input
-                          key="input-cnpj-esperado-propria"
-                          type="text"
-                          value="66.378.843/0001-34"
-                          disabled
-                          className="w-full px-3 py-2 border border-zinc-200 bg-zinc-50 rounded-lg text-xs text-zinc-500 font-mono font-bold"
-                        />
-                      </div>
-
-                      {/* Input - Responsável (Disabled) */}
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold text-zinc-600 uppercase tracking-wider block">
-                          Responsável pela config
-                        </label>
-                        <input
-                          type="text"
-                          value={responsavelConfig}
-                          disabled
-                          className="w-full px-3 py-2 border border-zinc-200 bg-zinc-50 rounded-lg text-xs text-zinc-500 font-bold"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Progressive live validator loader interface */}
-                    <div className="pt-2 border-t border-zinc-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <AnimatePresence mode="wait">
-                          {isValidatingCert ? (
-                            <motion.div
-                              key="validating-cert-container"
-                              initial={{ opacity: 0, height: 0, y: 10 }}
-                              animate={{ opacity: 1, height: "auto", y: 0 }}
-                              exit={{ opacity: 0, height: 0, y: -10 }}
-                              transition={{ duration: 0.3 }}
-                              className="flex flex-col gap-2 p-3 bg-zinc-50 rounded-xl border border-zinc-100 w-full"
-                            >
-                              <div className="flex items-center gap-2 text-xs font-semibold text-zinc-650">
-                                <RefreshCw className="h-3.5 w-3.5 text-emerald-600 animate-spin shrink-0" />
-                                <span className="truncate">{validationProgressMessage}</span>
-                                <span className="ml-auto text-[10px] text-zinc-400 font-mono font-bold">{certValidationProgress}%</span>
-                              </div>
-                              {/* Animated progress bar track */}
-                              <div className="h-1.5 w-full bg-zinc-100 rounded-full overflow-hidden">
-                                <motion.div
-                                  className="h-full bg-emerald-500 rounded-full"
-                                  initial={{ width: "0%" }}
-                                  animate={{ width: `${certValidationProgress}%` }}
-                                  transition={{ duration: 0.3, ease: "easeOut" }}
-                                />
-                              </div>
-                            </motion.div>
-                          ) : isValidatedCert ? (
-                            <motion.div
-                              key="validated-cert-container"
-                              initial={{ opacity: 0, height: 0, y: 10 }}
-                              animate={{ opacity: 1, height: "auto", y: 0 }}
-                              exit={{ opacity: 0, height: 0, y: -10 }}
-                              transition={{ duration: 0.3 }}
-                              className="flex flex-col gap-2 p-3 bg-emerald-50/50 rounded-xl border border-emerald-100 w-full"
-                            >
-                              <div className="flex items-center gap-2 text-xs font-bold text-emerald-700">
-                                <Check className="h-4 w-4 shrink-0" />
-                                <span className="truncate">ICP-Brasil chaves em conformidade. Expiração: {certExpiryDate}</span>
-                                <span className="ml-auto text-[10px] text-emerald-600 font-mono font-bold">100%</span>
-                              </div>
-                              {/* Completed animated progress bar track */}
-                              <div className="h-1.5 w-full bg-emerald-100 rounded-full overflow-hidden">
-                                <motion.div
-                                  className="h-full bg-emerald-600 rounded-full"
-                                  initial={{ width: "85%" }}
-                                  animate={{ width: "100%" }}
-                                  transition={{ duration: 0.3, ease: "easeOut" }}
-                                />
-                              </div>
-                            </motion.div>
-                          ) : (
-                            <motion.p
-                              key="idle-cert-container"
-                              initial={{ opacity: 0 }}
-                              animate={{ opacity: 1 }}
-                              className="text-[11px] text-zinc-400 font-semibold flex items-center gap-1.5 py-2"
-                            >
-                              <LockKeyhole className="h-3.5 w-3.5 text-zinc-300" /> Criptografia de ponta a ponta ativa.
-                            </motion.p>
-                          )}
-                        </AnimatePresence>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={validateCertificate}
-                        disabled={isValidatingCert}
-                        className="px-4 py-2 bg-zinc-900 hover:bg-zinc-800 text-white rounded-lg font-bold text-xs transition-all flex items-center justify-center gap-1.5 shrink-0 disabled:bg-zinc-100 disabled:text-zinc-400 cursor-pointer h-9 sm:mt-0 mt-2"
-                        id="btn-validar-cert"
-                      >
-                        {isValidatingCert ? "Validando..." : "Validar Certificado"}
-                      </button>
-                    </div>
+                      <option value="">Selecione o responsável</option>
+                      <option value="Naiale Augustinho">Naiale Augustinha</option>
+                      <option value="Carlos Alberto">Carlos Alberto</option>
+                      <option value="Mariana Silva">Mariana Silva</option>
+                    </select>
+                    <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 pointer-events-none" />
                   </div>
                 </div>
-              ) : (
-                /* METODO ACESSO = PROCURAÇÃO DO ESCRITÓRIO */
-                <div className="space-y-4">
-                  <div className="p-4 bg-emerald-500/[0.01] rounded-xl border border-emerald-100 flex gap-3 text-xs leading-relaxed max-w-3xl text-zinc-600">
-                    <Info className="h-4.5 w-4.5 text-emerald-600 shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-bold text-zinc-900 text-xs">Informações sobre Outorga Tributária</p>
-                      <p className="mt-1 text-[11px]">
-                        Ao selecionar este módulo, os serviços automatizados de faturamento e monitoramento fiscal utilizarão o certificado central eletrônico do próprio escritório para assinar as obrigações tributárias de <strong className="text-zinc-800">LACUNAS LTDA</strong>.
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl">
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold text-zinc-600 uppercase tracking-wider block">ID Procuração Receita</label>
-                      <input
-                        type="text"
-                        key="input-procuracao-id-field"
-                        value={procuracaoId}
-                        onChange={(e) => setProcuracaoId(e.target.value)}
-                        placeholder="Ex: PR-100293"
-                        className="w-full px-3 py-2 border border-zinc-200 bg-white rounded-lg text-xs font-medium text-zinc-800 focus:outline-none"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold text-zinc-600 uppercase tracking-wider block">Vencimento da Procuração</label>
-                      <input
-                        type="date"
-                        key="input-procuracao-vencimento-field"
-                        value={procuracaoVencimento}
-                        onChange={(e) => setProcuracaoVencimento(e.target.value)}
-                        className="w-full px-3 py-2 border border-zinc-200 bg-white rounded-lg text-xs text-zinc-700 focus:outline-none"
-                      />
-                    </div>
+
+                <div className="md:col-span-2 space-y-1.5 text-xs font-semibold">
+                  <label className="text-[10px] font-bold text-zinc-500 uppercase">Validade identificada</label>
+                  <div className="relative">
+                    <input 
+                      type="text" 
+                      value={isValidatedCert ? certExpiryDate : "A validar após upload"} 
+                      disabled 
+                      className="w-full h-[42px] pl-3 pr-10 border border-zinc-200 bg-zinc-50/70 text-zinc-500 rounded-xl text-xs font-bold"
+                    />
+                    <Calendar className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
                   </div>
                 </div>
-              )}
+
+                {/* Validation progress */}
+                {isValidatingCert && (
+                  <div className="col-span-full bg-blue-50/50 border border-blue-100 rounded-xl p-4 space-y-2 animate-pulse mt-2">
+                    <div className="flex justify-between items-center text-[10px] font-bold text-blue-700 uppercase">
+                      <span>{validationProgressMessage || "Processando..."}</span>
+                      <span>{certValidationProgress}%</span>
+                    </div>
+                    <div className="w-full bg-blue-100 h-1.5 rounded-full overflow-hidden">
+                      <div className="bg-[#005cff] h-full transition-all duration-300" style={{ width: `${certValidationProgress}%` }} />
+                    </div>
+                  </div>
+                )}
+
+                {/* Validation buttons */}
+                <div className="col-span-full flex justify-end gap-3 pt-2">
+                  <button 
+                    onClick={validateCertificate}
+                    disabled={isValidatingCert}
+                    className="px-5 py-2 bg-white hover:bg-zinc-50 border border-zinc-200 rounded-xl text-zinc-700 font-extrabold text-[11px] transition-colors cursor-pointer flex items-center gap-1.5 shadow-xs uppercase tracking-wider h-10"
+                  >
+                    {isValidatingCert ? (
+                      <RefreshCw className="h-3.5 w-3.5 text-zinc-400 animate-spin" />
+                    ) : (
+                      <ShieldCheck className="h-4 w-4 text-zinc-500" />
+                    )}
+                    {isValidatingCert ? "Validando..." : "Validar certificado"}
+                  </button>
+                  <button 
+                    onClick={saveCertificateConfig}
+                    className="px-5 py-2 bg-[#005cff] hover:bg-blue-700 text-white rounded-xl font-extrabold text-[11px] transition-colors cursor-pointer flex items-center gap-1.5 shadow-sm uppercase tracking-wider h-10"
+                  >
+                    Salvar certificado
+                  </button>
+                </div>
+              </div>
             </div>
 
-            {/* STEP 3: Alertas de vencimento */}
-            <div className="bg-white p-6 rounded-2xl border border-zinc-200/65 shadow-[0_2px_8px_rgba(0,0,0,0.01)] space-y-4">
-              <h4 className="text-sm font-extrabold text-zinc-900 flex items-center gap-2">
-                <span className="h-5.5 w-5.5 rounded-lg bg-emerald-50 text-emerald-600 font-bold text-xs flex items-center justify-center">3</span>
-                Alertas automáticos de vencimento
+            {/* SECTION 3: Alertas de vencimento */}
+            <div className="bg-white p-6 rounded-2xl border border-zinc-200/65 shadow-[0_2px_12px_rgba(0,0,0,0.01)] space-y-4">
+              <h4 className="text-sm font-extrabold text-zinc-900 uppercase tracking-wider">
+                3. Alertas de vencimento
               </h4>
-              <p className="text-[11px] text-zinc-400 font-bold mt-0.5">Defina notificações automáticas preventivas por e-mail para manter a conformidade.</p>
 
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pt-2">
-                {/* Left block checkboxes */}
-                <div className="lg:col-span-5 space-y-3">
-                  <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-wider block">Notificar antes do vencimento</span>
-                  
-                  <div className="space-y-2.5">
-                    {[
-                      { checked: alerta30d, setter: setAlerta30d, label: "30 dias de antecedência", id: "chk-alerta-30" },
-                      { checked: alerta15d, setter: setAlerta15d, label: "15 dias de antecedência", id: "chk-alerta-15" },
-                      { checked: alerta7d, setter: setAlerta7d, label: "7 dias de antecedência", id: "chk-alerta-7" }
-                    ].map((item) => (
-                      <label key={item.id} className="flex items-center gap-3 cursor-pointer text-xs font-bold text-zinc-700 select-none">
-                        <input
-                          type="checkbox"
-                          checked={item.checked}
-                          onChange={(e) => item.setter(e.target.checked)}
-                          className="h-4 w-4 text-emerald-600 border-zinc-300 rounded focus:ring-emerald-500"
-                          id={item.id}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                {/* Left Part: Checkboxes & Email configs */}
+                <div className="lg:col-span-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* Checkboxes */}
+                  <div className="space-y-3">
+                    <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Notificar antes do vencimento</span>
+                    <div className="space-y-2.5">
+                      <label className="flex items-center gap-2.5 text-xs font-bold text-zinc-700 cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          checked={alerta30d} 
+                          onChange={(e) => setAlerta30d(e.target.checked)} 
+                          className="h-4 w-4 rounded border-zinc-300 text-[#005cff] focus:ring-[#005cff]/25"
                         />
-                        <span>{item.label}</span>
+                        <span>30 dias antes</span>
                       </label>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Center / Right inputs */}
-                <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-zinc-600 uppercase tracking-wider block">Destinatário principal</label>
-                    <div className="relative">
-                      <select
-                        value={enviarAlertaPara}
-                        onChange={(e) => setEnviarAlertaPara(e.target.value)}
-                        className="w-full px-3 py-2 border border-zinc-200 bg-white text-zinc-800 text-xs font-semibold appearance-none focus:outline-none rounded-lg"
-                        id="select-envio-alerta"
-                      >
-                        <option value="Responsável fiscal">Responsável fiscal</option>
-                        <option value="Administrador">Administrador da empresa</option>
-                        <option value="Escritório">Contador geral do escritório</option>
-                      </select>
-                      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 h-4 w-4 pointer-events-none" />
+                      <label className="flex items-center gap-2.5 text-xs font-bold text-zinc-700 cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          checked={alerta15d} 
+                          onChange={(e) => setAlerta15d(e.target.checked)} 
+                          className="h-4 w-4 rounded border-zinc-300 text-[#005cff] focus:ring-[#005cff]/25"
+                        />
+                        <span>15 dias antes</span>
+                      </label>
+                      <label className="flex items-center gap-2.5 text-xs font-bold text-zinc-700 cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          checked={alerta7d} 
+                          onChange={(e) => setAlerta7d(e.target.checked)} 
+                          className="h-4 w-4 rounded border-zinc-300 text-[#005cff] focus:ring-[#005cff]/25"
+                        />
+                        <span>7 dias antes</span>
+                      </label>
                     </div>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-zinc-600 uppercase tracking-wider block">E-mail secundário para aviso</label>
-                    <input
-                      type="email"
-                      value={emailAdicional}
-                      onChange={(e) => setEmailAdicional(e.target.value)}
-                      placeholder="financeiro@empresa.com.br"
-                      className="w-full px-3 py-2 border border-zinc-200 bg-white placeholder-zinc-400 text-zinc-800 text-xs focus:outline-none rounded-lg font-medium"
-                      id="input-email-alerta"
-                    />
+                  {/* Alerta dropdown */}
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Enviar alerta para</label>
+                    <div className="relative">
+                      <select 
+                        value={enviarAlertaPara} 
+                        onChange={(e) => setEnviarAlertaPara(e.target.value)}
+                        className="w-full h-10 pl-3 pr-10 border border-zinc-200 rounded-xl text-xs font-bold bg-white text-zinc-800 outline-none appearance-none"
+                      >
+                        <option value="Responsável fiscal">Responsável fiscal</option>
+                        <option value="Financeiro">Financeiro</option>
+                        <option value="Administrador">Administrador</option>
+                      </select>
+                      <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 pointer-events-none" />
+                    </div>
                   </div>
 
-                  <div className="sm:col-span-2 bg-zinc-50 p-3.5 rounded-xl border border-zinc-200/50 flex items-start gap-2.5">
-                    <div className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg shrink-0">
+                  {/* Email Input */}
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">E-mail adicional</label>
+                    <input 
+                      type="email" 
+                      value={emailAdicional} 
+                      onChange={(e) => setEmailAdicional(e.target.value)}
+                      className="w-full h-10 px-3 border border-zinc-200 rounded-xl text-xs font-bold bg-white text-zinc-800 outline-none focus:border-blue-500"
+                      placeholder="financeiro@empresa.com.br"
+                    />
+                  </div>
+                </div>
+
+                {/* Right Part: Blue banner card */}
+                <div className="lg:col-span-4">
+                  <div className="bg-[#f4f8ff] border border-blue-100 p-4 rounded-xl flex items-start gap-3">
+                    <div className="p-2 bg-blue-100 text-[#005cff] rounded-lg">
                       <Bell className="h-4 w-4" />
                     </div>
                     <div>
-                      <p className="text-xs font-bold text-zinc-950">Próxima notificação agendada</p>
-                      <p className="text-[10px] text-zinc-400 mt-1 font-semibold">
-                        {alerta30d
-                          ? "Faremos um aviso por e-mail 30 dias antes do vencimento identificado."
-                          : alerta15d
-                          ? "Faremos um aviso por e-mail 15 dias antes do vencimento identificado."
-                          : alerta7d
-                          ? "Faremos um aviso por e-mail 7 dias antes do vencimento identificado."
-                          : "Nenhum alerta automático configurado!"}
-                      </p>
+                      <h5 className="text-xs font-black text-[#005cff] uppercase">Próximo aviso</h5>
+                      <p className="text-[10px] text-zinc-500 font-bold mt-1">30 dias antes do vencimento identificado.</p>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* STEP 4: Resumo da autorização */}
-            <div className="bg-white p-6 rounded-2xl border border-zinc-200/65 shadow-[0_2px_8px_rgba(0,0,0,0.01)] space-y-4">
-              <h4 className="text-sm font-extrabold text-zinc-900 flex items-center gap-2">
-                <span className="h-5.5 w-5.5 rounded-lg bg-emerald-50 text-emerald-600 font-bold text-xs flex items-center justify-center">4</span>
-                Resumo consolidado da autorização
+            {/* SECTION 4: Resumo da autorização */}
+            <div className="bg-white p-6 rounded-2xl border border-zinc-200/65 shadow-[0_2px_12px_rgba(0,0,0,0.01)] space-y-4">
+              <h4 className="text-sm font-extrabold text-zinc-900 uppercase tracking-wider">
+                4. Resumo da autorização
               </h4>
 
               <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                 {[
-                  { label: "Canal Ativo", value: metodoAcesso === "certificado" ? "Certificado e-CNPJ" : "Procuração Digital" },
-                  { label: "Certificado", value: isValidatedCert ? `Válido (${certExpiryDate})` : "Pendente de validação", highlight: true, valid: isValidatedCert },
-                  { label: "Outorga Procuração", value: metodoAcesso === "procuracao" ? "Ativa (Outorgada)" : "Não necessária" },
-                  { label: "Sincronia SERPRO", value: isValidatedCert ? "Ativa & Validada" : "Aguardando chave" },
-                  { label: "Serviços Fiscais", value: isValidatedCert ? "Liberados" : "Bloqueados", highlight: true, valid: isValidatedCert }
+                  { 
+                    label: "Método ativo", 
+                    value: metodoAcesso === "certificado" ? "Certificado da própria empresa" : "Procuração do escritório" 
+                  },
+                  { 
+                    label: "Certificado válido", 
+                    value: isValidatedCert ? `Válido até ${certExpiryDate}` : "Pendente de validação"
+                  },
+                  { 
+                    label: "Procuração necessária", 
+                    value: metodoAcesso === "certificado" ? "Não" : "Sim" 
+                  },
+                  { 
+                    label: "Credencial SERPRO", 
+                    value: isValidatedCert ? "Configurado" : "A validar"
+                  },
+                  { 
+                    label: "Serviços fiscais", 
+                    value: isValidatedCert ? "Liberados" : "Não liberados"
+                  }
                 ].map((item, i) => (
-                  <div key={i} className="bg-zinc-50 p-4 rounded-xl border border-zinc-200 space-y-1">
-                    <span className="text-[9px] font-bold text-zinc-600 uppercase tracking-wider block">{item.label}</span>
-                    <p className={`text-xs font-bold leading-snug ${item.highlight ? (item.valid ? "text-emerald-600" : "text-amber-600") : "text-zinc-800"}`}>
+                  <div key={i} className="bg-zinc-50/50 p-4 rounded-xl border border-zinc-200 space-y-1">
+                    <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider block">{item.label}</span>
+                    <p className="text-xs font-black leading-snug text-zinc-800">
                       {item.value}
                     </p>
                   </div>
@@ -4515,701 +5111,483 @@ export default function Page() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.3 }}
-            className="space-y-6"
+            className="space-y-6 pb-20 relative"
             id="screen-pgdas"
           >
-            {/* Header Title & Subtitle */}
+            {/* 1. Header Navigation */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-zinc-200 pb-5">
               <div>
-                <h2 className="text-2xl font-black text-zinc-900 tracking-tight font-display">Apuração PGDAS-D</h2>
-                <p className="text-xs md:text-sm text-zinc-500 font-semibold mt-0.5">Do contexto fiscal aos documentos oficiais, com conferência antes da transmissão.</p>
+                <h2 className="text-2xl font-extrabold text-zinc-900 tracking-tight font-display">PGDAS-D</h2>
+                <div className="flex items-center gap-3 mt-1.5">
+                  <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">Empresa: <span className="text-zinc-800">{pgdasEmpresaName.split(' ')[0]}...</span></p>
+                  <div className="w-[1px] h-3 bg-zinc-300" />
+                  <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">Competência: <span className="text-zinc-800">{pgdasCompetencia}</span></p>
+                  <div className="w-[1px] h-3 bg-zinc-300" />
+                  <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">Modo: <span className="text-emerald-600 font-black">{pgdasApuracaoModo}</span></p>
+                </div>
               </div>
-              <div className="flex items-center gap-2 w-full md:w-auto">
-                <button className="flex-1 md:flex-none px-4 py-2 bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-700 rounded-lg text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-2">
-                  <Save className="h-4 w-4" /> Salvar dados
-                </button>
-                <button className="flex-1 md:flex-none px-4 py-2 bg-[#1e2696] hover:bg-[#151c6e] text-white rounded-lg text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-2">
-                  <Calculator className="h-4 w-4" /> Calcular prévia
+              <div className="flex items-center gap-3">
+                <button 
+                  onClick={() => { setCurrentPage("dashboard"); addToast("Apuracão salva como rascunho", "info"); }}
+                  className="px-4 py-2 bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-700 rounded-xl text-[11px] font-extrabold transition-all shadow-xs"
+                >
+                  Salvar Rascunho
                 </button>
               </div>
             </div>
 
-            {/* Steps Navigation Component */}
-            <div className="bg-white p-4 md:p-5 rounded-2xl border border-zinc-200 shadow-xs relative">
-              <div className="hidden md:block absolute top-1/2 left-0 w-full h-[1px] bg-zinc-100 -z-10 -translate-y-1/2"></div>
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 md:gap-0 z-10">
+            {/* 2. Page Indicators */}
+            <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-xs">
+              <div className="flex items-center justify-between max-w-4xl mx-auto relative">
+                {/* Connection Line */}
+                <div className="absolute top-1/2 left-0 w-full h-[2px] bg-zinc-100 -translate-y-1/2 -z-0" />
+                <div className={`absolute top-1/2 left-0 h-[2px] bg-emerald-500 -translate-y-1/2 transition-all duration-500 -z-0`} style={{ width: pgdasStep === 1 ? '0%' : pgdasStep === 2 ? '50%' : '100%' }} />
+
                 {[
-                  { stepNum: 1, label: "Contexto" },
-                  { stepNum: 2, label: "Dados fiscais" },
-                  { stepNum: 3, label: "Prévia" },
-                  { stepNum: 4, label: "Confirmação" },
-                  { stepNum: 5, label: "Documentos" },
-                ].map((s, idx) => {
-                  const isActive = pgdasStep === s.stepNum;
-                  const isCompleted = pgdasStep > s.stepNum;
-                  return (
-                    <div key={s.stepNum} className="flex items-center group flex-1">
-                      {/* Step Item */}
-                      <button
-                        onClick={() => {
-                          if (isCompleted || s.stepNum <= pgdasStep || pgdasFiles.length > 0) {
-                            setPgdasStep(s.stepNum as any);
-                          } else {
-                            addToast(`Por favor, complete a etapa atual para avançar para ${s.label}.`, "info");
-                          }
-                        }}
-                        className={`flex items-center gap-3 transition-all bg-white px-2 ${
-                          !isCompleted && s.stepNum > pgdasStep && pgdasFiles.length === 0
-                            ? "cursor-not-allowed opacity-50"
-                            : "cursor-pointer"
-                        }`}
+                  { step: 1, label: "Preparar Dados", status: pgdasStep === 1 ? "Em andamento" : "Concluída" },
+                  { step: 2, label: "Apurar e Revisar", status: pgdasStep < 2 ? "Bloqueada" : pgdasStep === 2 ? "Em andamento" : "Concluída" },
+                  { step: 3, label: "Finalizar", status: pgdasStep < 3 ? "Bloqueada" : "Em andamento" },
+                ].map((s) => (
+                  <div key={s.step} className="flex flex-col items-center gap-2 z-10 bg-white px-4">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-black transition-all duration-300 border-2 ${
+                      pgdasStep === s.step 
+                        ? "bg-white border-emerald-600 text-emerald-600 shadow-[0_0_15px_rgba(16,185,129,0.1)]" 
+                        : pgdasStep > s.step 
+                        ? "bg-emerald-600 border-emerald-600 text-white" 
+                        : "bg-white border-zinc-200 text-zinc-300"
+                    }`}>
+                      {pgdasStep > s.step ? <Check className="h-5 w-5" strokeWidth={3} /> : `0${s.step}`}
+                    </div>
+                    <div className="text-center">
+                      <p className={`text-[11px] font-black uppercase tracking-wider ${pgdasStep === s.step ? "text-zinc-900" : "text-zinc-400"}`}>{s.label}</p>
+                      <p className={`text-[9px] font-bold ${pgdasStep === s.step ? "text-emerald-600" : "text-zinc-300"}`}>{s.status}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 3. Page Content */}
+            <div className="min-h-[500px]">
+              {/* PAGE 1: PREPARAR DADOS */}
+              {pgdasStep === 1 && (
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+                  {/* A. Resumo da Importação */}
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                    <div className="bg-white p-5 rounded-2xl border border-zinc-200 shadow-xs">
+                      <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1">Total de XML</p>
+                      <h4 className="text-lg font-black text-zinc-900 tracking-tight">{pgdasImportSummary.importados}</h4>
+                    </div>
+                    <div className="bg-white p-5 rounded-2xl border border-zinc-200 shadow-xs">
+                      <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1">Notas Válidas</p>
+                      <h4 className="text-lg font-black text-emerald-600 tracking-tight">{pgdasImportSummary.aceitos}</h4>
+                    </div>
+                    <div className="bg-white p-5 rounded-2xl border border-zinc-200 shadow-xs">
+                      <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1">Duplicadas</p>
+                      <h4 className="text-lg font-black text-amber-600 tracking-tight">{pgdasImportSummary.duplicados}</h4>
+                    </div>
+                    <div className="bg-white p-5 rounded-2xl border border-zinc-200 shadow-xs">
+                      <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1">Erros</p>
+                      <h4 className="text-lg font-black text-rose-600 tracking-tight">{pgdasImportSummary.rejeitados}</h4>
+                    </div>
+                  </div>
+
+                  {/* B. Importação e Documentos */}
+                  <div className="bg-white rounded-2xl border border-zinc-200 shadow-xs overflow-hidden">
+                    <div className="p-6 border-b border-zinc-100 flex items-center justify-between bg-zinc-50/50">
+                      <div>
+                        <h3 className="text-sm font-black text-zinc-900 uppercase tracking-tight">Importação de Documentos Fiscais</h3>
+                        <p className="text-[11px] text-zinc-500 font-bold">XMLs de Entrada/Saída, NFS-e e Cupons Fiscais</p>
+                      </div>
+                      <button 
+                        onClick={() => pgdasFileInputRef.current?.click()}
+                        disabled={isUploadingPgdas}
+                        className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-[11px] font-black hover:bg-emerald-700 transition-all flex items-center gap-2 shadow-sm"
                       >
-                        <div
-                          className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-all ${
-                            isCompleted
-                              ? "bg-emerald-50 text-emerald-600 border border-emerald-200"
-                              : isActive
-                              ? "bg-white text-[#1e2696] border-2 border-[#1e2696]"
-                              : "bg-white text-zinc-400 border border-zinc-200 group-hover:border-zinc-300 group-hover:text-zinc-600"
-                          }`}
-                        >
-                          {isCompleted ? <Check className="h-4 w-4" strokeWidth={3} /> : s.stepNum}
-                        </div>
-                        <span
-                          className={`text-xs font-bold hidden md:block lg:block transition-all ${
-                            isCompleted ? "text-emerald-700" : isActive ? "text-[#1e2696]" : "text-zinc-500 group-hover:text-zinc-700"
-                          }`}
-                        >
-                          {s.label}
-                        </span>
-                        <span
-                          className={`text-xs font-bold md:hidden transition-all ${
-                            isCompleted ? "text-emerald-700" : isActive ? "text-[#1e2696]" : "text-zinc-500"
-                          }`}
-                        >
-                          {s.stepNum}. {s.label}
-                        </span>
+                        {isUploadingPgdas ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                        Importar XML / ZIP
                       </button>
+                    </div>
+                    
+                    <div className="p-6 grid grid-cols-1 md:grid-cols-12 gap-8">
+                      {/* Resumo da Importação */}
+                      <div className="md:col-span-4 space-y-4">
+                        <div className="space-y-3">
+                          <div className="flex justify-between items-center text-[11px]">
+                            <span className="text-zinc-500 font-bold">Total Identificado</span>
+                            <span className="text-zinc-900 font-black">{pgdasImportSummary.importados}</span>
+                          </div>
+                          <div className="flex justify-between items-center text-[11px]">
+                            <span className="text-zinc-500 font-bold">Documentos Aceitos</span>
+                            <span className="text-emerald-600 font-black">{pgdasImportSummary.aceitos}</span>
+                          </div>
+                          <div className="flex justify-between items-center text-[11px]">
+                            <span className="text-zinc-500 font-bold text-amber-600 italic">Duplicados (Removidos)</span>
+                            <span className="text-amber-600 font-black">-{pgdasImportSummary.duplicados}</span>
+                          </div>
+                          <div className="flex justify-between items-center text-[11px]">
+                            <span className="text-zinc-500 font-bold">Cancelados / Inválidos</span>
+                            <span className="text-rose-600 font-black">{pgdasImportSummary.cancelados}</span>
+                          </div>
+                        </div>
+                        
+                        <div className="pt-4 border-t border-zinc-100">
+                          <div className="bg-zinc-50 p-3 rounded-xl border border-zinc-100">
+                            <div className="flex items-center gap-2 text-zinc-900 mb-1.5">
+                              <ShieldCheck className="h-4 w-4 text-emerald-600" />
+                              <span className="text-[10px] font-black uppercase">Verificação de Integridade</span>
+                            </div>
+                            <p className="text-[10px] text-zinc-500 font-medium leading-relaxed">
+                              O sistema realizou a reconciliação entre os XMLs carregados e a base de deduplicação histórica.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Lista de Documentos para Conferência */}
+                      <div className="md:col-span-8">
+                        <div className="border border-zinc-100 rounded-xl overflow-hidden">
+                          <table className="w-full text-[11px] text-left">
+                            <thead className="bg-zinc-50 border-b border-zinc-100">
+                              <tr className="text-zinc-500 font-bold uppercase">
+                                <th className="px-4 py-3">Documento</th>
+                                <th className="px-4 py-3 text-right">Valor</th>
+                                <th className="px-4 py-3 text-center">Origem</th>
+                                <th className="px-4 py-3 text-center">Situação</th>
+                                <th className="px-4 py-3 text-right">Ação</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-zinc-100">
+                              {pgdasDocs.map(doc => (
+                                <tr key={doc.id} className="hover:bg-zinc-50/50 transition-colors">
+                                  <td className="px-4 py-3">
+                                    <p className="font-black text-zinc-900">{doc.doc}</p>
+                                    <p className="text-[9px] text-zinc-400 font-bold uppercase">{doc.tipo} • {doc.data}</p>
+                                  </td>
+                                  <td className="px-4 py-3 text-right font-bold text-zinc-700">R$ {doc.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+                                  <td className="px-4 py-3 text-center">
+                                    <span className="px-2 py-0.5 bg-zinc-100 text-zinc-600 rounded-full font-bold text-[9px]">{doc.origem}</span>
+                                  </td>
+                                  <td className="px-4 py-3 text-center">
+                                    <span className={`font-black text-[10px] ${doc.situacao.includes('✓') ? 'text-emerald-600' : doc.situacao.includes('⚠') ? 'text-amber-500' : 'text-rose-500'}`}>
+                                      {doc.situacao}
+                                    </span>
+                                  </td>
+                                  <td className="px-4 py-3 text-right">
+                                    <button 
+                                      onClick={() => { setCorrectingDoc(doc); setShowDocCorrection(true); }}
+                                      className="text-zinc-400 hover:text-zinc-900 font-black transition-colors"
+                                    >
+                                      EDITAR
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* CTA para próxima etapa */}
+                  <div className="flex justify-end pt-4">
+                    <button
+                      onClick={() => setPgdasStep(2)}
+                      className="px-8 py-3 bg-zinc-900 text-white hover:bg-zinc-800 text-[11px] font-black rounded-2xl shadow-xl shadow-zinc-200 transition-all flex items-center gap-2 uppercase tracking-widest"
+                    >
+                      Classificar e Apurar <ChevronRight className="h-4 w-4" />
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* PAGE 2: CLASSIFICAR E APURAR */}
+              {pgdasStep === 2 && (
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+                  
+                  {/* Receita Consolidada da Etapa 1 */}
+                  <div className="bg-white p-6 rounded-2xl border border-emerald-100 shadow-sm">
+                    <h3 className="text-xs font-black text-emerald-900 uppercase tracking-widest mb-4">Receita Consolidada</h3>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-2xl font-black text-emerald-600">R$ 178.800,00</p>
+                        <p className="text-[10px] text-emerald-700 font-bold uppercase">Origem: 239 notas válidas XML</p>
+                      </div>
+                      <button className="text-[10px] font-black text-zinc-500 uppercase">Ver notas →</button>
+                    </div>
+                  </div>
+
+                  {/* RBT12 e Fator R */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-xs">
+                      <h3 className="text-xs font-black text-zinc-900 uppercase tracking-widest mb-4">Receita Bruta Acumulada (RBT12)</h3>
+                      <p className="text-lg font-black text-zinc-900">R$ {pgdasHistorico.rbt12.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                      <button className="mt-4 px-4 py-2 bg-zinc-100 rounded-xl text-[10px] font-bold text-zinc-700 uppercase">Abrir RBT12 →</button>
+                    </div>
+                    <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-xs">
+                      <h3 className="text-xs font-black text-zinc-900 uppercase tracking-widest mb-4">Fator R</h3>
+                      <p className="text-lg font-black text-zinc-900">{pgdasHistorico.fatorR.toFixed(2)}%</p>
+                      <p className="text-[10px] text-zinc-500 font-bold mt-1">Folha 12m: R$ {pgdasHistorico.folha.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+                    {/* Lista de Classificação */}
+                    <div className="md:col-span-8 space-y-4">
+                      <div className="bg-white rounded-2xl border border-zinc-200 shadow-xs overflow-hidden">
+                        <div className="p-5 border-b border-zinc-100 flex items-center justify-between">
+                          <h3 className="text-[11px] font-black text-zinc-900 uppercase tracking-wider">Classificação e Segregação de Receitas</h3>
+                          <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">Análise via IA Fiscal</span>
+                        </div>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-[11px] text-left">
+                            <thead className="bg-zinc-50 border-b border-zinc-100">
+                              <tr className="text-zinc-500 font-bold uppercase tracking-tighter">
+                                <th className="px-4 py-3">Atividade / Evidência</th>
+                                <th className="px-4 py-3 text-right">Receita</th>
+                                <th className="px-4 py-3 text-center">Tratamento Fiscal</th>
+                                <th className="px-4 py-3 text-center">Status</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-zinc-100">
+                              {pgdasClassificacoes.map(c => (
+                                <tr key={c.id} className="hover:bg-zinc-50/50 transition-colors">
+                                  <td className="px-4 py-3">
+                                    <p className="font-black text-zinc-900">{c.atividade}</p>
+                                    <p className="text-[9px] text-zinc-400 font-bold uppercase">{c.evidencia}</p>
+                                  </td>
+                                  <td className="px-4 py-3 text-right font-bold text-zinc-700">R$ {c.receita.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+                                  <td className="px-4 py-3 text-center">
+                                    <span className="px-2 py-0.5 bg-zinc-100 text-zinc-600 rounded font-bold text-[9px]">{c.tratamento}</span>
+                                  </td>
+                                  <td className="px-4 py-3 text-center">
+                                    <span className={`font-black text-[10px] ${c.status.includes('OK') ? 'text-emerald-600' : 'text-amber-500'}`}>
+                                      {c.status}
+                                    </span>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+
+                      <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-xl flex gap-3">
+                        <ShieldCheck className="h-5 w-5 text-emerald-600 shrink-0" />
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-black text-emerald-900 uppercase">Resumo da Segregação</p>
+                          <p className="text-[10px] text-emerald-700 font-medium leading-relaxed">
+                            85% das receitas foram classificadas via NCM/CFOP. 15% foram vinculadas ao Anexo III via Fator R (FS12/RBT12 = {pgdasHistorico.fatorR}%).
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Prévia de Impostos (Internal vs Official) */}
+                    <div className="md:col-span-4 space-y-6">
+                      <div className="bg-zinc-900 p-6 rounded-2xl shadow-xl space-y-6 relative overflow-hidden">
+                        <div className="relative z-10">
+                          <h3 className="text-xs font-black text-zinc-400 uppercase tracking-widest border-b border-zinc-800 pb-3">Prévia Interna (Estimada)</h3>
+                          <div className="mt-4 space-y-3">
+                            <div className="flex justify-between items-center">
+                              <span className="text-[10px] font-bold text-zinc-500">Receita Total</span>
+                              <span className="text-xs font-black text-white font-mono">R$ {pgdasPreviewInterna.receitaTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-[10px] font-bold text-zinc-500">Aliq. Efetiva</span>
+                              <span className="text-xs font-black text-white font-mono">{pgdasPreviewInterna.aliquotaEfetiva}%</span>
+                            </div>
+                            <div className="flex justify-between items-center pt-2 border-t border-zinc-800">
+                              <span className="text-xs font-black text-emerald-400">DAS CALCULADO</span>
+                              <span className="text-lg font-black text-emerald-400 font-mono">R$ {pgdasPreviewInterna.dasCalculado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                            </div>
+                          </div>
+                          
+                          <button 
+                            onClick={() => { setIsValidatingOficial(true); setTimeout(() => { setIsValidatingOficial(false); setPgdasPreviewOficial({}); addToast("Prévia Oficial gerada!", "success"); }, 2000); }}
+                            className="w-full mt-6 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl text-[10px] font-black transition-all border border-zinc-700 uppercase tracking-widest flex items-center justify-center gap-2"
+                          >
+                            {isValidatingOficial ? <RefreshCw className="h-3 w-3 animate-spin" /> : <Globe className="h-3 w-3" />}
+                            Gerar Prévia Oficial (PGDAS)
+                          </button>
+                        </div>
+                      </div>
+
+                      {pgdasPreviewOficial && (
+                        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-white p-6 rounded-2xl border-2 border-emerald-100 shadow-sm space-y-4">
+                          <div className="flex items-center gap-2 text-emerald-600">
+                            <CheckCircle2 className="h-4 w-4" />
+                            <span className="text-[10px] font-black uppercase">Dados Oficiais Conciliados</span>
+                          </div>
+                          <p className="text-[11px] text-zinc-600 font-medium">As informações da prévia oficial coincidem com a apuração interna. O sistema está pronto para a transmissão.</p>
+                        </motion.div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center pt-4">
+                    <button onClick={() => setPgdasStep(1)} className="px-6 py-3 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-[10px] font-black rounded-2xl transition-all uppercase tracking-widest">
+                      Voltar: Preparar Dados
+                    </button>
+                    <button
+                      onClick={() => setPgdasStep(3)}
+                      className="px-8 py-3 bg-zinc-900 text-white hover:bg-zinc-800 text-[11px] font-black rounded-2xl shadow-xl transition-all flex items-center gap-2 uppercase tracking-widest"
+                    >
+                      Revisar e Transmitir <ChevronRight className="h-4 w-4" />
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* PAGE 3: FINALIZAR */}
+              {pgdasStep === 3 && (
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6 max-w-4xl mx-auto">
+                  <div className="text-center py-6">
+                    <h3 className="text-xl font-black text-zinc-900 tracking-tight">Transmissão e Documentos Oficiais</h3>
+                    <p className="text-[11px] text-zinc-500 font-bold mt-1 uppercase tracking-widest">Protocolo de Encerramento da Competência</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Status de Transmissão */}
+                    <div className="bg-white p-8 rounded-3xl border border-zinc-200 shadow-sm flex flex-col items-center text-center space-y-6">
+                      <div className={`w-20 h-20 rounded-3xl flex items-center justify-center transition-all duration-500 ${
+                        pgdasTransmissionState === 'concluida' ? 'bg-emerald-100 text-emerald-600' : 
+                        pgdasTransmissionState === 'processando' ? 'bg-zinc-900 text-white shadow-2xl shadow-zinc-200' : 'bg-zinc-50 text-zinc-300'
+                      }`}>
+                        {pgdasTransmissionState === 'concluida' ? (
+                          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring' }}>
+                            <CheckCircle2 className="h-10 w-10" />
+                          </motion.div>
+                        ) : (
+                          <div className="relative">
+                            {pgdasTransmissionSubStep === 1 && <ShieldCheck className="h-10 w-10 animate-pulse text-emerald-400" />}
+                            {pgdasTransmissionSubStep === 2 && <Globe className="h-10 w-10 animate-bounce" />}
+                            {pgdasTransmissionSubStep === 3 && <FileCheck className="h-10 w-10 animate-pulse text-emerald-400" />}
+                            {pgdasTransmissionSubStep === 0 && <Send className="h-10 w-10" />}
+                          </div>
+                        )}
+                      </div>
                       
-                      {/* Connector Line (Desktop) */}
-                      {idx < 4 && (
-                        <div className="hidden md:block h-[1px] flex-1 mx-4 transition-all bg-zinc-200">
-                          <div className={`h-full transition-all ${isCompleted ? 'bg-emerald-400' : 'bg-transparent'}`}></div>
+                      <div className="space-y-2">
+                        <h4 className="text-lg font-black text-zinc-900 tracking-tight">Status: {pgdasTransmissionState === 'concluida' ? 'Transmitida' : 'Pronto para Envio'}</h4>
+                        <p className="text-[11px] text-zinc-500 font-medium px-6">
+                          Clique em transmitir para enviar os dados à Receita Federal e gerar a guia DAS e o recibo de entrega.
+                        </p>
+                      </div>
+
+                      {pgdasTransmissionState !== 'concluida' ? (
+                        <div className="w-full space-y-4">
+                          {pgdasTransmissionState === 'processando' && (
+                            <div className="space-y-3 w-full">
+                              <div className="flex justify-between items-end mb-1">
+                                <div className="space-y-0.5">
+                                  <p className="text-[10px] font-black text-zinc-900 uppercase tracking-widest">
+                                    {pgdasTransmissionSubStep === 1 && "Assinando digitalmente..."}
+                                    {pgdasTransmissionSubStep === 2 && "Transmitindo à Receita Federal..."}
+                                    {pgdasTransmissionSubStep === 3 && "Gerando recibo oficial..."}
+                                  </p>
+                                  <p className="text-[9px] text-zinc-400 font-bold font-mono">
+                                    {pgdasTransmissionSubStep === 1 && "Verificando chaves e-CNPJ"}
+                                    {pgdasTransmissionSubStep === 2 && "Conectando ao webservice e-CAC"}
+                                    {pgdasTransmissionSubStep === 3 && "Salvando documentos no sistema"}
+                                  </p>
+                                </div>
+                                <span className="text-[10px] font-black text-zinc-900 font-mono">{Math.round((pgdasTransmissionSubStep / 3) * 100)}%</span>
+                              </div>
+                              <div className="w-full bg-zinc-100 h-1.5 rounded-full overflow-hidden">
+                                <motion.div 
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${(pgdasTransmissionSubStep / 3) * 100}%` }}
+                                  className="bg-zinc-900 h-full rounded-full"
+                                />
+                              </div>
+                            </div>
+                          )}
+                          
+                          <button 
+                            onClick={() => { 
+                              setPgdasTransmissionState('processando'); 
+                              setPgdasTransmissionSubStep(1);
+                              
+                              setTimeout(() => setPgdasTransmissionSubStep(2), 1200);
+                              setTimeout(() => setPgdasTransmissionSubStep(3), 2400);
+                              
+                              setTimeout(() => { 
+                                setPgdasTransmissionState('concluida'); 
+                                setTransmissionConfirmed(true); 
+                                setPgdasTransmissionSubStep(0);
+                                addToast("Transmitido com sucesso!", "success"); 
+                              }, 3600); 
+                            }}
+                            disabled={pgdasTransmissionState === 'processando'}
+                            className="w-full py-3 bg-zinc-900 hover:bg-zinc-800 text-white rounded-2xl text-xs font-black shadow-xl shadow-zinc-200 transition-all flex items-center justify-center gap-2"
+                          >
+                            {pgdasTransmissionState === 'processando' ? (
+                              <div className="flex items-center gap-2">
+                                <RefreshCw className="h-4 w-4 animate-spin" />
+                                <span>PROCESSANDO ENVIO</span>
+                              </div>
+                            ) : (
+                              <>
+                                <Lock className="h-4 w-4" />
+                                <span>TRANSMITIR AGORA</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="w-full p-4 bg-emerald-50 rounded-2xl border border-emerald-100 text-left">
+                          <p className="text-[10px] font-black text-emerald-800 uppercase mb-2">Comprovante de Transmissão</p>
+                          <div className="space-y-1.5">
+                            <div className="flex justify-between text-[9px] font-bold text-emerald-700"><span>Recibo:</span> <span>{pgdasRecibo}</span></div>
+                            <div className="flex justify-between text-[9px] font-bold text-emerald-700"><span>Data/Hora:</span> <span>19/07/2026 10:14:22</span></div>
+                          </div>
                         </div>
                       )}
                     </div>
-                  );
-                })}
-              </div>
-            </div>
 
-            {/* STEP 1: IMPORTAÇÃO */}
-            {pgdasStep === 1 && (
-              <div className="space-y-6">
-                
-                {/* 1. Dados da apuração Card */}
-                <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-xs space-y-5">
-                  <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
-                    <h3 className="text-[13px] font-black text-zinc-900 uppercase tracking-wider">1. Dados da apuração</h3>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-9 gap-5">
-                    {/* Left Column - Empresa Selection */}
-                    <div className="md:col-span-6 space-y-1.5">
-                      <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Empresa</label>
-                      <div className="relative">
-                        <select
-                          value={pgdasEmpresaCnpj}
-                          onChange={(e) => {
-                            setPgdasEmpresaCnpj(e.target.value);
-                            const selectedComp = companies.find(c => c.cnpj === e.target.value);
-                            if (selectedComp) {
-                              setPgdasEmpresaName(selectedComp.razaoSocial);
-                            } else if (e.target.value === "53.855.322/0001-95") {
-                              setPgdasEmpresaName("NAIALE AUGUSTINHO CONTABILIDADE LTDA");
-                            }
-                          }}
-                          className="w-full pl-3 pr-10 py-2.5 border border-zinc-200 bg-white text-zinc-800 text-xs font-bold rounded-lg focus:outline-none focus:border-[#1e2696] focus:ring-1 focus:ring-[#1e2696] appearance-none"
-                        >
-                          <option value="53.855.322/0001-95">NAIALE AUGUSTINHO CONTABILIDADE LTDA</option>
-                          {companies.map(c => (
-                            <option key={c.cnpj} value={c.cnpj}>{c.razaoSocial}</option>
-                          ))}
-                        </select>
-                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 pointer-events-none" />
-                      </div>
-                    </div>
-
-                    {/* Middle Column - Competência */}
-                    <div className="md:col-span-3 space-y-1.5">
-                      <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Competência</label>
-                      <div className="relative">
-                        <input
-                          type="month"
-                          value={pgdasCompetencia}
-                          onChange={(e) => setPgdasCompetencia(e.target.value)}
-                          className="w-full pl-3 pr-3 py-2.5 border border-zinc-200 bg-white text-zinc-800 text-xs font-bold rounded-lg focus:outline-none focus:border-[#1e2696] focus:ring-1 focus:ring-[#1e2696]"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* File Upload Trigger */}
-                <input type="file" ref={pgdasFileInputRef} className="hidden" multiple accept=".xml,.zip" onChange={(e) => {
-                  if (e.target.files && e.target.files.length > 0) {
-                    setIsUploadingPgdas(true);
-                    setTimeout(() => {
-                      setPgdasFiles([
-                        { name: "NFE_202606_001.xml", size: "3.2 KB", status: "sucesso" },
-                        { name: "NFE_202606_002.xml", size: "4.1 KB", status: "sucesso" },
-                        { name: "NFSE_202606_015.xml", size: "2.8 KB", status: "sucesso" }
-                      ]);
-                      setIsUploadingPgdas(false);
-                      addToast("XMLs processados com sucesso!", "success");
-                    }, 1200);
-                  }
-                }} />
-                <div 
-                  onClick={() => {
-                    if (isUploadingPgdas) return;
-                    pgdasFileInputRef.current?.click();
-                  }}
-                  className="border-2 border-dashed border-zinc-200 hover:border-[#1e2696]/60 rounded-2xl p-8 text-center cursor-pointer bg-zinc-50/20 hover:bg-zinc-50/70 transition-all duration-200"
-                >
-                  {isUploadingPgdas ? (
-                    <div className="space-y-3 py-4">
-                      <RefreshCw className="h-8 w-8 text-[#1e2696] animate-spin mx-auto" />
-                      <div className="space-y-1">
-                        <p className="text-xs font-extrabold text-zinc-800">Processando e Validando XMLs...</p>
-                        <p className="text-[10px] text-zinc-400 font-semibold font-mono">Lendo notas e verificando valores...</p>
-                      </div>
-                      <div className="w-48 bg-zinc-200 h-1.5 rounded-full mx-auto overflow-hidden">
-                        <div className="bg-[#1e2696] h-full w-2/3 animate-pulse rounded-full" />
-                      </div>
-                    </div>
-                  ) : pgdasFiles.length > 0 ? (
-                    <div className="space-y-4 py-2">
-                      <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center mx-auto text-emerald-600">
-                        <Check className="h-5 w-5" strokeWidth={3} />
-                      </div>
-                      <div>
-                        <p className="text-xs font-extrabold text-zinc-800">Arquivos XML Carregados</p>
-                        <p className="text-[10px] text-zinc-400 font-semibold mt-0.5">Clique para carregar novos arquivos ou atualizar</p>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-3 py-4">
-                      <Upload className="h-8 w-8 text-[#1e2696] mx-auto" strokeWidth={1.5} />
-                      <div>
-                        <span className="inline-flex items-center gap-1 text-xs font-extrabold text-[#1e2696]">
-                          Importar XML / ZIP
-                        </span>
-                        <p className="text-[10px] text-zinc-400 font-semibold mt-1">Arraste ou clique para carregar os XMLs fiscais</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* 2. Resumo de Processamento (Only if files uploaded or uploading) */}
-                {(isUploadingPgdas || pgdasFiles.length > 0) && (
-                  <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-xs space-y-6">
-                    <div className="border-b border-zinc-100 pb-3 flex items-center justify-between">
-                      <h3 className="text-[13px] font-black text-zinc-900 uppercase tracking-wider flex items-center gap-2">
-                        <span>2. Resumo da Importação</span>
-                        {isUploadingPgdas && (
-                          <span className="flex h-2 w-2 relative">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                          </span>
-                        )}
-                      </h3>
-                    </div>
-
-                    {isUploadingPgdas ? (
-                      /* LOADING SKELETON */
-                      <div className="space-y-6 animate-pulse">
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                          {[1, 2, 3, 4].map((i) => (
-                            <div key={i} className="bg-zinc-50 p-4 rounded-xl border border-zinc-100 space-y-2">
-                              <div className="h-2.5 bg-zinc-200 rounded w-16" />
-                              <div className="h-6 bg-zinc-300 rounded w-8" />
+                    {/* Downloads e Reconciliação */}
+                    <div className="space-y-4">
+                      <div className={`bg-white p-6 rounded-3xl border border-zinc-200 shadow-xs transition-all duration-500 ${pgdasTransmissionState !== 'concluida' ? 'opacity-40 grayscale pointer-events-none' : 'opacity-100'}`}>
+                        <h4 className="text-[10px] font-black text-zinc-900 uppercase tracking-widest mb-4">Documentos da Competência</h4>
+                        <div className="space-y-3">
+                          {[
+                            { name: "Guia do DAS", icon: <FileText className="h-4 w-4" />, size: "320 KB" },
+                            { name: "Recibo de Entrega", icon: <ShieldCheck className="h-4 w-4" />, size: "128 KB" },
+                            { name: "Extrato PGDAS-D", icon: <FileCheck className="h-4 w-4" />, size: "450 KB" },
+                          ].map((doc, idx) => (
+                            <div key={idx} className="flex items-center justify-between p-3 bg-zinc-50 hover:bg-zinc-100 rounded-xl transition-all cursor-pointer border border-zinc-100">
+                              <div className="flex items-center gap-3">
+                                <div className="text-zinc-400 transition-colors">{doc.icon}</div>
+                                <span className="text-[11px] font-bold text-zinc-700">{doc.name}</span>
+                              </div>
+                              <Download className="h-3.5 w-3.5 text-zinc-300" />
                             </div>
                           ))}
                         </div>
-
-                        <div className="overflow-x-auto border border-zinc-100 rounded-xl">
-                          <table className="w-full text-left text-[11px]">
-                            <thead className="bg-zinc-50 border-b border-zinc-100">
-                              <tr className="text-zinc-500 font-bold uppercase">
-                                <th className="px-4 py-3"><div className="h-3 bg-zinc-200 rounded w-16" /></th>
-                                <th className="px-4 py-3"><div className="h-3 bg-zinc-200 rounded w-10" /></th>
-                                <th className="px-4 py-3"><div className="h-3 bg-zinc-200 rounded w-12" /></th>
-                                <th className="px-4 py-3"><div className="h-3 bg-zinc-200 rounded w-16" /></th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-zinc-100 text-zinc-700">
-                              <tr>
-                                <td className="px-4 py-3"><div className="h-3.5 bg-zinc-200 rounded w-14" /></td>
-                                <td className="px-4 py-3"><div className="h-3.5 bg-zinc-100 rounded w-6" /></td>
-                                <td className="px-4 py-3"><div className="h-3.5 bg-zinc-200 rounded w-20" /></td>
-                                <td className="px-4 py-3"><div className="h-3.5 bg-zinc-100 rounded w-6" /></td>
-                              </tr>
-                              <tr>
-                                <td className="px-4 py-3"><div className="h-3.5 bg-zinc-200 rounded w-10" /></td>
-                                <td className="px-4 py-3"><div className="h-3.5 bg-zinc-100 rounded w-6" /></td>
-                                <td className="px-4 py-3"><div className="h-3.5 bg-zinc-300 rounded w-20" /></td>
-                                <td className="px-4 py-3"><div className="h-3.5 bg-zinc-100 rounded w-6" /></td>
-                              </tr>
-                            </tbody>
-                          </table>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-[11px] bg-zinc-50 p-4 rounded-xl border border-zinc-100">
-                          <div className="space-y-1.5">
-                            <div className="h-2.5 bg-zinc-200 rounded w-20" />
-                            <div className="h-3.5 bg-zinc-300 rounded w-32" />
-                          </div>
-                          <div className="space-y-1.5">
-                            <div className="h-2.5 bg-zinc-200 rounded w-16" />
-                            <div className="h-3.5 bg-zinc-300 rounded w-24" />
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      /* ACTUAL CONTENT */
-                      <>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                          <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-100">
-                            <p className="text-[9px] font-bold text-zinc-400 uppercase flex items-center gap-1.5"><FileText className="h-3 w-3" /> XMLs lidos</p>
-                            <p className="text-lg font-black text-zinc-800 mt-1">42</p>
-                          </div>
-                          <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-100">
-                            <p className="text-[9px] font-bold text-zinc-400 uppercase flex items-center gap-1.5"><Copy className="h-3 w-3" /> Duplicados</p>
-                            <p className="text-lg font-black text-zinc-800 mt-1">0</p>
-                          </div>
-                          <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-100">
-                            <p className="text-[9px] font-bold text-zinc-400 uppercase flex items-center gap-1.5"><AlertTriangle className="h-3 w-3" /> Rejeitados</p>
-                            <p className="text-lg font-black text-zinc-800 mt-1">0</p>
-                          </div>
-                          <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-100">
-                            <p className="text-[9px] font-bold text-zinc-400 uppercase flex items-center gap-1.5"><Trash2 className="h-3 w-3" /> Descartados</p>
-                            <p className="text-lg font-black text-zinc-800 mt-1">0</p>
-                          </div>
-                        </div>
-
-                        {/* Metrics Table */}
-                        <div className="overflow-x-auto border border-zinc-100 rounded-xl">
-                          <table className="w-full text-left text-[11px]">
-                            <thead className="bg-zinc-50 border-b border-zinc-100">
-                              <tr className="text-zinc-500 font-bold uppercase">
-                                <th className="px-4 py-3">Competência</th>
-                                <th className="px-4 py-3">Notas</th>
-                                <th className="px-4 py-3">Receita</th>
-                                <th className="px-4 py-3">ISS Retido</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-zinc-100 text-zinc-700">
-                              <tr>
-                                <td className="px-4 py-3 font-semibold">2026-06</td>
-                                <td className="px-4 py-3 font-mono text-zinc-500">42</td>
-                                <td className="px-4 py-3 font-bold font-mono">R$ 16.067,19</td>
-                                <td className="px-4 py-3 font-mono">41</td>
-                              </tr>
-                              <tr className="bg-zinc-50/50 font-black">
-                                <td className="px-4 py-3 text-zinc-900">Total</td>
-                                <td className="px-4 py-3">42</td>
-                                <td className="px-4 py-3 text-[#1e2696]">R$ 16.467,19</td>
-                                <td className="px-4 py-3">-</td>
-                              </tr>
-                            </tbody>
-                          </table>
-                        </div>
-
-                        {/* Metadata Details */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-[11px] bg-zinc-50 p-4 rounded-xl border border-zinc-100">
-                          <div>
-                            <p className="text-[9px] font-bold text-zinc-400 uppercase">CNPJ emissor</p>
-                            <p className="font-mono font-bold text-zinc-800 mt-0.5">53.855.352/0001-95</p>
-                          </div>
-                          <div>
-                            <p className="text-[9px] font-bold text-zinc-400 uppercase">Padrão</p>
-                            <p className="font-bold text-zinc-800 mt-0.5">NFS-e Nacional</p>
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                )}
-
-                {/* Navigation CTA at Bottom */}
-                <div className="flex justify-between items-center pt-2">
-                  <button
-                    onClick={() => setPgdasStep(1)}
-                    className="px-5 py-2.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-black rounded-xl border border-zinc-200 transition-all flex items-center gap-2"
-                  >
-                    <ArrowLeft className="h-4 w-4" /> Voltar ao Contexto
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (pgdasFiles.length === 0) {
-                        addToast("Por favor, importe os XMLs antes de avançar.", "info");
-                      } else {
-                        setPgdasStep(2);
-                      }
-                    }}
-                    className="px-6 py-2.5 bg-[#1e2696] text-white hover:bg-[#151c6e] text-xs font-black rounded-xl shadow-xs hover:shadow-md transition-all flex items-center gap-2"
-                  >
-                    Avançar para Dados fiscais <ChevronRight className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* STEP 2: DADOS FISCAIS */}
-            {pgdasStep === 2 && (
-              <div className="space-y-6">
-                {/* 3. Receitas dos últimos 12 meses */}
-                <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-xs space-y-6">
-                  <div className="flex justify-between items-center">
-                    <h3 className="text-base font-bold text-zinc-900 tracking-tight">3. Receitas dos últimos 12 meses</h3>
-                    <button className="px-3 py-1.5 bg-white text-[#1e2696] hover:bg-zinc-50 text-[11px] font-bold rounded-lg border border-zinc-200 shadow-sm transition-all flex items-center gap-1.5">
-                      <ShieldCheck className="h-3.5 w-3.5" /> Buscar receitas na API
-                    </button>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="bg-zinc-50/50 p-4 rounded-xl border border-zinc-100">
-                      <p className="text-[11px] font-bold text-zinc-500">RBT12 proporcional</p>
-                      <p className="text-xl font-black text-zinc-900 mt-1">R$ 0,00</p>
-                    </div>
-                    <div className="bg-zinc-50/50 p-4 rounded-xl border border-zinc-100">
-                      <p className="text-[11px] font-bold text-zinc-500">Meses considerados</p>
-                      <p className="text-xl font-black text-zinc-900 mt-1">1/12</p>
-                    </div>
-                    <div className="bg-zinc-50/50 p-4 rounded-xl border border-zinc-100">
-                      <p className="text-[11px] font-bold text-zinc-500">Fonte atual</p>
-                      <p className="text-xl font-black text-zinc-900 mt-1">Manual</p>
-                    </div>
-                  </div>
-                  
-                  <p className="text-[11px] text-zinc-500 font-semibold">RBT12 proporcional: média dos meses em atividade multiplicada por 12.</p>
-                  
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 pt-2">
-                    {[
-                      "06/2025", "07/2025", "08/2025", 
-                      "09/2025", "10/2025", "11/2025",
-                      "12/2025", "01/2026", "02/2026",
-                      "03/2026", "04/2026", "05/2026"
-                    ].map((month) => (
-                      <div key={month} className="flex border border-zinc-200 rounded-lg overflow-hidden focus-within:border-[#1e2696] focus-within:ring-1 focus-within:ring-[#1e2696]/20 transition-all bg-white shadow-xs">
-                        <div className="px-3 py-2 flex items-center justify-center min-w-[70px]">
-                          <span className="text-[11px] font-semibold text-zinc-500">{month}</span>
-                        </div>
-                        <input type="text" defaultValue="0,00" className="w-full px-3 py-2 text-[13px] text-zinc-800 outline-none" />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                
-                {/* 4. Receita da competência */}
-                <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-xs space-y-5">
-                  <div>
-                    <h3 className="text-base font-bold text-zinc-900 tracking-tight">4. Receita da competência</h3>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-zinc-700">Comércio</label>
-                      <input type="text" defaultValue="0,00" className="w-full px-3 py-2.5 border border-zinc-200 rounded-lg text-sm text-zinc-800 focus:outline-none focus:border-[#1e2696] focus:ring-1 focus:ring-[#1e2696]/20 transition-all shadow-sm" />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-zinc-700">Serviço Anexo III</label>
-                      <input type="text" defaultValue="0,00" className="w-full px-3 py-2.5 border border-zinc-200 rounded-lg text-sm text-zinc-800 focus:outline-none focus:border-[#1e2696] focus:ring-1 focus:ring-[#1e2696]/20 transition-all shadow-sm" />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-zinc-700">Serviço Anexo IV</label>
-                      <input type="text" defaultValue="0,00" className="w-full px-3 py-2.5 border border-zinc-200 rounded-lg text-sm text-zinc-800 focus:outline-none focus:border-[#1e2696] focus:ring-1 focus:ring-[#1e2696]/20 transition-all shadow-sm" />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-zinc-700">Serviço Fator R</label>
-                      <input type="text" defaultValue="0,00" className="w-full px-3 py-2.5 border border-zinc-200 rounded-lg text-sm text-zinc-800 focus:outline-none focus:border-[#1e2696] focus:ring-1 focus:ring-[#1e2696]/20 transition-all shadow-sm" />
-                    </div>
-                  </div>
-                  
-                  <div className="bg-zinc-50/70 p-4 rounded-xl border border-zinc-200 flex justify-between items-center">
-                    <span className="text-[13px] font-semibold text-zinc-500">Total da competência</span>
-                    <span className="text-lg font-black text-zinc-900">R$ 0,00</span>
-                  </div>
-                  
-                  <p className="text-[11px] text-zinc-500 font-semibold pt-1">O estado sem movimento é definido exclusivamente no resumo principal da apuração.</p>
-                </div>
-
-                <div className="flex justify-between items-center pt-2">
-                  <button
-                    onClick={() => setPgdasStep(1)}
-                    className="px-5 py-2.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-black rounded-xl border border-zinc-200 transition-all flex items-center gap-2"
-                  >
-                    <ArrowLeft className="h-4 w-4" /> Voltar à Importação
-                  </button>
-                  <button
-                    onClick={() => setPgdasStep(3)}
-                    className="px-6 py-2.5 bg-[#1e2696] text-white hover:bg-[#151c6e] text-xs font-black rounded-xl shadow-xs hover:shadow-md transition-all flex items-center gap-2"
-                  >
-                    Avançar para Prévia de Impostos <ChevronRight className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* STEP 3: PRÉVIA */}
-            {pgdasStep === 3 && (
-              <div className="space-y-6">
-                <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-xs space-y-6">
-                  <div className="border-b border-zinc-100 pb-3">
-                    <h3 className="text-[13px] font-black text-zinc-900 uppercase tracking-wider">Simulador de Tributos Simples Nacional (DAS)</h3>
-                  </div>
-
-                  {/* Summary Indicators */}
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-200/50">
-                      <span className="text-[9px] font-bold text-zinc-400 uppercase block">Faturamento Acumulado (RBT12)</span>
-                      <p className="text-lg font-black text-zinc-800 mt-1">R$ 542.760,00</p>
-                      <span className="text-[10px] text-[#1e2696] font-semibold block mt-0.5">Simples Faixa 3</span>
-                    </div>
-                    <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-200/50">
-                      <span className="text-[9px] font-bold text-zinc-400 uppercase block">Alíquota Efetiva Comércio</span>
-                      <p className="text-lg font-black text-amber-600 mt-1">4.00%</p>
-                      <span className="text-[10px] text-zinc-400 block mt-0.5">Anexo I da Lei Complementar</span>
-                    </div>
-                    <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-200/50">
-                      <span className="text-[9px] font-bold text-zinc-400 uppercase block">Alíquota Efetiva Serviços</span>
-                      <p className="text-lg font-black text-indigo-600 mt-1">6.00%</p>
-                      <span className="text-[10px] text-zinc-400 block mt-0.5">Anexo III da Lei Complementar</span>
-                    </div>
-                    <div className="bg-[#1e2696]/[0.02] p-4 rounded-xl border border-[#1e2696]/10">
-                      <span className="text-[9px] font-bold text-[#1e2696] uppercase block">Valor Total das Guias DAS</span>
-                      <p className="text-lg font-black text-[#1e2696] mt-1">R$ 2.464,80</p>
-                      <span className="text-[10px] text-emerald-600 font-semibold block mt-0.5">Guia única consolidada</span>
-                    </div>
-                  </div>
-
-                  {/* Detailed Tax breakdown table */}
-                  <div className="border border-zinc-200 rounded-xl overflow-hidden">
-                    <div className="bg-zinc-50 p-3 border-b border-zinc-200 text-xs font-extrabold text-zinc-700">
-                      Detalhamento do Cálculo dos Impostos
-                    </div>
-                    <div className="divide-y divide-zinc-200 text-xs text-zinc-700">
-                      <div className="p-3 flex justify-between items-center">
-                        <div>
-                          <p className="font-bold text-zinc-800">Comércio (Anexo I)</p>
-                          <p className="text-[10px] text-zinc-400">Receita Bruta: R$ 12.450,00 | Alíquota nominal: 4.0%</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-extrabold font-mono text-zinc-900">R$ 498,00</p>
-                          <p className="text-[9px] text-zinc-400 font-bold">DAS Comércio</p>
-                        </div>
                       </div>
 
-                      <div className="p-3 flex justify-between items-center">
-                        <div>
-                          <p className="font-bold text-zinc-800">Prestação de Serviços (Anexo III)</p>
-                          <p className="text-[10px] text-zinc-400">Receita Bruta: R$ 32.780,00 | Alíquota nominal: 6.0%</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-extrabold font-mono text-zinc-900">R$ 1.966,80</p>
-                          <p className="text-[9px] text-zinc-400 font-bold">DAS Serviços</p>
-                        </div>
-                      </div>
-
-                      <div className="p-3.5 flex justify-between items-center bg-[#f0f2fe]/20">
-                        <div>
-                          <p className="font-black text-[#1e2696]">Consolidado Simples Nacional</p>
-                          <p className="text-[10px] text-zinc-500 font-semibold">Valor final calculado para recolhimento</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm font-black font-mono text-[#1e2696]">R$ 2.464,80</p>
-                          <p className="text-[9px] text-[#1e2696] font-bold">Soma dos anexos</p>
+                      <div className="bg-zinc-50 p-6 rounded-3xl border border-zinc-200 border-dashed text-center space-y-3">
+                        <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Ações Pós-Transmissão</p>
+                        <div className="flex gap-2">
+                          <button className="flex-1 py-2.5 bg-white border border-zinc-200 text-zinc-700 rounded-xl text-[10px] font-black hover:bg-zinc-50 transition-all flex items-center justify-center gap-2">
+                            <Mail className="h-3.5 w-3.5 text-zinc-400" /> E-MAIL
+                          </button>
+                          <button className="flex-1 py-2.5 bg-white border border-zinc-200 text-zinc-700 rounded-xl text-[10px] font-black hover:bg-zinc-50 transition-all flex items-center justify-center gap-2">
+                            <Share2 className="h-3.5 w-3.5 text-emerald-500" /> WHATSAPP
+                          </button>
                         </div>
                       </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Back / Forward Actions */}
-                <div className="flex justify-between items-center pt-2">
-                  <button
-                    onClick={() => setPgdasStep(2)}
-                    className="px-5 py-2.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-black rounded-xl border border-zinc-200 transition-all flex items-center gap-2"
-                  >
-                    <ArrowLeft className="h-4 w-4" /> Voltar à Classificação fiscal
-                  </button>
-                  <button
-                    onClick={() => setPgdasStep(4)}
-                    className="px-6 py-2.5 bg-[#1e2696] text-white hover:bg-[#151c6e] text-xs font-black rounded-xl shadow-xs hover:shadow-md transition-all flex items-center gap-2"
-                  >
-                    Avançar para Confirmação de Declaração <ChevronRight className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* STEP 4: CONFIRMAÇÃO */}
-            {pgdasStep === 4 && (
-              <div className="space-y-6">
-                <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-xs space-y-6">
-                  <div className="border-b border-zinc-100 pb-3">
-                    <h3 className="text-[13px] font-black text-zinc-900 uppercase tracking-wider">Declaração e Termo de Envio</h3>
-                  </div>
-
-                  <div className="p-4 bg-zinc-50/50 rounded-xl border border-zinc-200 space-y-3.5">
-                    <p className="text-xs font-bold leading-relaxed text-zinc-700">
-                      Ao transmitir esta apuração, você enviará os dados oficiais de faturamento consolidados para a Receita Federal do Brasil através da integração de outorga digital do escritório de contabilidade.
-                    </p>
-                    <div className="p-3 bg-white rounded-lg border border-zinc-200 text-[11px] font-mono text-zinc-600">
-                      <p className="font-extrabold text-zinc-800">Responsável Técnico: NAIALE AUGUSTINHO</p>
-                      <p className="mt-1">Escritório Certificado: Contabilidade Alfa Ltda.</p>
-                      <p>Protocolo de Chaves: e-CNPJ Escritório Alfa - 45.987.654/0001-32</p>
-                    </div>
-                  </div>
-
-                  {/* Checklist Section */}
-                  <div className="space-y-3">
-                    <h4 className="text-[11px] font-black text-zinc-900 uppercase tracking-wider">Validações de Segurança Pré-Envio</h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {[
-                        "Certificado digital válido e ativo",
-                        "Competência junho/2026 aberta para transmissão",
-                        "XMLs de faturamento sem divergências",
-                        "Faturamento acumulado verificado com RBT12",
-                      ].map((term, idx) => (
-                        <div key={idx} className="flex items-center gap-2.5 p-3 rounded-xl border border-zinc-200 bg-white">
-                          <div className="h-5 w-5 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-                            <Check className="h-3.5 w-3.5" strokeWidth={3} />
-                          </div>
-                          <span className="text-[11px] font-bold text-zinc-700">{term}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Back / Submit Actions */}
-                <div className="flex justify-between items-center pt-2">
-                  <button
-                    onClick={() => setPgdasStep(3)}
-                    className="px-5 py-2.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-black rounded-xl border border-zinc-200 transition-all flex items-center gap-2"
-                  >
-                    <ArrowLeft className="h-4 w-4" /> Voltar à Prévia
-                  </button>
-                  <button
-                    onClick={() => {
-                      setIsUploadingPgdas(true);
-                      setTimeout(() => {
-                        setIsUploadingPgdas(false);
-                        setPgdasStep(5);
-                        addToast("Declaração PGDAS-D enviada com sucesso!", "success");
-                      }, 2500);
-                    }}
-                    disabled={isUploadingPgdas}
-                    className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black rounded-xl shadow-xs hover:shadow-md transition-all flex items-center gap-2 disabled:opacity-50 cursor-pointer"
-                  >
-                    {isUploadingPgdas ? (
-                      <>
-                        <RefreshCw className="h-4 w-4 animate-spin" /> Transmitindo à Receita Federal...
-                      </>
-                    ) : (
-                      <>
-                        <FileCheck className="h-4 w-4" /> Transmitir Declaração Oficial
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* STEP 5: DOCUMENTOS (SUCCESS & FILE DOWNLOAD) */}
-            {pgdasStep === 5 && (
-              <div className="space-y-6">
-                <div className="bg-white p-8 rounded-2xl border border-zinc-200 shadow-sm text-center space-y-6">
-                  {/* Big animated success check */}
-                  <div className="h-16 w-16 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-full flex items-center justify-center mx-auto shadow-xs">
-                    <Check className="h-8 w-8 animate-pulse" strokeWidth={2.5} />
-                  </div>
-
-                  <div className="space-y-2">
-                    <h3 className="text-xl font-black text-zinc-900 tracking-tight">Apuração Concluída e Transmitida!</h3>
-                    <p className="text-xs text-zinc-500 max-w-md mx-auto font-semibold">
-                      Os dados da competência <strong className="text-zinc-800">junho de 2026</strong> foram processados e a declaração oficial está assinada digitalmente.
-                    </p>
-                  </div>
-
-                  {/* Summary receipt box */}
-                  <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-200 max-w-md mx-auto text-left space-y-3.5 text-xs">
-                    <div className="flex justify-between text-[11px] text-zinc-400 font-bold uppercase">
-                      <span>Protocolo de Entrega</span>
-                      <span className="font-mono text-zinc-600">83D3.2A1D.420F.8789</span>
-                    </div>
-                    <div className="border-t border-zinc-200 pt-2.5 space-y-1.5">
-                      <div className="flex justify-between">
-                        <span className="font-bold text-zinc-600">Empresa:</span>
-                        <span className="font-extrabold text-zinc-800">{pgdasEmpresaName}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="font-bold text-zinc-600">CNPJ:</span>
-                        <span className="font-mono text-zinc-800">{pgdasEmpresaCnpj}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="font-bold text-zinc-600">DAS Calculado:</span>
-                        <span className="font-extrabold font-mono text-emerald-600">R$ 2.464,80</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Document downloads row */}
-                  <div className="space-y-3 max-w-lg mx-auto pt-2">
-                    <h4 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest text-left">Arquivos Oficiais Disponíveis</h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <button 
-                        onClick={() => addToast("Baixando guia DAS (PDF)...", "success")}
-                        className="flex items-center justify-between p-3.5 bg-white border border-zinc-200 hover:border-[#1e2696] rounded-xl hover:shadow-xs transition-all text-left"
-                      >
-                        <div className="flex items-center gap-2.5">
-                          <div className="h-8 w-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-xs shrink-0">
-                            <FileText className="h-4.5 w-4.5" />
-                          </div>
-                          <div>
-                            <p className="text-xs font-extrabold text-zinc-800">Guia DAS Faturamento</p>
-                            <span className="text-[9px] text-zinc-400 block -mt-0.5 font-mono">PDF • 45.2 KB</span>
-                          </div>
-                        </div>
-                        <ChevronRight className="h-4 w-4 text-zinc-400" />
-                      </button>
-
-                      <button 
-                        onClick={() => addToast("Baixando Recibo de Entrega (PDF)...", "success")}
-                        className="flex items-center justify-between p-3.5 bg-white border border-zinc-200 hover:border-[#1e2696] rounded-xl hover:shadow-xs transition-all text-left"
-                      >
-                        <div className="flex items-center gap-2.5">
-                          <div className="h-8 w-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-xs shrink-0">
-                            <FileCheck className="h-4.5 w-4.5" />
-                          </div>
-                          <div>
-                            <p className="text-xs font-extrabold text-zinc-800">Recibo de Transmissão</p>
-                            <span className="text-[9px] text-zinc-400 block -mt-0.5 font-mono">PDF • 28.1 KB</span>
-                          </div>
-                        </div>
-                        <ChevronRight className="h-4 w-4 text-zinc-400" />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Restart action button */}
-                  <div className="pt-4">
+                  <div className="flex justify-center pt-8 border-t border-zinc-100">
                     <button
                       onClick={() => {
                         setPgdasFiles([]);
                         setPgdasStep(1);
+                        setPgdasTransmissionState('pronta');
                         addToast("Nova apuração iniciada.", "info");
                       }}
                       className="px-6 py-2.5 bg-zinc-900 text-white hover:bg-zinc-800 text-xs font-black rounded-xl shadow-xs transition-all"
@@ -5217,9 +5595,9 @@ export default function Page() {
                       Realizar Nova Apuração
                     </button>
                   </div>
-                </div>
-              </div>
-            )}
+                </motion.div>
+              )}
+            </div>
           </motion.div>
         )}
         
@@ -5261,11 +5639,47 @@ export default function Page() {
                 </button>
                 <button
                   onClick={saveCompanyConfig}
-                  className="flex-1 sm:flex-none px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs shadow-sm transition-colors cursor-pointer flex items-center justify-center gap-1.5 h-9"
+                  disabled={isSavingCompany || isSaveSuccess}
+                  className={`flex-1 sm:flex-none px-5 py-2.5 rounded-xl font-bold text-xs shadow-sm transition-all flex items-center justify-center gap-2 h-9 cursor-pointer disabled:cursor-not-allowed ${
+                    isSaveSuccess
+                      ? "bg-emerald-500 text-white hover:bg-emerald-500 border-transparent"
+                      : isSavingCompany
+                      ? "bg-zinc-100 border border-zinc-200 text-zinc-400 shadow-none cursor-wait animate-pulse"
+                      : "bg-emerald-600 hover:bg-emerald-700 text-white border-transparent"
+                  }`}
                   id="btn-salvar-empresa-top"
                 >
-                  <Save className="h-3.5 w-3.5" />
-                  Salvar Empresa
+                  {isSavingCompany ? (
+                    <div className="flex items-center gap-2">
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ repeat: Infinity, duration: 1.2, ease: "linear" }}
+                        className="shrink-0"
+                      >
+                        <RefreshCw className="h-4 w-4" />
+                      </motion.div>
+                      <span>Salvando...</span>
+                    </div>
+                  ) : isSaveSuccess ? (
+                    <motion.div 
+                      className="flex items-center gap-1.5"
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                    >
+                      <motion.div
+                        initial={{ rotate: -180, scale: 0.6 }}
+                        animate={{ rotate: 0, scale: 1 }}
+                        transition={{ type: "spring", stiffness: 220, damping: 14 }}
+                        className="shrink-0"
+                      >
+                        <Check className="h-4 w-4 stroke-[3px]" />
+                      </motion.div>
+                      <span>Salvo com sucesso!</span>
+                    </motion.div>
+                  ) : (
+                    <span>Salvar Empresa</span>
+                  )}
                 </button>
                 <div className="hidden md:block">
                   {renderUserDropdown()}
@@ -5281,6 +5695,88 @@ export default function Page() {
               </h4>
 
               <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                {/* Logo Upload Component */}
+                <div className="md:col-span-12 flex flex-col sm:flex-row items-center gap-6 pb-6 border-b border-zinc-100/80 mb-2">
+                  <div className="relative shrink-0 group">
+                    <div className="h-24 w-24 rounded-2xl bg-zinc-50 border-2 border-dashed border-zinc-200 hover:border-emerald-500 hover:bg-emerald-50/5 transition-all flex flex-col items-center justify-center overflow-hidden relative">
+                      {companyLogoUrl ? (
+                        <img 
+                          src={companyLogoUrl} 
+                          alt="Logo Preview" 
+                          className="h-full w-full object-cover"
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : (
+                        <div className="flex flex-col items-center justify-center text-center p-2">
+                          <Building2 className="h-7 w-7 text-zinc-300 group-hover:text-emerald-500 transition-colors" />
+                          <span className="text-[10px] font-bold text-zinc-400 mt-1 uppercase group-hover:text-emerald-600 transition-colors">Sem Logo</span>
+                        </div>
+                      )}
+                    </div>
+                    {companyLogoUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setCompanyLogoUrl(null)}
+                        className="absolute -top-1.5 -right-1.5 h-6 w-6 bg-rose-500 text-white rounded-full flex items-center justify-center shadow-md hover:bg-rose-600 transition-colors cursor-pointer"
+                        title="Remover logotipo"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="space-y-2 text-center sm:text-left">
+                    <h5 className="text-xs font-black text-zinc-900 uppercase tracking-wider">Logotipo da Empresa</h5>
+                    <p className="text-[11px] text-zinc-500 font-medium max-w-xl leading-relaxed">
+                      Adicione uma logomarca para personalizar relatórios, faturas e guias de PGDAS geradas para este cliente. Formatos recomendados: PNG, JPG ou SVG (Max 2MB).
+                    </p>
+                    <div className="flex flex-wrap gap-2.5 justify-center sm:justify-start pt-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const el = document.getElementById("input-logo-file");
+                          el?.click();
+                        }}
+                        className="px-4 py-1.5 bg-emerald-50 hover:bg-emerald-100/80 text-emerald-700 rounded-lg text-[10px] font-black transition-all cursor-pointer uppercase tracking-wider border border-emerald-200/50"
+                      >
+                        {companyLogoUrl ? "Alterar Imagem" : "Selecionar Logotipo"}
+                      </button>
+                      {companyLogoUrl && (
+                        <button
+                          type="button"
+                          onClick={() => setCompanyLogoUrl(null)}
+                          className="px-4 py-1.5 bg-zinc-50 hover:bg-zinc-100 text-zinc-600 rounded-lg text-[10px] font-black transition-all cursor-pointer uppercase tracking-wider border border-zinc-200"
+                        >
+                          Remover
+                        </button>
+                      )}
+                      <input 
+                        type="file" 
+                        id="input-logo-file" 
+                        className="hidden" 
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            if (file.size > 2 * 1024 * 1024) {
+                              addToast("Arquivo muito grande. O limite máximo é de 2MB.", "error");
+                              return;
+                            }
+                            const reader = new FileReader();
+                            reader.onload = (event) => {
+                              if (event.target?.result) {
+                                setCompanyLogoUrl(event.target.result as string);
+                                addToast("Logotipo carregado com sucesso!", "success");
+                              }
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 {/* CNPJ with Lookup button */}
                 <div className="md:col-span-4 space-y-1.5">
                   <label className="text-[11px] font-bold text-zinc-700 uppercase tracking-wider block">
@@ -5762,28 +6258,75 @@ export default function Page() {
             </div>
 
             {/* Save Section Actions */}
-            <div className="flex justify-end gap-3.5 pt-4">
+            <div className="flex justify-between items-center pt-4">
               <button
                 type="button"
-                onClick={() => setCurrentPage("dashboard")}
-                className="px-6 py-2.5 bg-white hover:bg-zinc-50 border border-zinc-200 rounded-xl text-zinc-700 font-bold text-xs transition-colors cursor-pointer"
+                onClick={() => setCompanyToDelete(selectedCompanyCnpj)}
+                className="px-6 py-2.5 bg-red-50 hover:bg-red-100 border border-red-200 rounded-xl text-red-600 font-bold text-xs transition-colors cursor-pointer flex items-center gap-2"
               >
-                Cancelar
+                <Trash2 className="h-4 w-4" />
+                Excluir Empresa
               </button>
-              <button
-                type="button"
-                onClick={saveCompanyConfig}
-                className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs shadow-sm transition-colors cursor-pointer flex items-center justify-center gap-1.5"
-                id="btn-salvar-empresa-bottom"
-              >
-                <Save className="h-4 w-4" />
-                Salvar Empresa
-              </button>
+              <div className="flex gap-3.5">
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage("dashboard")}
+                  className="px-6 py-2.5 bg-white hover:bg-zinc-50 border border-zinc-200 rounded-xl text-zinc-700 font-bold text-xs transition-colors cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={saveCompanyConfig}
+                  disabled={isSavingCompany || isSaveSuccess}
+                  className={`px-6 py-2.5 rounded-xl font-bold text-xs shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed ${
+                    isSaveSuccess
+                      ? "bg-emerald-500 text-white hover:bg-emerald-500"
+                      : isSavingCompany
+                      ? "bg-emerald-700/80 text-white hover:bg-emerald-700/80 cursor-wait"
+                      : "bg-emerald-600 hover:bg-emerald-700 text-white"
+                  }`}
+                  id="btn-salvar-empresa-bottom"
+                >
+                  {isSavingCompany ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 animate-spin shrink-0" />
+                      <span>Salvando...</span>
+                    </>
+                  ) : isSaveSuccess ? (
+                    <motion.div 
+                      className="flex items-center gap-1.5"
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                    >
+                      <Check className="h-4 w-4 stroke-[3px]" />
+                      <span>Salvo com sucesso!</span>
+                    </motion.div>
+                  ) : (
+                    <span>Salvar Empresa</span>
+                  )}
+                </button>
+              </div>
             </div>
 
           </motion.div>
         )}
         </AnimatePresence>
+        
+        {/* Delete Confirmation Dialog */}
+        {companyToDelete && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/50 backdrop-blur-sm">
+            <div className="bg-white p-6 rounded-2xl shadow-xl w-full max-w-sm">
+              <h3 className="text-lg font-black text-zinc-900">Excluir Empresa</h3>
+              <p className="text-zinc-500 text-sm mt-2">Tem certeza que deseja excluir esta empresa? Esta ação não pode ser desfeita.</p>
+              <div className="flex gap-3 mt-6">
+                <button onClick={() => setCompanyToDelete(null)} className="flex-1 py-2 bg-zinc-100 rounded-lg text-zinc-700 font-bold">Cancelar</button>
+                <button onClick={handleDeleteCompany} className="flex-1 py-2 bg-red-600 rounded-lg text-white font-bold">Excluir</button>
+              </div>
+            </div>
+          </div>
+        )}
 
       </main>
 
