@@ -1531,7 +1531,7 @@ export default function Page() {
 
   const renderUserDropdown = () => (
     <div className="relative group shrink-0" id="header-user-dropdown">
-      <div className="flex items-center gap-2 p-1.5 px-3 rounded-xl hover:bg-zinc-100/80 transition-all cursor-pointer border border-zinc-200/60 bg-zinc-50 text-blue-900 shadow-xs h-9">
+      <div className="flex items-center gap-2 p-1.5 px-3 rounded-xl hover:bg-zinc-100/80 active:scale-95 transition-all cursor-pointer border border-zinc-200/60 bg-zinc-50 text-zinc-900 shadow-xs h-9 select-none">
         <div className="h-6 w-6 rounded-lg bg-emerald-600 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-sm transition-all">
           NA
         </div>
@@ -1846,7 +1846,7 @@ export default function Page() {
                   <div className="w-5 h-5 flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 duration-200">
                     <Receipt
                       className={`h-4.5 w-4.5 ${
-                        currentPage === "pgdas" ? "text-blue-400" : "text-zinc-500 group-hover:text-zinc-300"
+                        currentPage === "pgdas" ? "text-emerald-500" : "text-zinc-500 group-hover:text-zinc-300"
                       }`}
                       strokeWidth={1.75}
                     />
@@ -1876,10 +1876,10 @@ export default function Page() {
                     >
                       {/* Node indicator */}
                       <div className={`absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full border border-zinc-800 transition-colors ${
-                        currentPage === "pgdas" ? "bg-blue-500 border-blue-500/50" : "bg-zinc-900"
+                        currentPage === "pgdas" ? "bg-emerald-500 border-emerald-500/50" : "bg-zinc-900"
                       }`}></div>
 
-                      <FileCheck className={`h-3.5 w-3.5 transition-colors ${currentPage === "pgdas" ? "text-blue-400" : "text-zinc-600 group-hover:text-zinc-400"}`} strokeWidth={2.5} />
+                      <FileCheck className={`h-3.5 w-3.5 transition-colors ${currentPage === "pgdas" ? "text-emerald-500" : "text-zinc-600 group-hover:text-zinc-400"}`} strokeWidth={2.5} />
                       Apuração PGDAS
                     </button>
                   </div>
@@ -2013,7 +2013,7 @@ export default function Page() {
                                 addToast("Cadastro do escritório salvo com sucesso!", "success");
                               }
                             }}
-                            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-colors shadow-sm cursor-pointer"
+                            className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-[11px] font-black uppercase tracking-wider rounded-xl transition-all duration-200 shadow-md hover:shadow-lg hover:shadow-emerald-600/10 cursor-pointer"
                           >
                             Salvar Alterações
                           </button>
@@ -2025,7 +2025,7 @@ export default function Page() {
                             setIsEditingProfileForm(true);
                             addToast("Modo de edição cadastral ativado!", "info");
                           }}
-                          className="px-4 py-2 bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer flex items-center justify-center shadow-sm"
+                          className="px-5 py-2.5 bg-zinc-900 hover:bg-zinc-800 active:scale-95 text-white text-[11px] font-black uppercase tracking-wider rounded-xl transition-all duration-200 cursor-pointer flex items-center justify-center shadow-md hover:shadow-lg"
                         >
                           Editar cadastro
                         </button>
@@ -2052,7 +2052,7 @@ export default function Page() {
             </div>
 
             {/* Tab Navigation */}
-            <div className="flex items-center gap-1 border-b border-zinc-200/80 pb-px overflow-x-auto scrollbar-none">
+            <div className="flex items-center gap-2 border-b border-zinc-200/80 pb-3 overflow-x-auto scrollbar-none">
               {[
                 { id: "dados", label: "Dados Cadastrais", icon: FileText },
                 { id: "responsaveis", label: "Responsáveis Técnicos", icon: Shield },
@@ -2068,13 +2068,13 @@ export default function Page() {
                       setProfileTab(tab.id as any);
                       setIsEditingProfileForm(false);
                     }}
-                    className={`flex items-center gap-2 px-5 py-3 border-b-2 font-bold text-xs uppercase tracking-wider transition-all duration-200 cursor-pointer whitespace-nowrap ${
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-black text-[11px] uppercase tracking-wider transition-all duration-200 cursor-pointer whitespace-nowrap border ${
                       isActive
-                        ? "border-zinc-900 text-zinc-950 font-black"
-                        : "border-transparent text-zinc-400 hover:text-zinc-600 hover:border-zinc-200"
-                    }`}
+                        ? "bg-zinc-900 border-zinc-900 text-white shadow-md shadow-zinc-950/10"
+                        : "bg-white border-zinc-200 text-zinc-500 hover:text-zinc-800 hover:bg-zinc-50 hover:border-zinc-300"
+                    } active:scale-95 select-none`}
                   >
-                    <Icon className={`w-4 h-4 ${isActive ? "text-zinc-900" : "text-zinc-400"}`} />
+                    <Icon className={`w-4 h-4 ${isActive ? "text-white" : "text-zinc-400"}`} />
                     {tab.label}
                   </button>
                 );
@@ -2150,7 +2150,7 @@ export default function Page() {
                             Principal: {responsaveis.find(r => r.principal)?.nome.split(" ")[0] || "Naiale"}
                           </p>
                         </div>
-                        <div className="p-2.5 rounded-xl bg-blue-50 text-blue-600 group-hover:scale-105 transition-transform">
+                        <div className="p-2.5 rounded-xl bg-emerald-50 text-emerald-600 group-hover:scale-105 transition-transform">
                           <Shield className="w-5 h-5" />
                         </div>
                       </div>
@@ -2864,7 +2864,7 @@ export default function Page() {
                           setRespPrincipal(false);
                           setShowAddResponsavelModal(true);
                         }}
-                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-sm flex items-center gap-1.5"
+                        className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-[11px] font-black rounded-xl transition-all duration-200 cursor-pointer shadow-md hover:shadow-lg hover:shadow-emerald-600/10 flex items-center gap-1.5 uppercase tracking-wider h-[38px]"
                       >
                         <Plus className="w-4 h-4" />
                         Adicionar Contador
@@ -3044,7 +3044,7 @@ export default function Page() {
                           setInviteAcesso("Operador");
                           setShowInviteMemberModal(true);
                         }}
-                        className={`px-4 py-2 ${theme.bg} ${theme.hoverBg} text-white text-xs font-bold rounded-xl transition-all shadow-sm flex items-center gap-1.5 cursor-pointer`}
+                        className={`px-5 py-2.5 ${theme.bg} ${theme.hoverBg} active:scale-95 text-white text-[11px] font-black rounded-xl transition-all duration-200 shadow-md hover:shadow-lg flex items-center gap-1.5 cursor-pointer uppercase tracking-wider h-10 select-none`}
                       >
                         <Plus className="w-4 h-4" />
                         Convidar Colaborador
@@ -3230,7 +3230,7 @@ export default function Page() {
                                 setTransferOwnerOpen(false);
                                 setNewOwnerId("");
                               }}
-                              className="flex-1 py-2 bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer text-center shadow-sm"
+                              className="flex-1 px-5 py-2.5 bg-zinc-900 hover:bg-zinc-800 active:scale-95 text-white text-[11px] font-black uppercase tracking-wider rounded-xl transition-all duration-200 cursor-pointer text-center shadow-md h-10 flex items-center justify-center select-none"
                             >
                               Confirmar Transferência
                             </button>
@@ -3239,7 +3239,7 @@ export default function Page() {
                                 setTransferOwnerOpen(false);
                                 setNewOwnerId("");
                               }}
-                              className="px-4 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-bold rounded-xl transition-colors cursor-pointer"
+                              className="px-5 py-2.5 bg-zinc-100 hover:bg-zinc-200 active:scale-95 text-zinc-700 text-[11px] font-black uppercase tracking-wider rounded-xl border border-zinc-200 transition-all duration-200 cursor-pointer h-10 flex items-center justify-center select-none"
                             >
                               Cancelar
                             </button>
@@ -3622,7 +3622,7 @@ export default function Page() {
                         setEscritorioCnpj(savedCnpj);
                         addToast("Alteração de CNPJ abortada com segurança.", "info");
                       }}
-                      className="flex-1 px-4 py-2.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-bold rounded-xl transition-all cursor-pointer"
+                      className="flex-1 px-5 py-2.5 bg-zinc-100 hover:bg-zinc-200 active:scale-95 text-zinc-700 text-[11px] font-black uppercase tracking-wider rounded-xl border border-zinc-200 transition-all duration-200 cursor-pointer h-10 flex items-center justify-center select-none"
                     >
                       Cancelar
                     </button>
@@ -3645,7 +3645,7 @@ export default function Page() {
                           ...prev
                         ]);
                       }}
-                      className="flex-1 px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl transition-all shadow-sm cursor-pointer"
+                      className="flex-1 px-5 py-2.5 bg-rose-600 hover:bg-rose-500 active:scale-95 text-white text-[11px] font-black uppercase tracking-wider rounded-xl transition-all duration-200 shadow-md hover:shadow-lg hover:shadow-rose-600/10 cursor-pointer h-10 flex items-center justify-center select-none"
                     >
                       Confirmar CNPJ
                     </button>
@@ -3777,7 +3777,7 @@ export default function Page() {
                   <div className="flex gap-3 pt-4 border-t border-zinc-100">
                     <button 
                       onClick={() => setShowAddResponsavelModal(false)}
-                      className="flex-1 px-4 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-bold rounded-xl cursor-pointer"
+                      className="flex-1 px-5 py-2.5 bg-zinc-100 hover:bg-zinc-200 active:scale-95 text-zinc-700 text-[11px] font-black uppercase tracking-wider rounded-xl border border-zinc-200 transition-all duration-200 cursor-pointer h-10 flex items-center justify-center select-none"
                     >
                       Cancelar
                     </button>
@@ -3829,7 +3829,7 @@ export default function Page() {
                         setShowAddResponsavelModal(false);
                         addToast(`Contador técnico ${respNome} adicionado!`, "success");
                       }}
-                      className="flex-1 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl cursor-pointer shadow-sm"
+                      className="flex-1 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-[11px] font-black uppercase tracking-wider rounded-xl transition-all duration-200 cursor-pointer shadow-md hover:shadow-lg hover:shadow-emerald-600/10 h-10 flex items-center justify-center select-none"
                     >
                       Adicionar Contador
                     </button>
@@ -3904,7 +3904,7 @@ export default function Page() {
                   <div className="flex gap-3 pt-4 border-t border-zinc-100">
                     <button 
                       onClick={() => setShowInviteMemberModal(false)}
-                      className="flex-1 px-4 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-bold rounded-xl cursor-pointer"
+                      className="flex-1 px-5 py-2.5 bg-zinc-100 hover:bg-zinc-200 active:scale-95 text-zinc-700 text-[11px] font-black uppercase tracking-wider rounded-xl border border-zinc-200 transition-all duration-200 cursor-pointer h-10 flex items-center justify-center select-none"
                     >
                       Cancelar
                     </button>
@@ -3928,7 +3928,7 @@ export default function Page() {
                         setShowInviteMemberModal(false);
                         addToast(`Convite enviado com sucesso para ${inviteNome}!`, "success");
                       }}
-                      className="flex-1 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl cursor-pointer shadow-sm"
+                      className="flex-1 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-[11px] font-black uppercase tracking-wider rounded-xl transition-all duration-200 cursor-pointer shadow-md hover:shadow-lg hover:shadow-emerald-600/10 h-10 flex items-center justify-center select-none"
                     >
                       Enviar Convite
                     </button>
@@ -3990,7 +3990,7 @@ export default function Page() {
                         addToast("Relatório baixado com sucesso!", "success");
                       }, 1550);
                     }}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black shadow-md hover:shadow-lg transition-all cursor-pointer h-[38px] uppercase tracking-wider text-[10px]"
+                    className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white rounded-xl text-[11px] font-black shadow-md hover:shadow-lg hover:shadow-emerald-600/10 transition-all duration-200 cursor-pointer h-10 uppercase tracking-wider select-none"
                   >
                     <Download className="h-3.5 w-3.5" />
                     <span>Exportar Relatório</span>
@@ -3998,7 +3998,7 @@ export default function Page() {
 
                   <button 
                     onClick={createNewCompany}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-zinc-100 text-zinc-900 rounded-xl text-xs font-black shadow-md hover:shadow-lg transition-all cursor-pointer h-[38px] uppercase tracking-wider text-[10px]"
+                    className="flex items-center gap-2 px-5 py-2.5 bg-white hover:bg-zinc-50 active:scale-95 text-zinc-900 border border-zinc-200 rounded-xl text-[11px] font-black shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer h-10 uppercase tracking-wider select-none"
                   >
                     <Plus className="h-3.5 w-3.5 text-zinc-900" />
                     <span>Nova Empresa</span>
@@ -4027,7 +4027,7 @@ export default function Page() {
                   value: companies.filter(c => c.statusAcesso !== "Não Configurado").length.toString(), 
                   change: "Prontos para transmissão", 
                   icon: FileCheck, 
-                  color: "text-blue-600 bg-blue-50 border-blue-100/50", 
+                  color: "text-teal-600 bg-teal-50 border-teal-100/50", 
                   action: () => {
                     setFilterRegime("all");
                     setFilterAcesso("Configurado");
@@ -4210,7 +4210,7 @@ export default function Page() {
                       setFilterAcesso("all");
                       setCurrentPage("empresas");
                     }}
-                    className="text-[10px] font-black text-[#005cff] hover:text-blue-700 uppercase tracking-widest flex items-center gap-1 transition-colors cursor-pointer"
+                    className="text-[10px] font-black text-emerald-600 hover:text-emerald-700 uppercase tracking-wider flex items-center gap-1 transition-colors cursor-pointer select-none"
                   >
                     <span>Ver todas as {companies.length} empresas</span>
                     <ArrowUpRight className="h-3 w-3" />
@@ -4328,10 +4328,10 @@ export default function Page() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.3 }}
-            className="space-y-8"
+            className="space-y-6"
           >
             {/* Top Header */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-zinc-200/80 pb-5 mb-1">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-zinc-200/80 pb-5 mb-2">
               <div>
                 <div className="flex items-center gap-2 text-[10px] font-bold text-zinc-400 tracking-wider uppercase mb-1">
                   <span>Empresas</span>
@@ -4342,7 +4342,7 @@ export default function Page() {
               <div className="flex items-center gap-3 shrink-0 w-full sm:w-auto justify-between sm:justify-start">
                 <button
                   onClick={createNewCompany}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-zinc-900 hover:bg-zinc-800 text-white rounded-2xl text-[11px] font-black shadow-xl shadow-zinc-200 transition-all cursor-pointer h-10 uppercase tracking-widest"
+                  className="flex items-center gap-2 px-5 py-2.5 bg-zinc-900 hover:bg-zinc-800 active:scale-95 text-white rounded-xl text-[11px] font-black shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer h-10 uppercase tracking-wider select-none"
                   id="btn-nova-empresa-top"
                 >
                   Nova Empresa
@@ -4351,54 +4351,6 @@ export default function Page() {
                   {renderUserDropdown()}
                 </div>
               </div>
-            </div>
-
-            {/* Quick Stats Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-              {[
-                { 
-                  title: "Empresas Ativas", 
-                  value: companies.length.toString(), 
-                  change: "Atualizado em tempo real", 
-                  icon: Building2, 
-                  color: "text-emerald-600 bg-emerald-50 border-emerald-100" 
-                },
-                { 
-                  title: "Acessos Configurados", 
-                  value: companies.filter(c => c.statusAcesso !== "Não Configurado").length.toString(), 
-                  change: "Prontos para transmissão", 
-                  icon: FileCheck, 
-                  color: "text-zinc-900 bg-zinc-50 border-zinc-200" 
-                },
-                { 
-                  title: "Pendentes de Configuração", 
-                  value: companies.filter(c => c.statusAcesso === "Não Configurado").length.toString(), 
-                  change: "Necessita de credencial", 
-                  icon: AlertCircle, 
-                  color: "text-amber-600 bg-amber-50 border-amber-100" 
-                },
-                { 
-                  title: "Obrigações Entregues", 
-                  value: `${companies.length > 0 ? Math.round((companies.filter(c => c.statusPgdas === "Entregue").length / companies.length) * 100) : 100}%`, 
-                  change: "Sem atrasos no período", 
-                  icon: Clock, 
-                  color: "text-zinc-600 bg-zinc-100 border-zinc-200" 
-                }
-              ].map((stat, i) => {
-                const Icon = stat.icon;
-                return (
-                  <div key={i} className="bg-white p-6 rounded-3xl border border-zinc-200 shadow-sm hover:shadow-md transition-all duration-300 flex items-center justify-between gap-4 group">
-                    <div>
-                      <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">{stat.title}</p>
-                      <p className="text-3xl font-black text-zinc-900 mt-1 font-display tracking-tighter">{stat.value}</p>
-                      <p className="text-[10px] text-zinc-500 font-bold mt-1 uppercase tracking-tighter opacity-0 group-hover:opacity-100 transition-opacity">{stat.change}</p>
-                    </div>
-                    <div className={`p-3.5 rounded-2xl border shrink-0 transition-transform group-hover:scale-110 ${stat.color}`}>
-                      <Icon className="h-6 w-6" strokeWidth={2} />
-                    </div>
-                  </div>
-                );
-              })}
             </div>
 
             {/* Beautiful Interactive List of Active Clients in Dashboard */}
@@ -4711,13 +4663,13 @@ export default function Page() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setCurrentPage("dashboard")}
-                  className="px-4 py-2 bg-white hover:bg-zinc-50 border border-zinc-200 rounded-xl text-zinc-700 font-extrabold text-[11px] transition-colors cursor-pointer text-center h-10 flex items-center justify-center gap-2 shadow-xs uppercase tracking-wider"
+                  className="px-5 py-2.5 bg-white hover:bg-zinc-50 active:scale-95 border border-zinc-200 rounded-xl text-zinc-700 font-black text-[11px] transition-all duration-200 cursor-pointer text-center h-10 flex items-center justify-center gap-2 shadow-sm uppercase tracking-wider select-none"
                 >
                   Voltar
                 </button>
                 <button
                   onClick={saveCertificateConfig}
-                  className="px-4 py-2 bg-[#005cff] hover:bg-blue-700 text-white rounded-xl font-extrabold text-[11px] shadow-sm transition-colors cursor-pointer flex items-center justify-center gap-2 h-10 uppercase tracking-wider"
+                  className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white rounded-xl font-black text-[11px] shadow-md hover:shadow-lg hover:shadow-emerald-600/10 transition-all duration-200 cursor-pointer flex items-center justify-center gap-2 h-10 uppercase tracking-wider select-none"
                 >
                   <Save className="h-4 w-4" />
                   Salvar configuração
@@ -4746,7 +4698,7 @@ export default function Page() {
                     <div className="space-y-1 flex-1 min-w-[240px]">
                       <div className="flex items-center gap-2">
                         <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Empresa selecionada</p>
-                        <span className="text-[8px] bg-blue-50 text-[#005cff] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider border border-blue-100">Alterar seleção</span>
+                        <span className="text-[8px] bg-emerald-50 text-emerald-700 font-bold px-1.5 py-0.5 rounded uppercase tracking-wider border border-emerald-100">Alterar seleção</span>
                       </div>
                       <div className="relative max-w-sm mt-1">
                         <select
@@ -4799,10 +4751,10 @@ export default function Page() {
                 {/* Certificado da empresa */}
                 <div 
                   onClick={() => setMetodoAcesso("certificado")}
-                  className={`p-5 rounded-2xl border-2 flex items-center justify-between cursor-pointer transition-all ${metodoAcesso === "certificado" ? "bg-[#f4f8ff] border-[#005cff] text-[#005cff]" : "bg-white border-zinc-200 hover:border-zinc-300 text-zinc-700"}`}
+                  className={`p-5 rounded-2xl border-2 flex items-center justify-between cursor-pointer transition-all ${metodoAcesso === "certificado" ? "bg-emerald-50/30 border-emerald-500 text-emerald-800" : "bg-white border-zinc-200 hover:border-zinc-300 text-zinc-700"}`}
                 >
                   <div className="flex items-center gap-4">
-                    <div className={`p-2.5 rounded-xl ${metodoAcesso === "certificado" ? "bg-blue-100/60 text-[#005cff]" : "bg-zinc-100 text-zinc-400"}`}>
+                    <div className={`p-2.5 rounded-xl ${metodoAcesso === "certificado" ? "bg-emerald-100/60 text-emerald-600" : "bg-zinc-100 text-zinc-400"}`}>
                       <FileText className="h-5 w-5" />
                     </div>
                     <div>
@@ -4811,7 +4763,7 @@ export default function Page() {
                     </div>
                   </div>
                   {metodoAcesso === "certificado" && (
-                    <div className="bg-[#005cff] text-white p-1 rounded-full">
+                    <div className="bg-emerald-600 text-white p-1 rounded-full">
                       <Check className="h-3 w-3" strokeWidth={3} />
                     </div>
                   )}
@@ -4820,10 +4772,10 @@ export default function Page() {
                 {/* Procuração para o escritório */}
                 <div 
                   onClick={() => setMetodoAcesso("procuracao")}
-                  className={`p-5 rounded-2xl border-2 flex items-center justify-between cursor-pointer transition-all ${metodoAcesso === "procuracao" ? "bg-[#f4f8ff] border-[#005cff] text-[#005cff]" : "bg-white border-zinc-200 hover:border-zinc-300 text-zinc-700"}`}
+                  className={`p-5 rounded-2xl border-2 flex items-center justify-between cursor-pointer transition-all ${metodoAcesso === "procuracao" ? "bg-emerald-50/30 border-emerald-500 text-emerald-800" : "bg-white border-zinc-200 hover:border-zinc-300 text-zinc-700"}`}
                 >
                   <div className="flex items-center gap-4">
-                    <div className={`p-2.5 rounded-xl ${metodoAcesso === "procuracao" ? "bg-blue-100/60 text-[#005cff]" : "bg-zinc-100 text-zinc-400"}`}>
+                    <div className={`p-2.5 rounded-xl ${metodoAcesso === "procuracao" ? "bg-emerald-100/60 text-emerald-600" : "bg-zinc-100 text-zinc-400"}`}>
                       <Shield className="h-5 w-5" />
                     </div>
                     <div>
@@ -4832,7 +4784,7 @@ export default function Page() {
                     </div>
                   </div>
                   {metodoAcesso === "procuracao" && (
-                    <div className="bg-[#005cff] text-white p-1 rounded-full">
+                    <div className="bg-emerald-600 text-white p-1 rounded-full">
                       <Check className="h-3 w-3" strokeWidth={3} />
                     </div>
                   )}
@@ -4936,13 +4888,13 @@ export default function Page() {
 
                 {/* Validation progress */}
                 {isValidatingCert && (
-                  <div className="col-span-full bg-blue-50/50 border border-blue-100 rounded-xl p-4 space-y-2 animate-pulse mt-2">
-                    <div className="flex justify-between items-center text-[10px] font-bold text-blue-700 uppercase">
+                  <div className="col-span-full bg-emerald-50/50 border border-emerald-100 rounded-xl p-4 space-y-2 animate-pulse mt-2">
+                    <div className="flex justify-between items-center text-[10px] font-bold text-emerald-700 uppercase">
                       <span>{validationProgressMessage || "Processando..."}</span>
                       <span>{certValidationProgress}%</span>
                     </div>
-                    <div className="w-full bg-blue-100 h-1.5 rounded-full overflow-hidden">
-                      <div className="bg-[#005cff] h-full transition-all duration-300" style={{ width: `${certValidationProgress}%` }} />
+                    <div className="w-full bg-emerald-100 h-1.5 rounded-full overflow-hidden">
+                      <div className="bg-emerald-600 h-full transition-all duration-300" style={{ width: `${certValidationProgress}%` }} />
                     </div>
                   </div>
                 )}
@@ -4952,7 +4904,7 @@ export default function Page() {
                   <button 
                     onClick={validateCertificate}
                     disabled={isValidatingCert}
-                    className="px-5 py-2 bg-white hover:bg-zinc-50 border border-zinc-200 rounded-xl text-zinc-700 font-extrabold text-[11px] transition-colors cursor-pointer flex items-center gap-1.5 shadow-xs uppercase tracking-wider h-10"
+                    className="px-5 py-2.5 bg-white hover:bg-zinc-50 active:scale-95 border border-zinc-200 rounded-xl text-zinc-700 font-black text-[11px] transition-all duration-200 cursor-pointer flex items-center gap-1.5 shadow-sm uppercase tracking-wider h-10 select-none"
                   >
                     {isValidatingCert ? (
                       <RefreshCw className="h-3.5 w-3.5 text-zinc-400 animate-spin" />
@@ -4963,7 +4915,7 @@ export default function Page() {
                   </button>
                   <button 
                     onClick={saveCertificateConfig}
-                    className="px-5 py-2 bg-[#005cff] hover:bg-blue-700 text-white rounded-xl font-extrabold text-[11px] transition-colors cursor-pointer flex items-center gap-1.5 shadow-sm uppercase tracking-wider h-10"
+                    className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white rounded-xl font-black text-[11px] shadow-md hover:shadow-lg hover:shadow-emerald-600/10 transition-all duration-200 cursor-pointer flex items-center gap-1.5 uppercase tracking-wider h-10 select-none"
                   >
                     Salvar certificado
                   </button>
@@ -4989,7 +4941,7 @@ export default function Page() {
                           type="checkbox" 
                           checked={alerta30d} 
                           onChange={(e) => setAlerta30d(e.target.checked)} 
-                          className="h-4 w-4 rounded border-zinc-300 text-[#005cff] focus:ring-[#005cff]/25"
+                          className="h-4 w-4 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500"
                         />
                         <span>30 dias antes</span>
                       </label>
@@ -4998,7 +4950,7 @@ export default function Page() {
                           type="checkbox" 
                           checked={alerta15d} 
                           onChange={(e) => setAlerta15d(e.target.checked)} 
-                          className="h-4 w-4 rounded border-zinc-300 text-[#005cff] focus:ring-[#005cff]/25"
+                          className="h-4 w-4 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500"
                         />
                         <span>15 dias antes</span>
                       </label>
@@ -5007,7 +4959,7 @@ export default function Page() {
                           type="checkbox" 
                           checked={alerta7d} 
                           onChange={(e) => setAlerta7d(e.target.checked)} 
-                          className="h-4 w-4 rounded border-zinc-300 text-[#005cff] focus:ring-[#005cff]/25"
+                          className="h-4 w-4 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500"
                         />
                         <span>7 dias antes</span>
                       </label>
@@ -5044,14 +4996,14 @@ export default function Page() {
                   </div>
                 </div>
 
-                {/* Right Part: Blue banner card */}
+                {/* Right Part: Emerald banner card */}
                 <div className="lg:col-span-4">
-                  <div className="bg-[#f4f8ff] border border-blue-100 p-4 rounded-xl flex items-start gap-3">
-                    <div className="p-2 bg-blue-100 text-[#005cff] rounded-lg">
+                  <div className="bg-emerald-50/50 border border-emerald-100 p-4 rounded-xl flex items-start gap-3">
+                    <div className="p-2 bg-emerald-100 text-emerald-700 rounded-lg">
                       <Bell className="h-4 w-4" />
                     </div>
                     <div>
-                      <h5 className="text-xs font-black text-[#005cff] uppercase">Próximo aviso</h5>
+                      <h5 className="text-xs font-black text-emerald-700 uppercase">Próximo aviso</h5>
                       <p className="text-[10px] text-zinc-500 font-bold mt-1">30 dias antes do vencimento identificado.</p>
                     </div>
                   </div>
@@ -5202,7 +5154,7 @@ export default function Page() {
                       <button 
                         onClick={() => pgdasFileInputRef.current?.click()}
                         disabled={isUploadingPgdas}
-                        className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-[11px] font-black hover:bg-emerald-700 transition-all flex items-center gap-2 shadow-sm"
+                        className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white rounded-xl text-[11px] font-black transition-all duration-200 flex items-center gap-2 shadow-md hover:shadow-emerald-600/10 uppercase tracking-wider h-[38px] cursor-pointer"
                       >
                         {isUploadingPgdas ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
                         Importar XML / ZIP
@@ -5294,9 +5246,10 @@ export default function Page() {
                   <div className="flex justify-end pt-4">
                     <button
                       onClick={() => setPgdasStep(2)}
-                      className="px-8 py-3 bg-zinc-900 text-white hover:bg-zinc-800 text-[11px] font-black rounded-2xl shadow-xl shadow-zinc-200 transition-all flex items-center gap-2 uppercase tracking-widest"
+                      className="px-6 py-3 bg-zinc-900 hover:bg-zinc-800 active:scale-95 text-white text-[11px] font-black rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center gap-2 uppercase tracking-wider h-11 cursor-pointer select-none"
                     >
-                      Classificar e Apurar <ChevronRight className="h-4 w-4" />
+                      <span>Classificar e Apurar</span>
+                      <ChevronRight className="h-4 w-4" />
                     </button>
                   </div>
                 </motion.div>
@@ -5427,14 +5380,18 @@ export default function Page() {
                   </div>
 
                   <div className="flex justify-between items-center pt-4">
-                    <button onClick={() => setPgdasStep(1)} className="px-6 py-3 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-[10px] font-black rounded-2xl transition-all uppercase tracking-widest">
+                    <button 
+                      onClick={() => setPgdasStep(1)} 
+                      className="px-6 py-3 bg-zinc-100 hover:bg-zinc-200 active:scale-95 text-zinc-700 text-[11px] font-black rounded-xl border border-zinc-200 transition-all duration-200 uppercase tracking-wider h-11 cursor-pointer select-none"
+                    >
                       Voltar: Preparar Dados
                     </button>
                     <button
                       onClick={() => setPgdasStep(3)}
-                      className="px-8 py-3 bg-zinc-900 text-white hover:bg-zinc-800 text-[11px] font-black rounded-2xl shadow-xl transition-all flex items-center gap-2 uppercase tracking-widest"
+                      className="px-6 py-3 bg-zinc-900 hover:bg-zinc-800 active:scale-95 text-white text-[11px] font-black rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center gap-2 uppercase tracking-wider h-11 cursor-pointer select-none"
                     >
-                      Revisar e Transmitir <ChevronRight className="h-4 w-4" />
+                      <span>Revisar e Transmitir</span>
+                      <ChevronRight className="h-4 w-4" />
                     </button>
                   </div>
                 </motion.div>
@@ -5569,12 +5526,12 @@ export default function Page() {
                       </div>
 
                       <div className="bg-zinc-50 p-6 rounded-3xl border border-zinc-200 border-dashed text-center space-y-3">
-                        <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Ações Pós-Transmissão</p>
+                        <p className="text-[10px] font-black text-zinc-400 uppercase tracking-wider">Ações Pós-Transmissão</p>
                         <div className="flex gap-2">
-                          <button className="flex-1 py-2.5 bg-white border border-zinc-200 text-zinc-700 rounded-xl text-[10px] font-black hover:bg-zinc-50 transition-all flex items-center justify-center gap-2">
+                          <button className="flex-1 px-5 py-2.5 bg-white hover:bg-zinc-50 active:scale-95 border border-zinc-200 text-zinc-700 rounded-xl text-[10px] font-black transition-all duration-200 flex items-center justify-center gap-2 h-10 uppercase tracking-wider cursor-pointer select-none">
                             <Mail className="h-3.5 w-3.5 text-zinc-400" /> E-MAIL
                           </button>
-                          <button className="flex-1 py-2.5 bg-white border border-zinc-200 text-zinc-700 rounded-xl text-[10px] font-black hover:bg-zinc-50 transition-all flex items-center justify-center gap-2">
+                          <button className="flex-1 px-5 py-2.5 bg-white hover:bg-zinc-50 active:scale-95 border border-zinc-200 text-zinc-700 rounded-xl text-[10px] font-black transition-all duration-200 flex items-center justify-center gap-2 h-10 uppercase tracking-wider cursor-pointer select-none">
                             <Share2 className="h-3.5 w-3.5 text-emerald-500" /> WHATSAPP
                           </button>
                         </div>
@@ -5590,7 +5547,7 @@ export default function Page() {
                         setPgdasTransmissionState('pronta');
                         addToast("Nova apuração iniciada.", "info");
                       }}
-                      className="px-6 py-2.5 bg-zinc-900 text-white hover:bg-zinc-800 text-xs font-black rounded-xl shadow-xs transition-all"
+                      className="px-5 py-2.5 bg-zinc-900 hover:bg-zinc-800 active:scale-95 text-white rounded-xl text-[11px] font-black shadow-md hover:shadow-lg transition-all duration-200 h-10 uppercase tracking-wider cursor-pointer select-none flex items-center justify-center"
                     >
                       Realizar Nova Apuração
                     </button>
@@ -5632,7 +5589,7 @@ export default function Page() {
               <div className="flex items-center gap-2.5 w-full sm:w-auto">
                 <button
                   onClick={() => setCurrentPage("empresas")}
-                  className="flex-1 sm:flex-none px-4 py-2 bg-white hover:bg-zinc-50 border border-zinc-200 rounded-xl text-zinc-700 font-bold text-xs transition-colors cursor-pointer text-center h-9 flex items-center justify-center"
+                  className="flex-1 sm:flex-none px-5 py-2 bg-white hover:bg-zinc-50 active:scale-95 border border-zinc-200 rounded-xl text-zinc-700 font-black text-[11px] uppercase tracking-wider transition-all duration-200 cursor-pointer text-center h-9 flex items-center justify-center"
                   id="btn-cancelar-cad"
                 >
                   Cancelar
@@ -5640,12 +5597,12 @@ export default function Page() {
                 <button
                   onClick={saveCompanyConfig}
                   disabled={isSavingCompany || isSaveSuccess}
-                  className={`flex-1 sm:flex-none px-5 py-2.5 rounded-xl font-bold text-xs shadow-sm transition-all flex items-center justify-center gap-2 h-9 cursor-pointer disabled:cursor-not-allowed ${
+                  className={`flex-1 sm:flex-none px-5 py-2.5 rounded-xl font-black text-[11px] uppercase tracking-wider shadow-md transition-all duration-200 flex items-center justify-center gap-2 h-9 cursor-pointer disabled:cursor-not-allowed ${
                     isSaveSuccess
                       ? "bg-emerald-500 text-white hover:bg-emerald-500 border-transparent"
                       : isSavingCompany
                       ? "bg-zinc-100 border border-zinc-200 text-zinc-400 shadow-none cursor-wait animate-pulse"
-                      : "bg-emerald-600 hover:bg-emerald-700 text-white border-transparent"
+                      : "bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white border-transparent hover:shadow-lg hover:shadow-emerald-600/10"
                   }`}
                   id="btn-salvar-empresa-top"
                 >
@@ -6270,8 +6227,8 @@ export default function Page() {
               <div className="flex gap-3.5">
                 <button
                   type="button"
-                  onClick={() => setCurrentPage("dashboard")}
-                  className="px-6 py-2.5 bg-white hover:bg-zinc-50 border border-zinc-200 rounded-xl text-zinc-700 font-bold text-xs transition-colors cursor-pointer"
+                  onClick={() => setCurrentPage("empresas")}
+                  className="px-6 py-2.5 bg-white hover:bg-zinc-50 active:scale-95 border border-zinc-200 rounded-xl text-zinc-700 font-black text-[11px] uppercase tracking-wider transition-all duration-200 cursor-pointer h-10 flex items-center justify-center"
                 >
                   Cancelar
                 </button>
@@ -6279,12 +6236,12 @@ export default function Page() {
                   type="button"
                   onClick={saveCompanyConfig}
                   disabled={isSavingCompany || isSaveSuccess}
-                  className={`px-6 py-2.5 rounded-xl font-bold text-xs shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed ${
+                  className={`px-6 py-2.5 rounded-xl font-black text-[11px] uppercase tracking-wider shadow-md transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed h-10 ${
                     isSaveSuccess
                       ? "bg-emerald-500 text-white hover:bg-emerald-500"
                       : isSavingCompany
                       ? "bg-emerald-700/80 text-white hover:bg-emerald-700/80 cursor-wait"
-                      : "bg-emerald-600 hover:bg-emerald-700 text-white"
+                      : "bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white hover:shadow-lg hover:shadow-emerald-600/10"
                   }`}
                   id="btn-salvar-empresa-bottom"
                 >
