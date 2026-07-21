@@ -2,7 +2,8 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import {
-  Building2,
+  Building,
+  Camera,
   FileKey,
   Shield,
   ShieldCheck,
@@ -27,6 +28,7 @@ import {
   User,
   UserCircle,
   Settings,
+  Pencil,
   Layers,
   Lock,
   Unlock,
@@ -53,7 +55,9 @@ import {
   CheckCircle2,
   Send,
   Download,
-  Share2
+  Share2,
+
+  Landmark
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 
@@ -256,8 +260,9 @@ interface Company {
   statusAcesso: "Não Configurado" | "e-CNPJ Ativo" | "Procuração Ativa";
   statusPgdas: "Entregue" | "Pendente" | "Processando" | "Sem Movimento";
   periodoApuracao: string;
-  statusEmpresa: "Ativa" | "Inativa" | "Suspensa";
+  statusEmpresa?: "Ativa" | "Inativa" | "Suspensa" | "Excluída";
   logoUrl?: string | null;
+  tratamentoTributarioGlobal?: string;
 }
 
 // Framer Motion Variants for Staggered Lists
@@ -288,7 +293,7 @@ const itemVariants = {
 
 export default function Page() {
   // Navigation State
-  const [currentPage, setCurrentPage] = useState<"dashboard" | "empresas" | "cadastro_empresa" | "certificados" | "procuracoes" | "relatorios" | "configuracoes" | "perfil_escritorio" | "pgdas">("dashboard");
+  const [currentPage, setCurrentPage] = useState<"dashboard" | "empresas" | "detalhes_empresa" | "cadastro_empresa" | "certificados" | "procuracoes" | "relatorios" | "configuracoes" | "perfil_escritorio" | "pgdas">("dashboard");
   const [isFiscalMenuOpen, setIsFiscalMenuOpen] = useState(false);
   const [isConfigMenuOpen, setIsConfigMenuOpen] = useState(false);
   const [profileTab, setProfileTab] = useState<"dados" | "responsaveis" | "equipe" | "preferencias">("dados");
@@ -626,10 +631,13 @@ export default function Page() {
   ]);
 
   const [selectedCompanyCnpj, setSelectedCompanyCnpj] = useState<string>("66.378.843/0001-34");
+  const [selectedCompanyForDetails, setSelectedCompanyForDetails] = useState<Company | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [dashboardSearch, setDashboardSearch] = useState("");
   const [filterRegime, setFilterRegime] = useState("all");
   const [filterAcesso, setFilterAcesso] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterPgdas, setFilterPgdas] = useState("all");
 
   // Pagination states for companies list
   const [companiesPage, setCompaniesPage] = useState(1);
@@ -651,7 +659,7 @@ export default function Page() {
       clearTimeout(loadTimer);
       clearTimeout(resolveTimer);
     };
-  }, [searchTerm, filterRegime, filterAcesso, companiesPage]);
+  }, [searchTerm, filterRegime, filterAcesso, filterStatus, filterPgdas, companiesPage]);
 
   // User notifications / toasts
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -671,7 +679,7 @@ export default function Page() {
   const [cnpj, setCnpj] = useState("");
   const [razaoSocial, setRazaoSocial] = useState("");
   const [nomeFantasia, setNomeFantasia] = useState("");
-  const [status, setStatus] = useState<"Ativa" | "Inativa" | "Suspensa">("Ativa");
+  const [status, setStatus] = useState<"Ativa" | "Inativa" | "Suspensa" | "Excluída">("Ativa");
   const [dataAbertura, setDataAbertura] = useState("");
   const [dataBaixa, setDataBaixa] = useState("");
   const [cep, setCep] = useState("");
@@ -684,6 +692,7 @@ export default function Page() {
   const [email, setEmail] = useState("");
   const [telefone, setTelefone] = useState("");
   const [regimeTributario, setRegimeTributario] = useState("Simples Nacional");
+  const [tratamentoTributarioGlobal, setTratamentoTributarioGlobal] = useState("AUTOMATICO SISTEMA");
   const [inscricaoMunicipal, setInscricaoMunicipal] = useState("");
   const [cnaePrincipal, setCnaePrincipal] = useState("");
   const [cnaeSecundarios, setCnaeSecundarios] = useState("");
@@ -853,9 +862,11 @@ export default function Page() {
   const [escritorioLogoLetter, setEscritorioLogoLetter] = useState("A");
   const [escritorioLogoUrl, setEscritorioLogoUrl] = useState<string | null>(null);
   const [platformLogoUrl, setPlatformLogoUrl] = useState<string | null>(null);
+  const [userProfilePhoto, setUserProfilePhoto] = useState<string | null>(null);
 
   const escritorioLogoInputRef = useRef<HTMLInputElement>(null);
   const platformLogoInputRef = useRef<HTMLInputElement>(null);
+  const userProfilePhotoInputRef = useRef<HTMLInputElement>(null);
 
   const handleEscritorioLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -884,6 +895,22 @@ export default function Page() {
       reader.onload = () => {
         setPlatformLogoUrl(reader.result as string);
         addToast("Logotipo da plataforma carregado com sucesso!", "success");
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleUserProfilePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        addToast("A imagem deve ter no máximo 2MB", "error");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        setUserProfilePhoto(reader.result as string);
+        addToast("Foto de perfil carregada com sucesso!", "success");
       };
       reader.readAsDataURL(file);
     }
@@ -1437,6 +1464,7 @@ export default function Page() {
           razaoSocial: razaoSocial.toUpperCase(),
           nomeFantasia: nomeFantasia ? nomeFantasia.toUpperCase() : razaoSocial.toUpperCase(),
           regimeTributario,
+          tratamentoTributarioGlobal,
           uf: uf || "MG",
           municipio: municipio || "Belo Horizonte",
           statusEmpresa: status,
@@ -1449,6 +1477,7 @@ export default function Page() {
           razaoSocial: razaoSocial.toUpperCase(),
           nomeFantasia: nomeFantasia ? nomeFantasia.toUpperCase() : razaoSocial.toUpperCase(),
           regimeTributario,
+          tratamentoTributarioGlobal,
           uf: uf || "MG",
           municipio: municipio || "Belo Horizonte",
           statusAcesso: "Não Configurado",
@@ -1480,6 +1509,7 @@ export default function Page() {
     setRazaoSocial("");
     setNomeFantasia("");
     setRegimeTributario("Simples Nacional");
+    setTratamentoTributarioGlobal("AUTOMATICO SISTEMA");
     setUf("MG");
     setMunicipio("Belo Horizonte");
     setStatus("Ativa");
@@ -1504,6 +1534,7 @@ export default function Page() {
     setRazaoSocial(company.razaoSocial);
     setNomeFantasia(company.nomeFantasia);
     setRegimeTributario(company.regimeTributario);
+    setTratamentoTributarioGlobal(company.tratamentoTributarioGlobal || "AUTOMATICO SISTEMA");
     setUf(company.uf);
     setMunicipio(company.municipio);
     setStatus(company.statusEmpresa || "Ativa");
@@ -1531,33 +1562,81 @@ export default function Page() {
 
   const renderUserDropdown = () => (
     <div className="relative group shrink-0" id="header-user-dropdown">
-      <div className="flex items-center gap-2 p-1.5 px-3 rounded-xl hover:bg-zinc-100/80 active:scale-95 transition-all cursor-pointer border border-zinc-200/60 bg-zinc-50 text-zinc-900 shadow-xs h-9 select-none">
-        <div className="h-6 w-6 rounded-lg bg-emerald-600 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-sm transition-all">
-          NA
+      <div className="flex items-center gap-2 p-1.5 px-3 rounded-xl hover:bg-zinc-100/80 active:scale-95 transition-all cursor-pointer bg-zinc-50 text-zinc-900 shadow-xs h-9 select-none">
+        <div className="h-6 w-6 rounded-lg bg-emerald-600 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-sm transition-all overflow-hidden">
+          {userProfilePhoto ? (
+            <img src={userProfilePhoto} alt="Foto de perfil" className="h-full w-full object-cover" />
+          ) : (
+            "NA"
+          )}
         </div>
         <ChevronDown className="h-3.5 w-3.5 text-zinc-400 group-hover:text-zinc-600 shrink-0 transition-colors" />
       </div>
 
       {/* Dropdown Menu */}
-      <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-lg border border-zinc-100 p-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-        <div className="p-2 border-b border-zinc-100 mb-1">
-          <p className="text-xs font-black text-zinc-900 leading-none">NAIALE AUGUSTINHO</p>
+      <div className="absolute right-0 top-full mt-2 w-60 bg-white rounded-xl shadow-lg border border-zinc-100 p-2.5 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+        <div className="p-2 border-b border-zinc-100 mb-2 flex items-center gap-2.5">
+          <div className="h-10 w-10 rounded-xl bg-emerald-600 text-white font-bold text-sm flex items-center justify-center shrink-0 shadow-inner overflow-hidden">
+            {userProfilePhoto ? (
+              <img src={userProfilePhoto} alt="Foto de perfil" className="h-full w-full object-cover" />
+            ) : (
+              "NA"
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-black text-zinc-900 leading-tight">NAIALE AUGUSTINHO</p>
+            <p className="text-[10px] text-zinc-400 font-semibold mt-0.5 truncate">naiale@contabilidadealfa.com</p>
+          </div>
         </div>
+
+        {/* Upload Profile Photo Section */}
+        <div className="px-2 pb-2 border-b border-zinc-100 mb-2 space-y-1.5">
+          <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">Foto de Perfil</p>
+          <div className="flex gap-1.5">
+            <button
+              onClick={() => userProfilePhotoInputRef.current?.click()}
+              className="flex-1 text-center py-1 bg-zinc-50 hover:bg-zinc-100 text-zinc-600 hover:text-zinc-800 rounded-lg text-[10px] font-bold transition-colors flex items-center justify-center gap-1 border border-zinc-200 cursor-pointer h-7"
+            >
+              <Camera className="h-3 w-3 text-zinc-400" />
+              {userProfilePhoto ? "Alterar" : "Enviar foto"}
+            </button>
+            {userProfilePhoto && (
+              <button
+                onClick={() => {
+                  setUserProfilePhoto(null);
+                  addToast("Foto de perfil removida com sucesso.", "info");
+                }}
+                className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-100 rounded-lg transition-colors cursor-pointer h-7 w-7 flex items-center justify-center shrink-0"
+                title="Remover foto"
+              >
+                <Trash2 className="h-3 w-3" />
+              </button>
+            )}
+          </div>
+          <input
+            type="file"
+            ref={userProfilePhotoInputRef}
+            onChange={handleUserProfilePhotoUpload}
+            accept="image/*"
+            className="hidden"
+          />
+        </div>
+
         <button 
           onClick={() => addToast("Meu Perfil indisponível neste protótipo.", "info")}
-          className="w-full text-left px-2 py-2 text-xs font-semibold text-zinc-600 hover:bg-zinc-50 rounded-lg transition-colors flex items-center gap-2 cursor-pointer"
+          className="w-full text-left px-2.5 py-2 text-xs font-semibold text-zinc-600 hover:bg-zinc-50 rounded-lg transition-colors flex items-center gap-2.5 cursor-pointer"
         >
           <User className="h-3.5 w-3.5" /> Meu Perfil
         </button>
         <button 
           onClick={() => addToast("Configurações indisponíveis neste protótipo.", "info")}
-          className="w-full text-left px-2 py-2 text-xs font-semibold text-zinc-600 hover:bg-zinc-50 rounded-lg transition-colors flex items-center gap-2 cursor-pointer"
+          className="w-full text-left px-2.5 py-2 text-xs font-semibold text-zinc-600 hover:bg-zinc-50 rounded-lg transition-colors flex items-center gap-2.5 cursor-pointer"
         >
           <Settings className="h-3.5 w-3.5" /> Configurações
         </button>
         <button 
           onClick={() => addToast("Sessão encerrada neste protótipo.", "info")}
-          className="w-full text-left px-2 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded-lg transition-colors flex items-center gap-2 cursor-pointer"
+          className="w-full text-left px-2.5 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded-lg transition-colors flex items-center gap-2.5 cursor-pointer"
         >
           <LockKeyhole className="h-3.5 w-3.5" /> Sair
         </button>
@@ -1581,7 +1660,16 @@ export default function Page() {
       (filterAcesso === "Configurado" && c.statusAcesso !== "Não Configurado") ||
       (filterAcesso === "Não Configurado" && c.statusAcesso === "Não Configurado");
 
-    return matchesSearch && matchesRegime && matchesAcesso;
+    const matchesStatus = 
+      filterStatus === "all" ||
+      c.statusEmpresa === filterStatus ||
+      (filterStatus === "Ativa" && !c.statusEmpresa);
+
+    const matchesPgdas =
+      filterPgdas === "all" ||
+      c.statusPgdas === filterPgdas;
+
+    return matchesSearch && matchesRegime && matchesAcesso && matchesStatus && matchesPgdas;
   });
 
   const totalCompaniesItems = filteredCompanies.length;
@@ -1589,6 +1677,8 @@ export default function Page() {
   const activeCompaniesPage = Math.min(companiesPage, totalCompaniesPages || 1);
   const startCompanyIndex = (activeCompaniesPage - 1) * companiesPerPage;
   const paginatedCompanies = filteredCompanies.slice(startCompanyIndex, startCompanyIndex + companiesPerPage);
+
+  const isEditingCompany = companies.some(c => c.cnpj === cnpj);
 
   return (
     <div className="min-h-screen bg-zinc-50/50 flex flex-col md:flex-row font-sans text-zinc-800 antialiased selection:bg-emerald-500/10 selection:text-emerald-700">
@@ -1640,8 +1730,12 @@ export default function Page() {
         <div className="flex items-center gap-3">
           {/* User Profile in Mobile Header */}
           <div className="flex items-center gap-2 p-1 px-2 rounded-lg bg-zinc-800/60 border border-zinc-700/60" id="mobile-header-user">
-            <div className="h-6 w-6 rounded bg-emerald-600 text-white font-extrabold text-[10px] flex items-center justify-center shrink-0 shadow-sm">
-              NA
+            <div className="h-6 w-6 rounded bg-emerald-600 text-white font-extrabold text-[10px] flex items-center justify-center shrink-0 shadow-sm overflow-hidden">
+              {userProfilePhoto ? (
+                <img src={userProfilePhoto} alt="Foto de perfil" className="h-full w-full object-cover" />
+              ) : (
+                "NA"
+              )}
             </div>
             <span className="text-[10px] font-bold text-zinc-300 max-w-[80px] truncate hidden xs:inline">Naiale</span>
           </div>
@@ -1736,7 +1830,7 @@ export default function Page() {
                     />
                   </div>
                   <span className={`transition-opacity duration-200 ${sidebarCollapsed ? "md:opacity-0 md:w-0 overflow-hidden" : "opacity-100"}`}>
-                    Painel Geral
+                    Dashboard
                   </span>
                 </div>
               </button>
@@ -1788,7 +1882,7 @@ export default function Page() {
               >
                 <div className="flex items-center gap-3">
                   <div className="w-5 h-5 flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 duration-200">
-                    <Building2 
+                    <Building 
                       className={`h-4.5 w-4.5 ${
                         (currentPage === "empresas" || currentPage === "cadastro_empresa") ? "text-emerald-400" : "text-zinc-500 group-hover:text-zinc-300"
                       }`} 
@@ -1796,35 +1890,7 @@ export default function Page() {
                     />
                   </div>
                   <span className={`transition-opacity duration-200 ${sidebarCollapsed ? "md:opacity-0 md:w-0 overflow-hidden" : "opacity-100"}`}>
-                    Lista de Empresas
-                  </span>
-                </div>
-              </button>
-
-              {/* Menu Item - Certificados */}
-              <button
-                onClick={() => {
-                  setCurrentPage("certificados");
-                  setSidebarOpen(false);
-                }}
-                className={`w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 group text-[13px] font-bold ${
-                  currentPage === "certificados"
-                    ? "bg-zinc-800 text-zinc-100 shadow-sm"
-                    : "text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50"
-                }`}
-                id="nav-certificados"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-5 h-5 flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 duration-200">
-                    <ShieldCheck
-                      className={`h-4.5 w-4.5 ${
-                        currentPage === "certificados" ? "text-amber-400" : "text-zinc-500 group-hover:text-zinc-300"
-                      }`}
-                      strokeWidth={1.75}
-                    />
-                  </div>
-                  <span className={`transition-opacity duration-200 ${sidebarCollapsed ? "md:opacity-0 md:w-0 overflow-hidden" : "opacity-100"}`}>
-                    Certificados Digitais
+                    Empresas
                   </span>
                 </div>
               </button>
@@ -1844,7 +1910,7 @@ export default function Page() {
               >
                 <div className="flex items-center gap-3">
                   <div className="w-5 h-5 flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 duration-200">
-                    <Receipt
+                    <Landmark
                       className={`h-4.5 w-4.5 ${
                         currentPage === "pgdas" ? "text-emerald-500" : "text-zinc-500 group-hover:text-zinc-300"
                       }`}
@@ -1885,6 +1951,37 @@ export default function Page() {
                   </div>
                 </div>
               )}
+
+              {/* SECTION: CONFIGURAÇÕES */}
+              {!sidebarCollapsed && <div className="px-4 text-[10px] font-extrabold text-zinc-500 uppercase tracking-wider mb-2 mt-6">Configurações</div>}
+
+              {/* Menu Item - Certificados */}
+              <button
+                onClick={() => {
+                  setCurrentPage("certificados");
+                  setSidebarOpen(false);
+                }}
+                className={`w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 group text-[13px] font-bold ${
+                  currentPage === "certificados"
+                    ? "bg-zinc-800 text-zinc-100 shadow-sm"
+                    : "text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50"
+                }`}
+                id="nav-certificados"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-5 h-5 flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 duration-200">
+                    <ShieldCheck
+                      className={`h-4.5 w-4.5 ${
+                        currentPage === "certificados" ? "text-amber-400" : "text-zinc-500 group-hover:text-zinc-300"
+                      }`}
+                      strokeWidth={1.75}
+                    />
+                  </div>
+                  <span className={`transition-opacity duration-200 ${sidebarCollapsed ? "md:opacity-0 md:w-0 overflow-hidden" : "opacity-100"}`}>
+                    Certificados Digitais
+                  </span>
+                </div>
+              </button>
             </>
           )}
         </nav>
@@ -1899,9 +1996,7 @@ export default function Page() {
       )}
 
       {/* MAIN CONTENT AREA */}
-      <main className="flex-1 overflow-y-auto px-5 py-6 md:p-8 lg:p-10 max-w-7xl mx-auto w-full transition-all duration-300">
-        
-        {/* DESKTOP TOP HEADER REMOVED FOR BETTER VISUAL SPACE UTILIZATION */}
+      <main className="flex-1 overflow-y-auto px-5 py-6 md:p-8 lg:p-10 max-w-7xl mx-auto w-full transition-all duration-300 relative">
         
         <AnimatePresence mode="wait">
         {/* ====================================================================
@@ -1916,6 +2011,67 @@ export default function Page() {
             transition={{ duration: 0.3 }}
             className="space-y-8"
           >
+            {/* Header: Perfil do Escritório */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-zinc-200 pb-5 mb-8">
+              <div>
+                <div className="flex items-center gap-1.5 text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1.5">
+                  <span>Escritório</span>
+                  <ChevronRight className="h-3 w-3 text-zinc-300" />
+                  <span className="text-zinc-600">Perfil do Escritório</span>
+                </div>
+                <h2 className="text-2xl md:text-3xl font-extrabold text-zinc-900 tracking-tight font-display">Perfil do Escritório</h2>
+                <p className="text-sm text-zinc-500 mt-1">Gerencie os dados cadastrais, logos e informações do seu escritório contábil.</p>
+              </div>
+              <div className="flex items-center gap-2.5 w-full sm:w-auto">
+                {isEditingProfileForm ? (
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => {
+                        setIsEditingProfileForm(false);
+                        addToast("Edição cadastral descartada.", "info");
+                      }}
+                      className="px-3.5 py-1.5 bg-zinc-100 border border-zinc-200 text-zinc-600 hover:bg-zinc-200 active:scale-95 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all duration-200 cursor-pointer shadow-sm select-none"
+                    >
+                      Descartar
+                    </button>
+                    <button 
+                      onClick={() => {
+                        if (!escritorioNomeFantasia || !escritorioRazaoSocial) {
+                          addToast("Preencha ao menos Nome Fantasia e Razão Social", "error");
+                          return;
+                        }
+                        if (escritorioCnpj !== savedCnpj) {
+                          // Exige confirmação adicional de CNPJ
+                          setPendingCnpjValue(escritorioCnpj);
+                          setCnpjConfirmOpen(true);
+                        } else {
+                          setIsEditingProfileForm(false);
+                          addToast("Cadastro do escritório salvo com sucesso!", "success");
+                        }
+                      }}
+                      className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-[10px] font-black uppercase tracking-wider rounded-lg transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer select-none"
+                    >
+                      Salvar Alterações
+                    </button>
+                  </div>
+                ) : (
+                  <button 
+                    onClick={() => {
+                      setProfileTab("dados");
+                      setIsEditingProfileForm(true);
+                      addToast("Modo de edição cadastral ativado!", "info");
+                    }}
+                    className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-[10px] font-black uppercase tracking-wider rounded-lg transition-all duration-200 cursor-pointer flex items-center justify-center shadow-sm hover:shadow-md select-none"
+                  >
+                    Editar cadastro
+                  </button>
+                )}
+                <div className="hidden md:block pl-1">
+                  {renderUserDropdown()}
+                </div>
+              </div>
+            </div>
+
             {/* Header: Logotipo, Nome, CNPJ, Status, Plano */}
             <div className="bg-white rounded-2xl border border-zinc-200/65 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.02)] overflow-hidden">
               <div className="h-24 bg-zinc-900/5 relative overflow-hidden">
@@ -1985,52 +2141,6 @@ export default function Page() {
                       </div>
                       <p className="text-sm font-semibold text-zinc-500 mt-1.5">{escritorioRazaoSocial}</p>
                     </div>
-
-                    <div className="flex flex-wrap gap-2 shrink-0">
-                      {isEditingProfileForm ? (
-                        <div className="flex gap-2">
-                          <button 
-                            onClick={() => {
-                              setIsEditingProfileForm(false);
-                              addToast("Edição cadastral descartada.", "info");
-                            }}
-                            className="px-4 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-bold rounded-xl transition-colors cursor-pointer border border-zinc-200"
-                          >
-                            Descartar
-                          </button>
-                          <button 
-                            onClick={() => {
-                              if (!escritorioNomeFantasia || !escritorioRazaoSocial) {
-                                addToast("Preencha ao menos Nome Fantasia e Razão Social", "error");
-                                return;
-                              }
-                              if (escritorioCnpj !== savedCnpj) {
-                                // Exige confirmação adicional de CNPJ
-                                setPendingCnpjValue(escritorioCnpj);
-                                setCnpjConfirmOpen(true);
-                              } else {
-                                setIsEditingProfileForm(false);
-                                addToast("Cadastro do escritório salvo com sucesso!", "success");
-                              }
-                            }}
-                            className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-[11px] font-black uppercase tracking-wider rounded-xl transition-all duration-200 shadow-md hover:shadow-lg hover:shadow-emerald-600/10 cursor-pointer"
-                          >
-                            Salvar Alterações
-                          </button>
-                        </div>
-                      ) : (
-                        <button 
-                          onClick={() => {
-                            setProfileTab("dados");
-                            setIsEditingProfileForm(true);
-                            addToast("Modo de edição cadastral ativado!", "info");
-                          }}
-                          className="px-5 py-2.5 bg-zinc-900 hover:bg-zinc-800 active:scale-95 text-white text-[11px] font-black uppercase tracking-wider rounded-xl transition-all duration-200 cursor-pointer flex items-center justify-center shadow-md hover:shadow-lg"
-                        >
-                          Editar cadastro
-                        </button>
-                      )}
-                    </div>
                   </div>
 
                   <div className="flex flex-wrap gap-x-4 gap-y-2 items-center pt-2">
@@ -2051,35 +2161,7 @@ export default function Page() {
               </div>
             </div>
 
-            {/* Tab Navigation */}
-            <div className="flex items-center gap-2 border-b border-zinc-200/80 pb-3 overflow-x-auto scrollbar-none">
-              {[
-                { id: "dados", label: "Dados Cadastrais", icon: FileText },
-                { id: "responsaveis", label: "Responsáveis Técnicos", icon: Shield },
-                { id: "equipe", label: "Equipe e Acessos", icon: Users },
-                { id: "preferencias", label: "Preferências White Label", icon: Sparkles },
-              ].map((tab) => {
-                const Icon = tab.icon;
-                const isActive = profileTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => {
-                      setProfileTab(tab.id as any);
-                      setIsEditingProfileForm(false);
-                    }}
-                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-black text-[11px] uppercase tracking-wider transition-all duration-200 cursor-pointer whitespace-nowrap border ${
-                      isActive
-                        ? "bg-zinc-900 border-zinc-900 text-white shadow-md shadow-zinc-950/10"
-                        : "bg-white border-zinc-200 text-zinc-500 hover:text-zinc-800 hover:bg-zinc-50 hover:border-zinc-300"
-                    } active:scale-95 select-none`}
-                  >
-                    <Icon className={`w-4 h-4 ${isActive ? "text-white" : "text-zinc-400"}`} />
-                    {tab.label}
-                  </button>
-                );
-              })}
-            </div>
+
 
             {/* Content Tabs */}
             <div className="space-y-6">
@@ -2101,7 +2183,7 @@ export default function Page() {
                         setCurrentPage("dashboard");
                         addToast("Redirecionando para Gerenciar Empresas...", "info");
                       }}
-                      className="bg-white hover:bg-zinc-50 border border-zinc-100 rounded-2xl p-5 text-left transition-all duration-200 group focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                      className="bg-zinc-100 hover:bg-zinc-200 border border-zinc-100 rounded-2xl p-5 text-left transition-all duration-200 group focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                     >
                       <div className="flex justify-between items-start">
                         <div>
@@ -2113,14 +2195,14 @@ export default function Page() {
                           </p>
                         </div>
                         <div className="p-2.5 rounded-xl bg-emerald-50 text-emerald-600 group-hover:scale-105 transition-transform">
-                          <Building2 className="w-5 h-5" />
+                          <Building className="w-5 h-5" />
                         </div>
                       </div>
                     </button>
 
                     <button 
                       onClick={() => setProfileTab("equipe")}
-                      className="bg-white hover:bg-zinc-50 border border-zinc-100 rounded-2xl p-5 text-left transition-all duration-200 group focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                      className="bg-zinc-100 hover:bg-zinc-200 border border-zinc-100 rounded-2xl p-5 text-left transition-all duration-200 group focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                     >
                       <div className="flex justify-between items-start">
                         <div>
@@ -2139,7 +2221,7 @@ export default function Page() {
 
                     <button 
                       onClick={() => setProfileTab("responsaveis")}
-                      className="bg-white hover:bg-zinc-50 border border-zinc-100 rounded-2xl p-5 text-left transition-all duration-200 group focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                      className="bg-zinc-100 hover:bg-zinc-200 border border-zinc-100 rounded-2xl p-5 text-left transition-all duration-200 group focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                     >
                       <div className="flex justify-between items-start">
                         <div>
@@ -2158,7 +2240,7 @@ export default function Page() {
 
                     <a 
                       href="#pendencias-section"
-                      className="bg-white hover:bg-zinc-50 border border-zinc-100 rounded-2xl p-5 text-left transition-all duration-200 group focus:outline-none focus:ring-2 focus:ring-emerald-500/20 block"
+                      className="bg-zinc-100 hover:bg-zinc-200 border border-zinc-100 rounded-2xl p-5 text-left transition-all duration-200 group focus:outline-none focus:ring-2 focus:ring-emerald-500/20 block"
                     >
                       <div className="flex justify-between items-start">
                         <div>
@@ -2201,7 +2283,7 @@ export default function Page() {
                         </div>
                         <button 
                           onClick={() => setProfileTab("responsaveis")}
-                          className="px-3.5 py-1.5 bg-white hover:bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold rounded-xl transition-all shadow-xs shrink-0"
+                          className="px-3.5 py-1.5 bg-zinc-100 hover:bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold rounded-xl transition-all shadow-xs shrink-0"
                         >
                           Resolver agora
                         </button>
@@ -2223,7 +2305,7 @@ export default function Page() {
                             setIsEditingProfileForm(true);
                             addToast("Foque no bloco 'Contatos e canais' e adicione o WhatsApp!", "info");
                           }}
-                          className="px-3.5 py-1.5 bg-white hover:bg-amber-50 border border-amber-200 text-amber-700 text-xs font-bold rounded-xl transition-all shadow-xs shrink-0"
+                          className="px-3.5 py-1.5 bg-zinc-100 hover:bg-amber-50 border border-amber-200 text-amber-700 text-xs font-bold rounded-xl transition-all shadow-xs shrink-0"
                         >
                           Preencher dados
                         </button>
@@ -2241,7 +2323,7 @@ export default function Page() {
                         </div>
                         <button 
                           onClick={() => setProfileTab("equipe")}
-                          className="px-3.5 py-1.5 bg-white hover:bg-zinc-100 border border-zinc-200 text-zinc-700 text-xs font-bold rounded-xl transition-all shadow-xs shrink-0"
+                          className="px-3.5 py-1.5 bg-zinc-100 hover:bg-zinc-200 border border-zinc-200 text-zinc-700 text-xs font-bold rounded-xl transition-all shadow-xs shrink-0"
                         >
                           Ver equipe
                         </button>
@@ -2254,8 +2336,8 @@ export default function Page() {
                     {/* C. Resumo Dados do Escritório */}
                     <div className="bg-white rounded-2xl border border-zinc-200 p-6 space-y-4">
                       <div className="flex justify-between items-start border-b border-zinc-100 pb-3">
-                        <h4 className="text-xs font-extrabold text-zinc-950 uppercase tracking-wider flex items-center gap-1.5">
-                          <Building2 className="w-4 h-4 text-emerald-500" />
+                        <h4 className="text-xs font-extrabold text-zinc-955 uppercase tracking-wider flex items-center gap-1.5">
+                          <Building className="w-4 h-4 text-emerald-500" />
                           Dados Cadastrais Resumidos
                         </h4>
                         <button 
@@ -2828,768 +2910,6 @@ export default function Page() {
                   </div>
                 </motion.div>
               )}
-
-              {/* ABA 3: RESPONSÁVEL TÉCNICO */}
-              {profileTab === "responsaveis" && (
-                <motion.div
-                  key="responsaveis"
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.15, ease: "easeOut" }}
-                  className="space-y-6"
-                >
-                  <div className="bg-white rounded-2xl border border-zinc-200 p-6 md:p-8 space-y-6">
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-zinc-100 pb-4 gap-4">
-                      <div>
-                        <h3 className="text-sm font-extrabold text-zinc-950 uppercase tracking-wider flex items-center gap-2">
-                          <User className="w-4 h-4 text-emerald-500" />
-                          Contadores Técnicos Ativos
-                        </h3>
-                        <p className="text-xs text-zinc-500 mt-1">
-                          Esses profissionais assinam digitalmente e representam o escritório perante a fiscalização do CRC e Receita.
-                        </p>
-                      </div>
-                      <button 
-                        onClick={() => {
-                          setRespNome("");
-                          setRespCpf("");
-                          setRespEmail("");
-                          setRespTelefone("");
-                          setRespCrc("");
-                          setRespEstadoCrc("AL");
-                          setRespCategoria("Contador");
-                          setRespSituacao("Ativo");
-                          setRespValidadeCrc("31/12/2026");
-                          setRespPrincipal(false);
-                          setShowAddResponsavelModal(true);
-                        }}
-                        className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-[11px] font-black rounded-xl transition-all duration-200 cursor-pointer shadow-md hover:shadow-lg hover:shadow-emerald-600/10 flex items-center gap-1.5 uppercase tracking-wider h-[38px]"
-                      >
-                        <Plus className="w-4 h-4" />
-                        Adicionar Contador
-                      </button>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {responsaveis.map((resp) => (
-                        <div 
-                          key={resp.id} 
-                          className={`rounded-2xl border p-5 space-y-4 relative overflow-hidden transition-all ${
-                            resp.principal 
-                              ? "bg-emerald-50/20 border-emerald-300 shadow-[0_4px_20px_-4px_rgba(16,185,129,0.05)]" 
-                              : "bg-white border-zinc-200 hover:border-zinc-300"
-                          }`}
-                        >
-                          {resp.principal && (
-                            <span className="absolute top-4 right-4 bg-emerald-600 text-white text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full flex items-center gap-1">
-                              <Check className="w-3 h-3" />
-                              Principal
-                            </span>
-                          )}
-
-                          <div className="space-y-1">
-                            <h4 className="font-bold text-zinc-900 text-base">{resp.nome}</h4>
-                            <p className="text-xs text-zinc-400 font-semibold">{resp.categoria} · CRC: {resp.crc} ({resp.estadoCrc})</p>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-3 text-xs">
-                            <div>
-                              <p className="text-[10px] font-bold text-zinc-400 uppercase">CPF</p>
-                              <p className="font-semibold text-zinc-800">{resp.cpf}</p>
-                            </div>
-                            <div>
-                              <p className="text-[10px] font-bold text-zinc-400 uppercase">Telefone</p>
-                              <p className="font-semibold text-zinc-800">{resp.telefone}</p>
-                            </div>
-                            <div className="col-span-2">
-                              <p className="text-[10px] font-bold text-zinc-400 uppercase">E-mail</p>
-                              <p className="font-semibold text-zinc-800 break-all">{resp.email}</p>
-                            </div>
-                            <div>
-                              <p className="text-[10px] font-bold text-zinc-400 uppercase">Situação CRC</p>
-                              <p className="font-bold text-emerald-600">{resp.situacao}</p>
-                            </div>
-                            <div>
-                              <p className="text-[10px] font-bold text-zinc-400 uppercase">Validade CRC</p>
-                              <p className="font-bold text-zinc-800">{resp.validadeCrc || "Ininterrupto"}</p>
-                            </div>
-                          </div>
-
-                          <div className="flex gap-2 pt-2 border-t border-zinc-100">
-                            {!resp.principal && (
-                              <button 
-                                onClick={() => {
-                                  // Archive the previous principal, and set this one as principal
-                                  const oldPrincipal = responsaveis.find(r => r.principal);
-                                  
-                                  // Add substitution log to history
-                                  if (oldPrincipal) {
-                                    setHistoricoResponsaveis(prev => [
-                                      {
-                                        id: `hist-${Date.now()}`,
-                                        nomeAnterior: oldPrincipal.nome,
-                                        dataInicial: "15/08/2023",
-                                        dataFinal: new Date().toLocaleDateString("pt-BR"),
-                                        usuarioSubstituicao: "Admin Geral"
-                                      },
-                                      ...prev
-                                    ]);
-                                  }
-
-                                  // Update states
-                                  setResponsaveis(prev => prev.map(r => ({
-                                    ...r,
-                                    principal: r.id === resp.id
-                                  })));
-                                  
-                                  addToast(`Substituição realizada! ${resp.nome} agora é o responsável principal.`, "success");
-                                }}
-                                className="text-emerald-600 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer"
-                              >
-                                Tornar responsável principal
-                              </button>
-                            )}
-                            <button 
-                              onClick={() => {
-                                if (resp.principal) {
-                                  addToast("Não é possível remover o responsável principal ativo sem antes eleger outro.", "error");
-                                  return;
-                                }
-                                if (confirm("Deseja realmente remover este responsável?")) {
-                                  setResponsaveis(prev => prev.filter(r => r.id !== resp.id));
-                                  addToast("Contador removido com sucesso.", "success");
-                                }
-                              }}
-                              className="text-rose-600 hover:bg-rose-50 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer"
-                            >
-                              Remover
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* TIMELINE HISTÓRICO DE RESPONSÁVEIS */}
-                  <div className="bg-white rounded-2xl border border-zinc-200 p-6 md:p-8 space-y-6">
-                    <div>
-                      <h3 className="text-sm font-extrabold text-zinc-950 uppercase tracking-wider flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-emerald-500" />
-                        Histórico de Responsáveis Anteriores (Auditoria)
-                      </h3>
-                      <p className="text-xs text-zinc-500 mt-1">
-                        Os registros abaixo nunca são deletados. Eles servem como prova jurídica de responsabilidade técnica de períodos passados para auditorias internas e fiscais.
-                      </p>
-                    </div>
-
-                    <div className="border border-zinc-100 rounded-2xl overflow-hidden shadow-[0_2px_10px_rgba(0,0,0,0.01)]">
-                      <table className="w-full text-left border-collapse">
-                        <thead>
-                          <tr className="bg-zinc-50/80 border-b border-zinc-100 text-zinc-400 text-[10px] uppercase font-black tracking-wider">
-                            <th className="p-4">Profissional Anterior</th>
-                            <th className="p-4">Data de Início</th>
-                            <th className="p-4">Data de Saída</th>
-                            <th className="p-4">Substituído Por</th>
-                          </tr>
-                        </thead>
-                        <tbody className="text-xs divide-y divide-zinc-100 font-semibold text-zinc-700">
-                          {historicoResponsaveis.map((h) => (
-                            <tr key={h.id} className="hover:bg-zinc-50/50 transition-colors">
-                              <td className="p-4 font-bold text-zinc-900">{h.nomeAnterior}</td>
-                              <td className="p-4 text-zinc-500">{h.dataInicial}</td>
-                              <td className="p-4 text-zinc-500">{h.dataFinal}</td>
-                              <td className="p-4">
-                                <span className="bg-zinc-100 text-zinc-700 px-2.5 py-0.5 rounded-md text-[10px] font-bold">
-                                  {h.usuarioSubstituicao}
-                                </span>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-
-
-              {/* ABA 4: EQUIPE E ACESSOS */}
-              {profileTab === "equipe" && (
-                <motion.div
-                  key="equipe"
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.15, ease: "easeOut" }}
-                  className="space-y-6"
-                >
-                  <div className="bg-white rounded-2xl border border-zinc-200 p-6 md:p-8 space-y-6">
-                    <div className="border-b border-zinc-100 pb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                      <div>
-                        <h3 className="text-sm font-extrabold text-zinc-950 uppercase tracking-wider flex items-center gap-2">
-                          <Users className={`w-4 h-4 ${theme.text}`} />
-                          Gestão de Equipe e Controle de Acessos
-                        </h3>
-                        <p className="text-xs text-zinc-500 mt-1">
-                          Gerencie as permissões dos analistas tributários, envie novos convites de acesso e administre o time do escritório.
-                        </p>
-                      </div>
-
-                      <button 
-                        onClick={() => {
-                          setInviteNome("");
-                          setInviteEmail("");
-                          setInviteCargo("");
-                          setInviteAcesso("Operador");
-                          setShowInviteMemberModal(true);
-                        }}
-                        className={`px-5 py-2.5 ${theme.bg} ${theme.hoverBg} active:scale-95 text-white text-[11px] font-black rounded-xl transition-all duration-200 shadow-md hover:shadow-lg flex items-center gap-1.5 cursor-pointer uppercase tracking-wider h-10 select-none`}
-                      >
-                        <Plus className="w-4 h-4" />
-                        Convidar Colaborador
-                      </button>
-                    </div>
-
-                    {/* Team Members List */}
-                    <div className="border border-zinc-100 rounded-2xl overflow-hidden bg-white">
-                      <table className="w-full text-left">
-                        <thead>
-                          <tr className="bg-zinc-50 border-b border-zinc-100 text-[10px] font-black uppercase text-zinc-400">
-                            <th className="p-4">Colaborador</th>
-                            <th className="p-4">Cargo / Função</th>
-                            <th className="p-4">Perfil de Acesso</th>
-                            <th className="p-4">Status</th>
-                            <th className="p-4 text-right">Ações</th>
-                          </tr>
-                        </thead>
-                        <tbody className="text-xs font-semibold text-zinc-700 divide-y divide-zinc-100">
-                          {teamMembers.map((member) => (
-                            <tr key={member.id} className="hover:bg-zinc-50/40 transition-colors">
-                              <td className="p-4 flex items-center gap-3">
-                                <div className="h-8 w-8 rounded-full bg-zinc-100 border border-zinc-200 text-zinc-700 flex items-center justify-center font-bold text-xs uppercase shadow-xs">
-                                  {member.nome.charAt(0)}
-                                </div>
-                                <div className="space-y-0.5">
-                                  <p className="font-bold text-zinc-900">{member.nome}</p>
-                                  <p className="text-[10px] text-zinc-400 font-medium">{member.email}</p>
-                                </div>
-                              </td>
-                              <td className="p-4 font-medium text-zinc-500">{member.cargo}</td>
-                              <td className="p-4">
-                                {member.acesso === "Proprietário" ? (
-                                  <span className="bg-purple-50 text-purple-700 border border-purple-200 px-2 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-wider">
-                                    Proprietário
-                                  </span>
-                                ) : (
-                                  <select 
-                                    value={member.acesso}
-                                    onChange={(e) => {
-                                      const oldAccess = member.acesso;
-                                      const newAccess = e.target.value;
-                                      setTeamMembers(prev => prev.map(m => m.id === member.id ? { ...m, acesso: newAccess } : m));
-                                      addAuditLog("Alteração de acesso de equipe", `${member.nome} (${oldAccess})`, `Novo acesso: ${newAccess}`);
-                                      addToast(`Perfil de acesso de ${member.nome} alterado para ${newAccess}!`, "success");
-                                    }}
-                                    className="bg-zinc-50 hover:bg-zinc-100 border border-zinc-200 rounded-lg px-2 py-1 text-[11px] font-bold outline-none focus:border-emerald-500 text-zinc-700 cursor-pointer"
-                                  >
-                                    <option value="Administrador">Administrador</option>
-                                    <option value="Operador">Operador</option>
-                                    <option value="Auditor">Auditor</option>
-                                  </select>
-                                )}
-                              </td>
-                              <td className="p-4">
-                                <span className={`px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider rounded border ${
-                                  member.status === "Ativo" 
-                                    ? "bg-emerald-50 text-emerald-700 border-emerald-200" 
-                                    : member.status === "Pendente" 
-                                    ? "bg-amber-50 text-amber-700 border-amber-200" 
-                                    : "bg-zinc-100 text-zinc-600 border-zinc-200"
-                                }`}>
-                                  {member.status}
-                                </span>
-                              </td>
-                              <td className="p-4 text-right">
-                                <div className="flex justify-end gap-2 text-[11px] font-bold">
-                                  {member.status === "Pendente" && (
-                                    <button 
-                                      onClick={() => {
-                                        addToast(`Convite de acesso reenviado com sucesso para ${member.email}!`, "success");
-                                        addAuditLog("Reenvio de convite", "-", `Destinatário: ${member.email}`);
-                                      }}
-                                      className="text-emerald-600 hover:text-emerald-700 cursor-pointer"
-                                    >
-                                      Reenviar Convite
-                                    </button>
-                                  )}
-
-                                  {member.acesso !== "Proprietário" && member.status === "Ativo" && (
-                                    <button 
-                                      onClick={() => {
-                                        setTeamMembers(prev => prev.map(m => m.id === member.id ? { ...m, status: "Suspenso" } : m));
-                                        addAuditLog("Suspensão de acesso de colaborador", member.nome, "Status: Suspenso");
-                                        addToast(`O acesso do colaborador ${member.nome} foi suspenso temporariamente.`, "info");
-                                      }}
-                                      className="text-rose-600 hover:text-rose-700 cursor-pointer"
-                                    >
-                                      Suspender
-                                    </button>
-                                  )}
-
-                                  {member.status === "Suspenso" && (
-                                    <button 
-                                      onClick={() => {
-                                        setTeamMembers(prev => prev.map(m => m.id === member.id ? { ...m, status: "Ativo" } : m));
-                                        addAuditLog("Reativação de acesso de colaborador", member.nome, "Status: Ativo");
-                                        addToast(`O acesso do colaborador ${member.nome} foi reativado com sucesso!`, "success");
-                                      }}
-                                      className="text-emerald-600 hover:text-emerald-700 cursor-pointer"
-                                    >
-                                      Ativar
-                                    </button>
-                                  )}
-
-                                  {member.acesso === "Proprietário" && (
-                                    <button 
-                                      onClick={() => {
-                                        setTransferOwnerOpen(true);
-                                        addToast("Selecione o novo proprietário no painel de transferência legal abaixo.", "info");
-                                      }}
-                                      className="text-purple-600 hover:text-purple-700 cursor-pointer flex items-center gap-1"
-                                    >
-                                      <Shield className="w-3.5 h-3.5" />
-                                      Transferir Propriedade
-                                    </button>
-                                  )}
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-
-                    {/* Ownership Transfer Module */}
-                    {transferOwnerOpen && (
-                      <motion.div 
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="bg-purple-50/30 border border-purple-100 rounded-2xl p-5 md:p-6 space-y-4"
-                      >
-                        <div className="flex items-start gap-3">
-                          <div className="p-2 bg-purple-100 text-purple-700 rounded-xl shrink-0">
-                            <Shield className="w-5 h-5" />
-                          </div>
-                          <div>
-                            <h4 className="text-xs font-black text-purple-950 uppercase tracking-wider">Transferência Legal de Propriedade do Escritório</h4>
-                            <p className="text-[11px] text-purple-700 font-semibold mt-0.5 leading-relaxed">
-                              Esta é uma ação jurídica de segurança. Ao transferir a propriedade, você abdica do controle mestre do escritório. O novo proprietário terá permissão exclusiva para redefinir cadastros legalmente.
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end text-xs font-semibold">
-                          <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-purple-900 uppercase">Selecione o Novo Proprietário do Escritório</label>
-                            <select 
-                              value={newOwnerId}
-                              onChange={(e) => setNewOwnerId(e.target.value)}
-                              className="w-full bg-white border border-purple-200 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-purple-500 text-zinc-800 animate-none"
-                            >
-                              <option value="">-- Escolha um colaborador ativo --</option>
-                              {teamMembers.filter(m => m.acesso !== "Proprietário" && m.status === "Ativo").map((m) => (
-                                <option key={m.id} value={m.id}>{m.nome} ({m.cargo})</option>
-                              ))}
-                            </select>
-                          </div>
-
-                          <div className="flex gap-2">
-                            <button 
-                              onClick={() => {
-                                if (!newOwnerId) {
-                                  addToast("Selecione o colaborador destinatário!", "error");
-                                  return;
-                                }
-                                const target = teamMembers.find(m => m.id === newOwnerId);
-                                if (!target) return;
-
-                                // Perform legal transfer
-                                setTeamMembers(prev => prev.map(m => {
-                                  if (m.acesso === "Proprietário") {
-                                    return { ...m, acesso: "Administrador" };
-                                  }
-                                  if (m.id === target.id) {
-                                    return { ...m, acesso: "Proprietário" };
-                                  }
-                                  return m;
-                                }));
-
-                                addAuditLog("Transferência legal de propriedade do escritório", "Naiale Augustinho", `Novo proprietário: ${target.nome}`);
-                                addToast(`Propriedade transferida com sucesso para ${target.nome}!`, "success");
-                                setTransferOwnerOpen(false);
-                                setNewOwnerId("");
-                              }}
-                              className="flex-1 px-5 py-2.5 bg-zinc-900 hover:bg-zinc-800 active:scale-95 text-white text-[11px] font-black uppercase tracking-wider rounded-xl transition-all duration-200 cursor-pointer text-center shadow-md h-10 flex items-center justify-center select-none"
-                            >
-                              Confirmar Transferência
-                            </button>
-                            <button 
-                              onClick={() => {
-                                setTransferOwnerOpen(false);
-                                setNewOwnerId("");
-                              }}
-                              className="px-5 py-2.5 bg-zinc-100 hover:bg-zinc-200 active:scale-95 text-zinc-700 text-[11px] font-black uppercase tracking-wider rounded-xl border border-zinc-200 transition-all duration-200 cursor-pointer h-10 flex items-center justify-center select-none"
-                            >
-                              Cancelar
-                            </button>
-                          </div>
-                        </div>
-                      </motion.div>
-                    )}
-                  </div>
-                </motion.div>
-              )}
-
-              {/* ABA 5: PREFERÊNCIAS */}
-              {profileTab === "preferencias" && (
-                <motion.div
-                  key="preferencias"
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.15, ease: "easeOut" }}
-                  className="space-y-6"
-                >
-                  {/* PERSONALIZAÇÃO DA MARCA / PLATAFORMA */}
-                  <div className="bg-white rounded-2xl border border-zinc-200 p-6 md:p-8 space-y-6">
-                    <div className="border-b border-zinc-100 pb-4">
-                      <h3 className="text-sm font-extrabold text-zinc-950 uppercase tracking-wider flex items-center gap-2">
-                        <Sparkles className="w-4 h-4 text-emerald-500 animate-pulse" />
-                        Personalização da Marca / Plataforma (White Label)
-                      </h3>
-                      <p className="text-xs text-zinc-500 mt-1">
-                        Configure o nome, as iniciais e a logotipo de imagem da plataforma que aparecem no menu lateral e cabeçalhos do sistema. Ideal para escritórios que utilizam white-label ou desejam personalizar a identidade visual do portal do cliente.
-                      </p>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                      <div className="space-y-1.5 text-xs font-semibold">
-                        <label className="text-[10px] font-bold text-zinc-400 uppercase">Nome da Plataforma (No Menu)</label>
-                        <input 
-                          type="text"
-                          value={platformName}
-                          onChange={(e) => {
-                            setPlatformName(e.target.value);
-                          }}
-                          className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-emerald-500 text-zinc-700"
-                          placeholder="Ex: PGDAS-D"
-                        />
-                        <p className="text-[10px] text-zinc-400 font-medium">Nome exibido no topo do menu lateral e no cabeçalho mobile.</p>
-                      </div>
-
-                      <div className="space-y-1.5 text-xs font-semibold">
-                        <label className="text-[10px] font-bold text-zinc-400 uppercase">Iniciais / Sigla do Logotipo</label>
-                        <input 
-                          type="text"
-                          value={platformInitials}
-                          onChange={(e) => {
-                            setPlatformInitials(e.target.value.substring(0, 3).toUpperCase());
-                          }}
-                          className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-emerald-500 text-zinc-700 font-mono"
-                          placeholder="Ex: PG"
-                        />
-                        <p className="text-[10px] text-zinc-400 font-medium">Até 3 letras. É a sigla de fallback usada se não houver imagem.</p>
-                      </div>
-
-                      <div className="space-y-1.5 text-xs font-semibold">
-                        <label className="text-[10px] font-bold text-zinc-400 uppercase">Logotipo da Plataforma (Imagem)</label>
-                        <div className="flex gap-2">
-                          <button
-                            type="button"
-                            onClick={() => platformLogoInputRef.current?.click()}
-                            className="flex-1 py-2 bg-zinc-50 hover:bg-zinc-100 border border-zinc-200 rounded-xl text-zinc-700 font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
-                          >
-                            <Upload className="h-3.5 w-3.5" /> {platformLogoUrl ? "Alterar Logo" : "Upload Imagem"}
-                          </button>
-                          {platformLogoUrl && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setPlatformLogoUrl(null);
-                                addToast("Logotipo de imagem da plataforma removido.", "info");
-                              }}
-                              className="px-2.5 py-2 bg-rose-50 hover:bg-rose-100 border border-rose-100 rounded-xl text-rose-600 font-bold text-xs cursor-pointer transition-colors"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          )}
-                        </div>
-                        <p className="text-[10px] text-zinc-400 font-medium">Imagem quadrada recomendada. Limite de 2MB.</p>
-                      </div>
-
-                      {/* LIVE SIDEBAR PREVIEW BOX */}
-                      <div className="bg-zinc-950 rounded-xl p-4 flex items-center justify-between border border-zinc-900 shadow-inner font-sans">
-                        <div className="space-y-1.5 flex-1">
-                          <p className="text-[9px] font-extrabold text-zinc-500 uppercase tracking-widest">Pré-visualização do Menu</p>
-                          <div className="flex items-center gap-3">
-                            <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-white flex items-center justify-center font-black tracking-widest text-base shadow-md shadow-emerald-500/15 shrink-0 overflow-hidden">
-                              {platformLogoUrl ? (
-                                <img src={platformLogoUrl || undefined} alt="Logo" className="h-full w-full object-cover" />
-                              ) : (
-                                platformInitials || "PG"
-                              )}
-                            </div>
-                            <div className="min-w-0">
-                              <p className="font-extrabold text-white text-xs tracking-tight truncate leading-none font-display">
-                                {platformName || "PGDAS-D"}
-                              </p>
-                              <p className="text-[9px] text-zinc-500 font-semibold mt-0.5">Visualização do Menu Lateral</p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* CONFIGURAÇÕES OPERACIONAIS */}
-                  <div className="bg-white rounded-2xl border border-zinc-200 p-6 md:p-8 space-y-6">
-                    <div className="border-b border-zinc-100 pb-4">
-                      <h3 className="text-sm font-extrabold text-zinc-950 uppercase tracking-wider flex items-center gap-2">
-                        <Settings className={`w-4 h-4 ${theme.text}`} />
-                        Configurações Operacionais e Sede Padrão
-                      </h3>
-                      <p className="text-xs text-zinc-500 mt-1">
-                        Defina as convenções internas e regimes fiscais sugeridos automaticamente para agilizar a rotina tributária do escritório.
-                      </p>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      <div className="space-y-1.5 text-xs font-semibold">
-                        <label className="text-[10px] font-bold text-zinc-400 uppercase">Regime Tributário Padrão</label>
-                        <select 
-                          value={defaultRegime}
-                          onChange={(e) => setDefaultRegime(e.target.value)}
-                          className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-emerald-500 text-zinc-700 cursor-pointer"
-                        >
-                          <option value="Simples Nacional">Simples Nacional</option>
-                          <option value="Lucro Presumido">Lucro Presumido</option>
-                          <option value="Lucro Real">Lucro Real</option>
-                        </select>
-                        <p className="text-[10px] text-zinc-400 font-medium">Sugerido por padrão no cadastro de novas empresas clientes.</p>
-                      </div>
-
-                      <div className="space-y-1.5 text-xs font-semibold">
-                        <label className="text-[10px] font-bold text-zinc-400 uppercase">Estado (UF) Sede Fiscal</label>
-                        <select 
-                          value={defaultUf}
-                          onChange={(e) => setDefaultUf(e.target.value)}
-                          className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-emerald-500 text-zinc-700 cursor-pointer"
-                        >
-                          <option value="AL">Maceió - AL (Padrão Sede)</option>
-                          <option value="SP">São Paulo - SP</option>
-                          <option value="MG">Belo Horizonte - MG</option>
-                          <option value="RJ">Rio de Janeiro - RJ</option>
-                        </select>
-                        <p className="text-[10px] text-zinc-400 font-medium">UF legal para automatizações e calendários estaduais específicos.</p>
-                      </div>
-
-                      <div className="space-y-1.5 text-xs font-semibold">
-                        <label className="text-[10px] font-bold text-zinc-400 uppercase">Horário de Expediente Fiscal</label>
-                        <select 
-                          defaultValue="comercial"
-                          className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-emerald-500 text-zinc-700 cursor-pointer"
-                        >
-                          <option value="comercial">Comercial (08:00 às 18:00)</option>
-                          <option value="flexivel">Flexível (07:00 às 22:00)</option>
-                        </select>
-                        <p className="text-[10px] text-zinc-400 font-medium">Período para envio de alertas automatizados aos clientes.</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* CANAIS E ALERTAS DE NOTIFICAÇÕES */}
-                  <div className="bg-white rounded-2xl border border-zinc-200 p-6 md:p-8 space-y-6">
-                    <div className="border-b border-zinc-100 pb-4">
-                      <h3 className="text-sm font-extrabold text-zinc-950 uppercase tracking-wider flex items-center gap-2">
-                        <Mail className={`w-4 h-4 ${theme.text}`} />
-                        Canais de Comunicação e Alertas Operacionais
-                      </h3>
-                      <p className="text-xs text-zinc-500 mt-1">
-                        Controle os eventos que geram avisos imediatos no painel e configure o canal principal de notificações fiscais.
-                      </p>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-xs font-semibold">
-                      {/* Left: Channel Selector */}
-                      <div className="space-y-4">
-                        <h4 className="text-xs font-extrabold text-zinc-900 uppercase">Canal Principal de Comunicação</h4>
-                        <div className="grid grid-cols-3 gap-3">
-                          {[
-                            { id: "email", label: "E-mail", desc: "Suporte padrão" },
-                            { id: "whatsapp", label: "WhatsApp", desc: "Avisos rápidos" },
-                            { id: "sms", label: "SMS Legal", desc: "Notificações" }
-                          ].map((chan) => (
-                            <button 
-                              key={chan.id}
-                              onClick={() => setPrefNotificationChannel(chan.id as any)}
-                              className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between h-20 ${
-                                prefNotificationChannel === chan.id 
-                                  ? "border-zinc-955 bg-zinc-50 shadow-xs" 
-                                  : "border-zinc-200 hover:border-zinc-300 bg-white"
-                              }`}
-                            >
-                              <span className="font-extrabold text-zinc-900">{chan.label}</span>
-                              <span className="text-[10px] text-zinc-400 font-medium">{chan.desc}</span>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Right: Toggle options */}
-                      <div className="space-y-4">
-                        <h4 className="text-xs font-extrabold text-zinc-900 uppercase">Eventos Monitorados de Compliance</h4>
-                        
-                        <div className="space-y-3">
-                          {/* Option 1 */}
-                          <div className="flex justify-between items-center py-1">
-                            <div className="space-y-0.5">
-                              <p className="text-xs font-bold text-zinc-900">Alertas de Vencimento de CRC</p>
-                              <p className="text-[10px] text-zinc-400 font-medium">Avisar com antecedência de 60, 30 e 15 dias do vencimento.</p>
-                            </div>
-                            <button 
-                              onClick={() => setPrefAlertCrc(!prefAlertCrc)}
-                              className={`w-10 h-5 rounded-full transition-colors relative cursor-pointer shrink-0 ${
-                                prefAlertCrc ? "bg-emerald-600" : "bg-zinc-300"
-                              }`}
-                            >
-                              <span className={`w-4 h-4 bg-white rounded-full absolute top-0.5 shadow transition-all ${
-                                prefAlertCrc ? "left-5.5" : "left-0.5"
-                              }`} />
-                            </button>
-                          </div>
-
-                          {/* Option 2 */}
-                          <div className="flex justify-between items-center py-1">
-                            <div className="space-y-0.5">
-                              <p className="text-xs font-bold text-zinc-900">Alertas de Vencimento de Certificados</p>
-                              <p className="text-[10px] text-zinc-400 font-medium">Monitorar chaves A1/A3 e notificar vencimentos críticos.</p>
-                            </div>
-                            <button 
-                              onClick={() => setPrefAlertCert(!prefAlertCert)}
-                              className={`w-10 h-5 rounded-full transition-colors relative cursor-pointer shrink-0 ${
-                                prefAlertCert ? "bg-emerald-600" : "bg-zinc-300"
-                              }`}
-                            >
-                              <span className={`w-4 h-4 bg-white rounded-full absolute top-0.5 shadow transition-all ${
-                                prefAlertCert ? "left-5.5" : "left-0.5"
-                              }`} />
-                            </button>
-                          </div>
-
-                          {/* Option 3 */}
-                          <div className="flex justify-between items-center py-1">
-                            <div className="space-y-0.5">
-                              <p className="text-xs font-bold text-zinc-900">Alertas de Falha de Sincronização Fiscal</p>
-                              <p className="text-[10px] text-zinc-400 font-medium">Notificar imediatamente se um canal municipal requerer reautenticação.</p>
-                            </div>
-                            <button 
-                              onClick={() => setPrefAlertRobot(!prefAlertRobot)}
-                              className={`w-10 h-5 rounded-full transition-colors relative cursor-pointer shrink-0 ${
-                                prefAlertRobot ? "bg-emerald-600" : "bg-zinc-300"
-                              }`}
-                            >
-                              <span className={`w-4 h-4 bg-white rounded-full absolute top-0.5 shadow transition-all ${
-                                prefAlertRobot ? "left-5.5" : "left-0.5"
-                              }`} />
-                            </button>
-                          </div>
-
-                          {/* Option 4 */}
-                          <div className="flex justify-between items-center py-1">
-                            <div className="space-y-0.5">
-                              <p className="text-xs font-bold text-zinc-900">Relatórios Mensais por E-mail</p>
-                              <p className="text-[10px] text-zinc-400 font-medium">Resumos automatizados com todas as obrigações e pendências resolvidas.</p>
-                            </div>
-                            <button 
-                              onClick={() => setReceiveEmailReport(!receiveEmailReport)}
-                              className={`w-10 h-5 rounded-full transition-colors relative cursor-pointer shrink-0 ${
-                                receiveEmailReport ? "bg-emerald-600" : "bg-zinc-300"
-                              }`}
-                            >
-                              <span className={`w-4 h-4 bg-white rounded-full absolute top-0.5 shadow transition-all ${
-                                receiveEmailReport ? "left-5.5" : "left-0.5"
-                              }`} />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* SEGURANÇA OPERACIONAL */}
-                  <div className="bg-white rounded-2xl border border-zinc-200 p-6 md:p-8 space-y-6">
-                    <div className="border-b border-zinc-100 pb-4">
-                      <h3 className="text-sm font-extrabold text-zinc-950 uppercase tracking-wider flex items-center gap-2">
-                        <LockKeyhole className={`w-4 h-4 ${theme.text}`} />
-                        Segurança e Políticas Operacionais do Inquilino
-                      </h3>
-                      <p className="text-xs text-zinc-500 mt-1">
-                        Gerencie as regras de segurança adicionais para manter as informações cadastrais e fiscais do escritório protegidas.
-                      </p>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-xs font-semibold">
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold text-zinc-400 uppercase">Tempo Limite de Sessão do Sistema</label>
-                        <select 
-                          value={prefSessionTimeout}
-                          onChange={(e) => setPrefSessionTimeout(e.target.value)}
-                          className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-emerald-500 text-zinc-700 cursor-pointer"
-                        >
-                          <option value="15m">15 minutos de inatividade</option>
-                          <option value="30m">30 minutos de inatividade (Padrão)</option>
-                          <option value="1h">1 hora de inatividade</option>
-                          <option value="4h">4 horas de inatividade</option>
-                        </select>
-                        <p className="text-[10px] text-zinc-400 font-medium">Após o período sem uso, o painel exigirá nova reautenticação automática para segurança.</p>
-                      </div>
-
-                      <div className="space-y-4">
-                        <h4 className="text-xs font-extrabold text-zinc-900 uppercase">Controle de Modificações Críticas</h4>
-                        <div className="flex justify-between items-center py-1">
-                          <div className="space-y-0.5">
-                            <p className="text-xs font-bold text-zinc-900">Confirmação Adicional por Senha</p>
-                            <p className="text-[10px] text-zinc-400 font-medium">Exigir senha e confirmação de auditoria antes de atualizar CNPJ ou Responsáveis Técnicos.</p>
-                          </div>
-                          <button 
-                            onClick={() => setPrefSecureConfirm(!prefSecureConfirm)}
-                            className={`w-10 h-5 rounded-full transition-colors relative cursor-pointer shrink-0 ${
-                              prefSecureConfirm ? "bg-emerald-600" : "bg-zinc-300"
-                            }`}
-                          >
-                            <span className={`w-4 h-4 bg-white rounded-full absolute top-0.5 shadow transition-all ${
-                              prefSecureConfirm ? "left-5.5" : "left-0.5"
-                            }`} />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="pt-4 border-t border-zinc-200 flex justify-end">
-                      <button 
-                        onClick={() => {
-                          addAuditLog("Atualização de preferências gerais", "Padrões cadastrais antigos", `Canal: ${prefNotificationChannel}, Regime: ${defaultRegime}`);
-                          addToast("Preferências operacionais e canais de segurança atualizados com sucesso!", "success");
-                        }}
-                        className={`px-5 py-2.5 bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer shadow-sm`}
-                      >
-                        Salvar Configurações
-                      </button>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
               </AnimatePresence>
             </div>
 
@@ -3622,7 +2942,7 @@ export default function Page() {
                         setEscritorioCnpj(savedCnpj);
                         addToast("Alteração de CNPJ abortada com segurança.", "info");
                       }}
-                      className="flex-1 px-5 py-2.5 bg-zinc-100 hover:bg-zinc-200 active:scale-95 text-zinc-700 text-[11px] font-black uppercase tracking-wider rounded-xl border border-zinc-200 transition-all duration-200 cursor-pointer h-10 flex items-center justify-center select-none"
+                      className="flex-1 px-3.5 py-1.5 bg-zinc-50 hover:bg-zinc-100 active:scale-95 text-zinc-700 text-[10px] font-black uppercase tracking-wider rounded-lg border border-zinc-200 transition-all duration-200 cursor-pointer h-8 flex items-center justify-center select-none"
                     >
                       Cancelar
                     </button>
@@ -3645,7 +2965,7 @@ export default function Page() {
                           ...prev
                         ]);
                       }}
-                      className="flex-1 px-5 py-2.5 bg-rose-600 hover:bg-rose-500 active:scale-95 text-white text-[11px] font-black uppercase tracking-wider rounded-xl transition-all duration-200 shadow-md hover:shadow-lg hover:shadow-rose-600/10 cursor-pointer h-10 flex items-center justify-center select-none"
+                      className="flex-1 px-3.5 py-1.5 bg-rose-600 hover:bg-rose-500 active:scale-95 text-white text-[10px] font-black uppercase tracking-wider rounded-lg transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer h-8 flex items-center justify-center select-none"
                     >
                       Confirmar CNPJ
                     </button>
@@ -3777,7 +3097,7 @@ export default function Page() {
                   <div className="flex gap-3 pt-4 border-t border-zinc-100">
                     <button 
                       onClick={() => setShowAddResponsavelModal(false)}
-                      className="flex-1 px-5 py-2.5 bg-zinc-100 hover:bg-zinc-200 active:scale-95 text-zinc-700 text-[11px] font-black uppercase tracking-wider rounded-xl border border-zinc-200 transition-all duration-200 cursor-pointer h-10 flex items-center justify-center select-none"
+                      className="flex-1 px-3.5 py-1.5 bg-zinc-50 hover:bg-zinc-100 active:scale-95 text-zinc-700 text-[10px] font-black uppercase tracking-wider rounded-lg border border-zinc-200 transition-all duration-200 cursor-pointer h-8 flex items-center justify-center select-none"
                     >
                       Cancelar
                     </button>
@@ -3829,7 +3149,7 @@ export default function Page() {
                         setShowAddResponsavelModal(false);
                         addToast(`Contador técnico ${respNome} adicionado!`, "success");
                       }}
-                      className="flex-1 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-[11px] font-black uppercase tracking-wider rounded-xl transition-all duration-200 cursor-pointer shadow-md hover:shadow-lg hover:shadow-emerald-600/10 h-10 flex items-center justify-center select-none"
+                      className="flex-1 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-[10px] font-black uppercase tracking-wider rounded-lg transition-all duration-200 cursor-pointer shadow-sm hover:shadow-md h-8 flex items-center justify-center select-none"
                     >
                       Adicionar Contador
                     </button>
@@ -3904,7 +3224,7 @@ export default function Page() {
                   <div className="flex gap-3 pt-4 border-t border-zinc-100">
                     <button 
                       onClick={() => setShowInviteMemberModal(false)}
-                      className="flex-1 px-5 py-2.5 bg-zinc-100 hover:bg-zinc-200 active:scale-95 text-zinc-700 text-[11px] font-black uppercase tracking-wider rounded-xl border border-zinc-200 transition-all duration-200 cursor-pointer h-10 flex items-center justify-center select-none"
+                      className="flex-1 px-3.5 py-1.5 bg-zinc-50 hover:bg-zinc-100 active:scale-95 text-zinc-700 text-[10px] font-black uppercase tracking-wider rounded-lg border border-zinc-200 transition-all duration-200 cursor-pointer h-8 flex items-center justify-center select-none"
                     >
                       Cancelar
                     </button>
@@ -3928,7 +3248,7 @@ export default function Page() {
                         setShowInviteMemberModal(false);
                         addToast(`Convite enviado com sucesso para ${inviteNome}!`, "success");
                       }}
-                      className="flex-1 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-[11px] font-black uppercase tracking-wider rounded-xl transition-all duration-200 cursor-pointer shadow-md hover:shadow-lg hover:shadow-emerald-600/10 h-10 flex items-center justify-center select-none"
+                      className="flex-1 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-[10px] font-black uppercase tracking-wider rounded-lg transition-all duration-200 cursor-pointer shadow-sm hover:shadow-md h-8 flex items-center justify-center select-none"
                     >
                       Enviar Convite
                     </button>
@@ -3951,109 +3271,91 @@ export default function Page() {
             transition={{ duration: 0.3 }}
             className="space-y-8"
           >
-            {/* Top Header Banner with Deep Teal/Emerald Gradient */}
-            <div className="relative overflow-hidden bg-gradient-to-r from-emerald-950 via-emerald-900 to-zinc-900 rounded-3xl p-6 md:p-8 text-white shadow-xl shadow-zinc-200/50">
-              <div className="absolute top-0 right-0 -mt-12 -mr-12 w-64 h-64 rounded-full bg-emerald-500/10 blur-3xl pointer-events-none" />
-              <div className="absolute bottom-0 left-1/3 -mb-20 w-80 h-80 rounded-full bg-teal-500/10 blur-3xl pointer-events-none" />
-              
-              <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-                <div className="space-y-2">
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-800/40 border border-emerald-700/50 text-[10px] font-black uppercase tracking-widest text-emerald-300">
-                    <Sparkles className="h-3 w-3 text-emerald-400" />
-                    <span>Painel de Controle do Escritório</span>
-                  </div>
-                  <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight font-display">
-                    Bom dia, Naiale Augustinho
-                  </h1>
-                  <p className="text-xs md:text-sm text-emerald-200/80 font-medium max-w-2xl leading-relaxed">
-                    Sua plataforma de processamento em lote e apuração do Simples Nacional está totalmente operacional. Monitore certificados, obrigações e pendências.
-                  </p>
-                </div>
-                
-                <div className="flex flex-wrap items-center gap-3">
-                  <div className="relative bg-emerald-900/50 border border-emerald-800 rounded-xl px-3 py-2 flex items-center gap-2 text-xs font-bold text-emerald-100">
-                    <Calendar className="h-3.5 w-3.5 text-emerald-400" />
-                    <select 
-                      className="bg-transparent outline-none cursor-pointer text-emerald-50 font-black pr-4 appearance-none"
-                      defaultValue="2026"
-                    >
-                      <option value="2026" className="text-zinc-850">Exercício 2026</option>
-                      <option value="2025" className="text-zinc-850">Exercício 2025</option>
-                    </select>
-                    <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-emerald-400 pointer-events-none" />
-                  </div>
-                  
-                  <button 
-                    onClick={() => {
-                      addToast("Gerando relatório analítico em formato CSV de todas as empresas do escritório...", "info");
-                      setTimeout(() => {
-                        addToast("Relatório baixado com sucesso!", "success");
-                      }, 1550);
-                    }}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white rounded-xl text-[11px] font-black shadow-md hover:shadow-lg hover:shadow-emerald-600/10 transition-all duration-200 cursor-pointer h-10 uppercase tracking-wider select-none"
-                  >
-                    <Download className="h-3.5 w-3.5" />
-                    <span>Exportar Relatório</span>
-                  </button>
 
-                  <button 
-                    onClick={createNewCompany}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-white hover:bg-zinc-50 active:scale-95 text-zinc-900 border border-zinc-200 rounded-xl text-[11px] font-black shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer h-10 uppercase tracking-wider select-none"
-                  >
-                    <Plus className="h-3.5 w-3.5 text-zinc-900" />
-                    <span>Nova Empresa</span>
-                  </button>
+
+            {/* Header: Dashboard */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-zinc-200 pb-5 mb-8">
+              <div>
+                <div className="flex items-center gap-1.5 text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1.5">
+                  <span className="text-zinc-600">Dashboard</span>
                 </div>
+                <h2 className="text-2xl md:text-3xl font-extrabold text-zinc-900 tracking-tight font-display">Visão Geral do Módulo</h2>
+                <p className="text-sm text-zinc-500 mt-1">Acompanhe métricas, status de apurações e alertas pendentes do seu escritório.</p>
+              </div>
+              <div className="hidden md:block shrink-0">
+                {renderUserDropdown()}
               </div>
             </div>
 
-            {/* Metrics cards (aligned with the design in second image) */}
+            {/* Metrics cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
               {[
                 { 
                   title: "Empresas Ativas", 
-                  value: companies.length.toString(), 
-                  change: `${companies.filter(c => c.statusEmpresa === "Ativa").length} em plena operação`, 
-                  icon: Building2, 
+                  value: companies.filter(c => c.statusEmpresa === "Ativa" || !c.statusEmpresa).length.toString(), 
+                  subtitle: "Em operação regular",
+                  trend: "up",
+                  trendText: "+2 novas no mês",
+                  trendColor: "text-emerald-700 bg-emerald-100/50",
+                  icon: Building, 
                   color: "text-emerald-600 bg-emerald-50 border-emerald-100/50",
                   action: () => {
                     setFilterRegime("all");
                     setFilterAcesso("all");
+                    setFilterStatus("Ativa");
+                    setFilterPgdas("all");
                     setCurrentPage("empresas");
                   }
                 },
                 { 
-                  title: "Acessos Configurados", 
-                  value: companies.filter(c => c.statusAcesso !== "Não Configurado").length.toString(), 
-                  change: "Prontos para transmissão", 
-                  icon: FileCheck, 
-                  color: "text-teal-600 bg-teal-50 border-teal-100/50", 
-                  action: () => {
-                    setFilterRegime("all");
-                    setFilterAcesso("Configurado");
-                    setCurrentPage("empresas");
-                  }
-                },
-                { 
-                  title: "Pendente de Configuração", 
-                  value: companies.filter(c => c.statusAcesso === "Não Configurado").length.toString(), 
-                  change: "Ação de cadastro necessária", 
+                  title: "Empresas Suspensas", 
+                  value: companies.filter(c => c.statusEmpresa === "Suspensa").length.toString(), 
+                  subtitle: "Aguardando regularização",
+                  trend: "neutral",
+                  trendText: "0 alterações",
+                  trendColor: "text-amber-700 bg-amber-100/50",
                   icon: AlertCircle, 
                   color: "text-amber-600 bg-amber-50 border-amber-100/50", 
                   action: () => {
                     setFilterRegime("all");
-                    setFilterAcesso("Não Configurado");
+                    setFilterAcesso("all");
+                    setFilterStatus("Suspensa");
+                    setFilterPgdas("all");
                     setCurrentPage("empresas");
                   }
                 },
                 { 
-                  title: "Obrigações Entregues (PGDAS)", 
-                  value: `${companies.length > 0 ? Math.round((companies.filter(c => c.statusPgdas === "Entregue").length / companies.length) * 100) : 100}%`, 
-                  change: `${companies.filter(c => c.statusPgdas === "Entregue").length} de ${companies.length} concluídas`, 
-                  icon: Clock, 
-                  color: "text-indigo-600 bg-indigo-50 border-indigo-100/50", 
+                  title: "Empresas Inativas", 
+                  value: companies.filter(c => c.statusEmpresa === "Inativa").length.toString(), 
+                  subtitle: "Paralisadas temporariamente",
+                  trend: "down",
+                  trendText: "-1 neste mês",
+                  trendColor: "text-zinc-600 bg-zinc-100",
+                  icon: Lock, 
+                  color: "text-zinc-600 bg-zinc-50 border-zinc-100/50", 
                   action: () => {
-                    setCurrentPage("pgdas");
+                    setFilterRegime("all");
+                    setFilterAcesso("all");
+                    setFilterStatus("Inativa");
+                    setFilterPgdas("all");
+                    setCurrentPage("empresas");
+                  }
+                },
+                { 
+                  title: "Empresas Excluídas", 
+                  value: companies.filter(c => c.statusEmpresa === "Excluída").length.toString(), 
+                  subtitle: "Registros arquivados",
+                  trend: "neutral",
+                  trendText: "Nenhuma recente",
+                  trendColor: "text-rose-700 bg-rose-100/50",
+                  icon: Trash2, 
+                  color: "text-rose-600 bg-rose-50 border-rose-100/50", 
+                  action: () => {
+                    setFilterRegime("all");
+                    setFilterAcesso("all");
+                    setFilterStatus("Excluída");
+                    setFilterPgdas("all");
+                    setCurrentPage("empresas");
                   }
                 }
               ].map((stat, i) => {
@@ -4062,26 +3364,35 @@ export default function Page() {
                   <div 
                     key={i} 
                     onClick={stat.action}
-                    className="bg-white p-6 rounded-3xl border border-zinc-200/80 shadow-[0_2px_8px_rgba(0,0,0,0.01)] hover:shadow-md hover:border-zinc-300 transition-all duration-300 flex items-center justify-between gap-4 group cursor-pointer relative overflow-hidden"
+                    className="bg-white p-6 rounded-3xl border border-zinc-200/80 shadow-[0_2px_8px_rgba(0,0,0,0.01)] hover:shadow-md hover:border-emerald-500/30 transition-all duration-300 flex flex-col justify-between gap-4 group cursor-pointer relative overflow-hidden"
                   >
-                    <div className="space-y-1">
-                      <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">{stat.title}</p>
-                      <div className="flex items-baseline gap-1.5">
-                        <p className="text-3xl font-black text-zinc-900 font-display tracking-tighter">{stat.value}</p>
+                    <div className="flex items-start justify-between">
+                      <div className="space-y-1">
+                        <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">{stat.title}</p>
+                        <div className="flex items-baseline gap-2">
+                          <p className="text-4xl font-black text-zinc-900 font-display tracking-tighter">{stat.value}</p>
+                        </div>
                       </div>
-                      <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-tighter flex items-center gap-1">
-                        <span className="h-1.5 w-1.5 rounded-full bg-zinc-450 animate-pulse inline-block" />
-                        {stat.change}
-                      </p>
+                      <div className={`p-3 rounded-2xl border shrink-0 transition-all duration-300 group-hover:scale-110 ${stat.color}`}>
+                        <Icon className="h-5.5 w-5.5" strokeWidth={2} />
+                      </div>
                     </div>
-                    <div className={`p-3 rounded-2xl border shrink-0 transition-all duration-300 group-hover:scale-105 ${stat.color}`}>
-                      <Icon className="h-5.5 w-5.5" strokeWidth={2} />
+                    
+                    <div className="flex flex-col gap-2 pt-2 border-t border-zinc-100/80">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${stat.trendColor}`}>
+                          {stat.trendText}
+                        </span>
+                        <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-tight">
+                          {stat.subtitle}
+                        </p>
+                      </div>
                     </div>
+                    
                     {/* Hover Arrow Icon top-right */}
-                    <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-all duration-300 text-zinc-400 translate-y-1 group-hover:translate-y-0 translate-x--1 group-hover:translate-x-0">
-                      <ArrowUpRight className="h-3.5 w-3.5" />
-                    </div>
-                  </div>
+                    <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-300 text-zinc-400 translate-y-1 group-hover:translate-y-0 translate-x--1 group-hover:translate-x-0">
+                      <ArrowUpRight className="h-4 w-4" />
+                    </div>                  </div>
                 );
               })}
             </div>
@@ -4191,7 +3502,7 @@ export default function Page() {
                                     setCurrentPage("pgdas");
                                     addToast(`Módulo fiscal da empresa "${c.razaoSocial}" selecionado com sucesso.`, "success");
                                   }}
-                                  className="px-3 py-1 bg-zinc-900 hover:bg-zinc-800 text-white font-black text-[9px] rounded-lg uppercase tracking-wider transition-all shadow-xs shrink-0 cursor-pointer"
+                                  className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-[9px] rounded-lg uppercase tracking-wider transition-all shadow-xs shrink-0 cursor-pointer"
                                 >
                                   Gerenciar
                                 </button>
@@ -4307,9 +3618,202 @@ export default function Page() {
 
                     <button
                       onClick={() => setCurrentPage("certificados")}
-                      className="w-full py-2 bg-zinc-50 hover:bg-zinc-100 border border-zinc-200 text-zinc-800 font-black text-[10px] rounded-xl uppercase tracking-widest transition-all cursor-pointer text-center"
+                      className="w-full py-1.5 bg-zinc-50 hover:bg-zinc-100 border border-zinc-200 text-zinc-800 font-black text-[9px] rounded-lg uppercase tracking-widest transition-all cursor-pointer text-center"
                     >
                       Gerenciar Certificados
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* ====================================================================
+            VIEW: DETALHES EMPRESA
+            ==================================================================== */}
+        {currentPage === "detalhes_empresa" && selectedCompanyForDetails && (
+          <motion.div
+            key="detalhes_empresa"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.3 }}
+            className="space-y-6 pb-20 relative"
+          >
+            {/* Header Navigation */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-zinc-200 pb-5 mb-8">
+              <div>
+                <div className="flex items-center gap-2 text-[10px] font-bold text-zinc-400 tracking-wider uppercase mb-1">
+                  <button onClick={() => setCurrentPage("empresas")} className="hover:text-emerald-600 transition-colors cursor-pointer">Empresas</button>
+                  <ChevronRight className="h-3 w-3 text-zinc-300" />
+                  <span className="text-zinc-600">Detalhes do Cliente</span>
+                </div>
+                <h2 className="text-2xl md:text-3xl font-extrabold text-zinc-900 tracking-tight font-display">
+                  {selectedCompanyForDetails.razaoSocial}
+                </h2>
+                <div className="flex flex-wrap items-center gap-3 mt-2">
+                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-extrabold ${
+                    selectedCompanyForDetails.statusEmpresa === "Ativa" || !selectedCompanyForDetails.statusEmpresa
+                      ? "bg-emerald-50 text-emerald-600"
+                      : selectedCompanyForDetails.statusEmpresa === "Suspensa"
+                      ? "bg-amber-50 text-amber-600"
+                      : selectedCompanyForDetails.statusEmpresa === "Inativa"
+                      ? "bg-zinc-100 text-zinc-600"
+                      : "bg-rose-50 text-rose-600"
+                  }`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${
+                      selectedCompanyForDetails.statusEmpresa === "Ativa" || !selectedCompanyForDetails.statusEmpresa
+                        ? "bg-emerald-500"
+                        : selectedCompanyForDetails.statusEmpresa === "Suspensa"
+                        ? "bg-amber-500"
+                        : selectedCompanyForDetails.statusEmpresa === "Inativa"
+                        ? "bg-zinc-400"
+                        : "bg-rose-500"
+                    }`}></span>
+                    {selectedCompanyForDetails.statusEmpresa || "Ativa"}
+                  </span>
+                  <div className="w-[1px] h-3 bg-zinc-300" />
+                  <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">CNPJ: <span className="text-zinc-800">{selectedCompanyForDetails.cnpj}</span></p>
+                  <div className="w-[1px] h-3 bg-zinc-300" />
+                  <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">Regime: <span className="text-zinc-800">{selectedCompanyForDetails.regimeTributario}</span></p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 w-full md:w-auto">
+                <button 
+                  onClick={() => {
+                    editCompany(selectedCompanyForDetails);
+                  }}
+                  className="flex-1 md:flex-none px-3.5 py-1.5 bg-zinc-100 border border-zinc-200 hover:bg-zinc-200 text-zinc-700 rounded-lg text-[10px] font-extrabold transition-all shadow-xs cursor-pointer flex items-center justify-center gap-1.5 uppercase tracking-wider h-8"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                  Editar Cadastro
+                </button>
+                <div className="hidden md:block pl-1">
+                  {renderUserDropdown()}
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Esquerda: Informações Principais */}
+              <div className="lg:col-span-2 space-y-6">
+                <div className="bg-white p-6 rounded-3xl border border-zinc-200 shadow-[0_2px_8px_rgba(0,0,0,0.01)]">
+                  <h3 className="text-[11px] font-black text-zinc-900 uppercase tracking-widest flex items-center gap-2 mb-6 border-b border-zinc-100 pb-4">
+                    <Building className="h-4 w-4 text-emerald-600" /> Dados Cadastrais
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Nome Fantasia</p>
+                      <p className="text-sm font-bold text-zinc-800 mt-1">{selectedCompanyForDetails.nomeFantasia}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Localidade</p>
+                      <p className="text-sm font-bold text-zinc-800 mt-1">{selectedCompanyForDetails.municipio} - {selectedCompanyForDetails.uf}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Anexo da Empresa</p>
+                      <p className="text-sm font-bold text-zinc-800 mt-1">{selectedCompanyForDetails.tratamentoTributarioGlobal || "AUTOMATICO SISTEMA"}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Última Apuração</p>
+                      <p className="text-sm font-bold text-zinc-800 mt-1">{selectedCompanyForDetails.periodoApuracao}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white p-6 rounded-3xl border border-zinc-200 shadow-[0_2px_8px_rgba(0,0,0,0.01)]">
+                  <h3 className="text-[11px] font-black text-zinc-900 uppercase tracking-widest flex items-center gap-2 mb-6 border-b border-zinc-100 pb-4">
+                    <Layers className="h-4 w-4 text-emerald-600" /> Obrigações e Apurações Recentes
+                  </h3>
+                  
+                  <div className="space-y-4">
+                    {[
+                      { comp: "06/2026", status: "Entregue", data: "15/07/2026", imposto: "R$ 4.250,00" },
+                      { comp: "05/2026", status: "Entregue", data: "14/06/2026", imposto: "R$ 3.890,50" },
+                      { comp: "04/2026", status: "Entregue", data: "12/05/2026", imposto: "R$ 4.100,20" },
+                    ].map((item, i) => (
+                      <div key={i} className="flex items-center justify-between p-4 rounded-2xl border border-zinc-100 bg-zinc-50/50 hover:bg-zinc-50 transition-colors">
+                        <div className="flex items-center gap-4">
+                          <div className="h-10 w-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                            <FileCheck className="h-5 w-5" />
+                          </div>
+                          <div>
+                            <p className="text-xs font-bold text-zinc-900">Competência {item.comp}</p>
+                            <p className="text-[10px] text-zinc-500 font-semibold mt-0.5">Entregue em {item.data}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs font-black text-zinc-900">{item.imposto}</p>
+                          <p className="text-[10px] font-bold text-emerald-600 mt-0.5">Simples Nacional (DAS)</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Direita: Status e Ações */}
+              <div className="space-y-6">
+                <div className="bg-zinc-900 p-6 rounded-3xl shadow-sm text-white">
+                  <h3 className="text-[11px] font-black text-zinc-400 uppercase tracking-widest flex items-center gap-2 mb-6 border-b border-zinc-800 pb-4">
+                    <ShieldCheck className="h-4 w-4 text-emerald-500" /> Conexão e Certificado
+                  </h3>
+                  
+                  <div className="space-y-5">
+                    <div className="flex items-start justify-between">
+                      <div className="space-y-1">
+                        <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Status da Conexão</p>
+                        <div className="flex items-center gap-2">
+                          <span className={`h-2 w-2 rounded-full animate-pulse ${selectedCompanyForDetails.statusAcesso === "Não Configurado" ? "bg-amber-500" : "bg-emerald-500"}`} />
+                          <p className="text-sm font-bold text-white">{selectedCompanyForDetails.statusAcesso}</p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <button
+                      onClick={() => {
+                        setSelectedCompanyCnpj(selectedCompanyForDetails.cnpj);
+                        if (selectedCompanyForDetails.statusAcesso !== "Não Configurado") {
+                          setMetodoAcesso(selectedCompanyForDetails.statusAcesso === "e-CNPJ Ativo" ? "certificado" : "procuracao");
+                        }
+                        setCurrentPage("certificados");
+                      }}
+                      className="w-full py-2.5 bg-zinc-100 text-zinc-900 hover:bg-zinc-200 font-black text-[10px] uppercase tracking-wider rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-2"
+                    >
+                      <LockKeyhole className="h-3.5 w-3.5" /> 
+                      {selectedCompanyForDetails.statusAcesso === "Não Configurado" ? "Configurar Acesso" : "Gerenciar Acesso"}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="bg-white p-6 rounded-3xl border border-zinc-200 shadow-[0_2px_8px_rgba(0,0,0,0.01)]">
+                  <h3 className="text-[11px] font-black text-zinc-900 uppercase tracking-widest flex items-center gap-2 mb-4">
+                    <Layers className="h-4 w-4 text-emerald-600" /> Ações Rápidas
+                  </h3>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <button 
+                      onClick={() => {
+                        setPgdasEmpresaName(selectedCompanyForDetails.razaoSocial);
+                        setPgdasEmpresaCnpj(selectedCompanyForDetails.cnpj);
+                        setCurrentPage("pgdas");
+                      }}
+                      className="p-3 bg-zinc-50 hover:bg-emerald-50 border border-zinc-200 hover:border-emerald-200 rounded-xl flex flex-col items-center justify-center gap-2 text-zinc-600 hover:text-emerald-700 transition-all cursor-pointer group"
+                    >
+                      <div className="p-2 bg-white rounded-lg group-hover:bg-emerald-100 transition-colors shadow-xs">
+                        <FileCheck className="h-4 w-4" />
+                      </div>
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-center leading-tight">Apurar<br/>PGDAS</span>
+                    </button>
+                    <button 
+                      className="p-3 bg-zinc-50 hover:bg-emerald-50 border border-zinc-200 hover:border-emerald-200 rounded-xl flex flex-col items-center justify-center gap-2 text-zinc-600 hover:text-emerald-700 transition-all cursor-pointer group"
+                    >
+                      <div className="p-2 bg-white rounded-lg group-hover:bg-emerald-100 transition-colors shadow-xs">
+                        <Receipt className="h-4 w-4" />
+                      </div>
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-center leading-tight">Emitir<br/>DAS</span>
                     </button>
                   </div>
                 </div>
@@ -4331,18 +3835,20 @@ export default function Page() {
             className="space-y-6"
           >
             {/* Top Header */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-zinc-200/80 pb-5 mb-2">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-zinc-200 pb-5 mb-8">
               <div>
-                <div className="flex items-center gap-2 text-[10px] font-bold text-zinc-400 tracking-wider uppercase mb-1">
-                  <span>Empresas</span>
-                  <ChevronRight className="h-2.5 w-2.5" />
-                  <span className="text-zinc-600">Lista de Empresas</span>
+                <div className="flex items-center gap-1.5 text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1.5">
+                  <span>Gestão de Clientes</span>
+                  <ChevronRight className="h-3 w-3 text-zinc-300" />
+                  <span className="text-zinc-600">Empresas</span>
                 </div>
+                <h2 className="text-2xl md:text-3xl font-extrabold text-zinc-900 tracking-tight font-display">Empresas</h2>
+                <p className="text-sm text-zinc-500 mt-1">Gerencie a lista de empresas atendidas, status de documentos e parametrizações.</p>
               </div>
               <div className="flex items-center gap-3 shrink-0 w-full sm:w-auto justify-between sm:justify-start">
                 <button
                   onClick={createNewCompany}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-zinc-900 hover:bg-zinc-800 active:scale-95 text-white rounded-xl text-[11px] font-black shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer h-10 uppercase tracking-wider select-none"
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white rounded-lg text-[10px] font-black shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer h-8 uppercase tracking-wider select-none"
                   id="btn-nova-empresa-top"
                 >
                   Nova Empresa
@@ -4367,34 +3873,61 @@ export default function Page() {
                     className="w-full pl-11 pr-4 py-2.5 bg-zinc-50 border border-zinc-200 focus:border-zinc-400 focus:bg-white text-[13px] font-medium rounded-full outline-none transition-all placeholder:text-zinc-400 h-11"
                   />
                 </div>
-                <div className="flex w-full sm:w-auto gap-3">
-                  <div className="relative min-w-[180px]">
+                <div className="flex w-full md:w-auto gap-3 flex-wrap lg:flex-nowrap">
+                  <div className="relative flex-1 min-w-[140px]">
                     <select
                       value={filterRegime}
                       onChange={(e) => { setFilterRegime(e.target.value); setCompaniesPage(1); }}
-                      className="w-full appearance-none px-4 py-2.5 bg-zinc-50 border border-zinc-200 focus:border-zinc-400 text-[13px] font-bold rounded-full outline-none cursor-pointer transition-all text-zinc-700 h-11 pr-10"
+                      className="w-full appearance-none px-4 py-2.5 bg-zinc-50 border border-zinc-200 focus:border-zinc-400 text-[12px] font-bold rounded-full outline-none cursor-pointer transition-all text-zinc-700 h-11 pr-10"
                     >
-                      <option value="all">Todos os Regimes</option>
+                      <option value="all">Regime: Todos</option>
                       <option value="Simples Nacional">Simples Nacional</option>
                       <option value="Lucro Presumido">Lucro Presumido</option>
                     </select>
                     <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 pointer-events-none" />
                   </div>
-                  <div className="relative min-w-[180px]">
+                  <div className="relative flex-1 min-w-[140px]">
                     <select
                       value={filterAcesso}
                       onChange={(e) => { setFilterAcesso(e.target.value); setCompaniesPage(1); }}
-                      className="w-full appearance-none px-4 py-2.5 bg-zinc-50 border border-zinc-200 focus:border-zinc-400 text-[13px] font-bold rounded-full outline-none cursor-pointer transition-all text-zinc-700 h-11 pr-10"
+                      className="w-full appearance-none px-4 py-2.5 bg-zinc-50 border border-zinc-200 focus:border-zinc-400 text-[12px] font-bold rounded-full outline-none cursor-pointer transition-all text-zinc-700 h-11 pr-10"
                     >
-                      <option value="all">Todas as Apurações</option>
+                      <option value="all">Conexão: Todas</option>
                       <option value="Configurado">Configurado</option>
                       <option value="Não Configurado">Não Configurado</option>
                     </select>
                     <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 pointer-events-none" />
                   </div>
+                  <div className="relative flex-1 min-w-[140px]">
+                    <select
+                      value={filterStatus}
+                      onChange={(e) => { setFilterStatus(e.target.value); setCompaniesPage(1); }}
+                      className="w-full appearance-none px-4 py-2.5 bg-zinc-50 border border-zinc-200 focus:border-zinc-400 text-[12px] font-bold rounded-full outline-none cursor-pointer transition-all text-zinc-700 h-11 pr-10"
+                    >
+                      <option value="all">Status: Todos</option>
+                      <option value="Ativa">Ativa</option>
+                      <option value="Suspensa">Suspensa</option>
+                      <option value="Inativa">Inativa</option>
+                      <option value="Excluída">Excluída</option>
+                    </select>
+                    <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 pointer-events-none" />
+                  </div>
+                  <div className="relative flex-1 min-w-[140px]">
+                    <select
+                      value={filterPgdas}
+                      onChange={(e) => { setFilterPgdas(e.target.value); setCompaniesPage(1); }}
+                      className="w-full appearance-none px-4 py-2.5 bg-zinc-50 border border-zinc-200 focus:border-zinc-400 text-[12px] font-bold rounded-full outline-none cursor-pointer transition-all text-zinc-700 h-11 pr-10"
+                    >
+                      <option value="all">PGDAS: Todos</option>
+                      <option value="Pendente">Pendente</option>
+                      <option value="Entregue">Entregue</option>
+                      <option value="Processando">Processando</option>
+                      <option value="Sem Movimento">Sem Movimento</option>
+                    </select>
+                    <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 pointer-events-none" />
+                  </div>
                 </div>
               </div>
-
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
@@ -4411,7 +3944,7 @@ export default function Page() {
                     variants={containerVariants}
                     initial="hidden"
                     animate="visible"
-                    key={`${companiesPage}-${searchTerm}-${filterRegime}-${filterAcesso}`}
+                    key={`${companiesPage}-${searchTerm}-${filterRegime}-${filterAcesso}-${filterStatus}-${filterPgdas}`}
                   >
                     {isLoadingCompanies ? (
                       Array.from({ length: Math.min(companiesPerPage, 5) }).map((_, idx) => (
@@ -4445,7 +3978,7 @@ export default function Page() {
                     ) : paginatedCompanies.length === 0 ? (
                       <motion.tr variants={itemVariants}>
                         <td colSpan={5} className="py-16 text-center">
-                          <Building2 className="h-10 w-10 text-zinc-200 mx-auto mb-3" strokeWidth={1} />
+                          <Building className="h-10 w-10 text-zinc-200 mx-auto mb-3" strokeWidth={1} />
                           <p className="text-zinc-400 text-sm font-bold">Nenhuma empresa encontrada com os filtros selecionados.</p>
                           <button 
                             onClick={() => { setSearchTerm(""); setFilterRegime("all"); setFilterAcesso("all"); }}
@@ -4509,19 +4042,39 @@ export default function Page() {
                               </div>
                             </td>
                             <td className="py-5 px-2 text-right">
-                              <button
-                                onClick={() => {
-                                  setSelectedCompanyCnpj(company.cnpj);
-                                  if (company.statusAcesso !== "Não Configurado") {
-                                    setMetodoAcesso(company.statusAcesso === "e-CNPJ Ativo" ? "certificado" : "procuracao");
-                                  }
-                                  setCurrentPage("certificados");
-                                  addToast(`Configurando acesso fiscal para ${company.razaoSocial}`, "info");
-                                }}
-                                className="px-5 py-2 bg-zinc-900 hover:bg-black text-white rounded-lg text-[11px] font-extrabold shadow-sm transition-all cursor-pointer"
-                              >
-                                Gerenciar
-                              </button>
+                              <div className="flex items-center justify-end gap-1.5">
+                                <button
+                                  onClick={() => {
+                                    setSelectedCompanyForDetails(company);
+                                    setCurrentPage("detalhes_empresa");
+                                  }}
+                                  className="px-2.5 py-1 bg-zinc-900 hover:bg-zinc-800 text-white rounded-lg text-[10px] font-extrabold shadow-xs transition-all cursor-pointer"
+                                  title="Ver detalhes da empresa"
+                                >
+                                  Detalhes
+                                </button>
+                                <button
+                                  onClick={() => editCompany(company)}
+                                  className="px-2.5 py-1 bg-zinc-100 hover:bg-zinc-200 border border-zinc-200 text-zinc-700 rounded-lg text-[10px] font-extrabold shadow-2xs transition-all cursor-pointer flex items-center gap-1 select-none"
+                                  title="Editar cadastro da empresa"
+                                >
+                                  <Pencil className="h-3 w-3 text-zinc-400" />
+                                  <span>Editar</span>
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setSelectedCompanyCnpj(company.cnpj);
+                                    if (company.statusAcesso !== "Não Configurado") {
+                                      setMetodoAcesso(company.statusAcesso === "e-CNPJ Ativo" ? "certificado" : "procuracao");
+                                    }
+                                    setCurrentPage("certificados");
+                                    addToast(`Configurando acesso fiscal para ${company.razaoSocial}`, "info");
+                                  }}
+                                  className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[10px] font-extrabold shadow-xs transition-all cursor-pointer"
+                                >
+                                  Gerenciar
+                                </button>
+                              </div>
                             </td>
                           </motion.tr>
                         );
@@ -4643,37 +4196,40 @@ export default function Page() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.3 }}
-            className="space-y-6"
+            className="space-y-8"
             id="screen-certificado"
           >
             
             {/* Header Area */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-zinc-200 pb-5 mb-8">
               <div>
-                <div className="flex items-center gap-1 text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1">
-                  <span>Configurações</span>
-                  <ChevronRight className="h-2.5 w-2.5" />
+                <div className="flex items-center gap-1.5 text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1.5">
                   <span>Módulo fiscal</span>
-                  <ChevronRight className="h-2.5 w-2.5" />
+                  <ChevronRight className="h-3 w-3 text-zinc-300" />
                   <span className="text-zinc-600">Certificado</span>
                 </div>
+                <h2 className="text-2xl md:text-3xl font-extrabold text-zinc-900 tracking-tight font-display">Certificado e Procuração</h2>
+                <p className="text-sm text-zinc-500 mt-1">Defina o certificado ou a procuração usados pelos serviços fiscais da empresa.</p>
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2.5 w-full sm:w-auto">
                 <button
                   onClick={() => setCurrentPage("dashboard")}
-                  className="px-5 py-2.5 bg-white hover:bg-zinc-50 active:scale-95 border border-zinc-200 rounded-xl text-zinc-700 font-black text-[11px] transition-all duration-200 cursor-pointer text-center h-10 flex items-center justify-center gap-2 shadow-sm uppercase tracking-wider select-none"
+                  className="px-4 py-2 bg-zinc-100 hover:bg-zinc-200 border border-zinc-200 text-zinc-700 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-2 shadow-xs uppercase tracking-wider select-none h-10 w-full sm:w-auto"
                 >
                   Voltar
                 </button>
                 <button
                   onClick={saveCertificateConfig}
-                  className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white rounded-xl font-black text-[11px] shadow-md hover:shadow-lg hover:shadow-emerald-600/10 transition-all duration-200 cursor-pointer flex items-center justify-center gap-2 h-10 uppercase tracking-wider select-none"
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black shadow-xs hover:shadow-md transition-all cursor-pointer flex items-center justify-center gap-2 uppercase tracking-wider select-none h-10 w-full sm:w-auto"
                 >
                   <Save className="h-4 w-4" />
                   Salvar configuração
                 </button>
+                <div className="hidden md:block pl-1">
+                  {renderUserDropdown()}
+                </div>
               </div>
             </div>
 
@@ -4684,23 +4240,28 @@ export default function Page() {
               const rawCnpj = activeCompany?.cnpj ? "cnpj-" + activeCompany.cnpj.replace(/\D/g, "") : "cnpj-66378843000134";
 
               return (
-                <div className="bg-white p-6 rounded-2xl border border-zinc-200/65 shadow-[0_2px_12px_rgba(0,0,0,0.01)] flex flex-col md:flex-row md:items-center justify-between gap-6">
-                  <div className="flex items-center gap-4 flex-1">
+                <div className="bg-white rounded-2xl border border-zinc-200/65 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.02)] p-6 flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative overflow-hidden">
+                  <div className="absolute top-0 left-0 w-2 h-full bg-emerald-500" />
+                  
+                  <div className="flex items-start md:items-center gap-5 flex-1 pl-2">
                     {activeCompany?.logoUrl ? (
-                      <div className="h-12 w-12 rounded-xl overflow-hidden shrink-0 border border-zinc-200 bg-zinc-50">
+                      <div className="h-16 w-16 rounded-2xl overflow-hidden shrink-0 border border-zinc-200 bg-zinc-50 shadow-xs flex items-center justify-center">
                         <img src={activeCompany.logoUrl} alt={activeCompany.razaoSocial} className="h-full w-full object-cover" referrerPolicy="no-referrer" />
                       </div>
                     ) : (
-                      <div className="h-12 w-12 rounded-xl border border-zinc-200 bg-zinc-50 flex items-center justify-center text-zinc-400 shrink-0">
-                        <Building2 className="h-6 w-6" />
+                      <div className="h-16 w-16 rounded-2xl border border-zinc-200 bg-zinc-50/60 flex items-center justify-center text-zinc-400 shrink-0 shadow-xs">
+                        <Building className="h-7 w-7 text-zinc-400" />
                       </div>
                     )}
-                    <div className="space-y-1 flex-1 min-w-[240px]">
-                      <div className="flex items-center gap-2">
-                        <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Empresa selecionada</p>
-                        <span className="text-[8px] bg-emerald-50 text-emerald-700 font-bold px-1.5 py-0.5 rounded uppercase tracking-wider border border-emerald-100">Alterar seleção</span>
+                    <div className="space-y-1.5 flex-1 min-w-[240px]">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Empresa Selecionada</p>
+                        <span className="text-[9px] bg-emerald-50 text-emerald-700 font-extrabold px-2 py-0.5 rounded-full border border-emerald-100 flex items-center gap-1">
+                          <Check className="h-2.5 w-2.5 stroke-[2.5]" /> Ativa
+                        </span>
                       </div>
-                      <div className="relative max-w-sm mt-1">
+                      
+                      <div className="relative max-w-md mt-1 group">
                         <select
                           value={selectedCompanyCnpj}
                           onChange={(e) => {
@@ -4710,7 +4271,7 @@ export default function Page() {
                             setSenhaCertificado("");
                             setIsValidatedCert(false);
                           }}
-                          className="w-full h-10 pl-3 pr-10 border border-zinc-200 rounded-xl text-sm font-black text-zinc-800 bg-white hover:border-zinc-350 focus:border-blue-500 outline-none appearance-none cursor-pointer tracking-tight"
+                          className="w-full h-11 pl-3.5 pr-11 border border-zinc-200 hover:border-zinc-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-2xl text-base font-black text-zinc-800 bg-zinc-50/30 hover:bg-white transition-all outline-none appearance-none cursor-pointer tracking-tight shadow-2xs"
                         >
                           {companies.map((c) => (
                             <option key={c.cnpj} value={c.cnpj}>
@@ -4718,23 +4279,35 @@ export default function Page() {
                             </option>
                           ))}
                         </select>
-                        <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 pointer-events-none" />
+                        <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-400 group-hover:text-zinc-600 transition-colors">
+                          <ChevronDown className="h-4 w-4" />
+                        </div>
                       </div>
-                      <p className="text-[11px] text-zinc-500 font-bold mt-1">
-                        {maskedCnpj} · {activeCompany?.regimeTributario || "Simples Nacional"} · {activeCompany?.municipio || "Belo Horizonte"} - {activeCompany?.uf || "MG"}
-                      </p>
+                      
+                      <div className="flex items-center gap-2 text-xs text-zinc-500 font-semibold mt-1 flex-wrap">
+                        <span className="font-mono bg-zinc-100 px-1.5 py-0.5 rounded text-[10px] text-zinc-600 font-bold">{maskedCnpj}</span>
+                        <span>·</span>
+                        <span className="text-zinc-600 font-bold">{activeCompany?.regimeTributario || "Simples Nacional"}</span>
+                        <span>·</span>
+                        <span className="text-zinc-600 font-bold">{activeCompany?.municipio || "Belo Horizonte"} - {activeCompany?.uf || "MG"}</span>
+                      </div>
                     </div>
                   </div>
-                  <div className="flex gap-12 md:gap-16">
+                  
+                  <div className="flex items-center gap-8 md:gap-12 lg:self-center bg-zinc-50/50 p-4 md:p-5 rounded-2xl border border-zinc-100 shrink-0">
                     <div>
-                      <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1">Empresa ID</p>
-                      <p className="text-xs font-bold text-zinc-700 font-mono">{rawCnpj}</p>
+                      <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1.5">ID Identificador</p>
+                      <p className="text-xs font-bold text-zinc-700 font-mono tracking-wider">{rawCnpj}</p>
                     </div>
+                    <div className="w-[1px] h-10 bg-zinc-200" />
                     <div>
-                      <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1">Status PGDAS-D</p>
-                      <p className={`text-xs font-black ${activeCompany?.statusAcesso !== "Não Configurado" ? "text-emerald-600" : "text-amber-600"}`}>
-                        {activeCompany?.statusAcesso !== "Não Configurado" ? "Acesso Configurado" : "Módulo fiscal não configurado"}
-                      </p>
+                      <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1.5">Automação de Apuração</p>
+                      <div className="flex items-center gap-1.5">
+                        <span className={`h-2 w-2 rounded-full ${activeCompany?.statusAcesso !== "Não Configurado" ? "bg-emerald-500 animate-pulse" : "bg-amber-400"}`} />
+                        <p className={`text-xs font-extrabold ${activeCompany?.statusAcesso !== "Não Configurado" ? "text-emerald-700" : "text-amber-700"}`}>
+                          {activeCompany?.statusAcesso !== "Não Configurado" ? "Canal Integrado" : "Pendente de Vínculo"}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -4742,242 +4315,458 @@ export default function Page() {
             })()}
 
             {/* SECTION 1: Método de acesso fiscal */}
-            <div className="bg-white p-6 rounded-2xl border border-zinc-200/65 shadow-[0_2px_12px_rgba(0,0,0,0.01)] space-y-4">
-              <h4 className="text-sm font-extrabold text-zinc-900 uppercase tracking-wider">
-                1. Método de acesso fiscal
-              </h4>
+            <div className="bg-white rounded-2xl border border-zinc-200/65 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.02)] p-6 space-y-6">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 bg-emerald-50 rounded-lg text-emerald-600 shrink-0">
+                  <Shield className="h-4 w-4" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-black text-zinc-400 uppercase tracking-widest">Passo 1</h4>
+                  <h3 className="text-sm font-extrabold text-zinc-900 uppercase tracking-wider">Defina o Método de Acesso Fiscal</h3>
+                </div>
+              </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 {/* Certificado da empresa */}
                 <div 
                   onClick={() => setMetodoAcesso("certificado")}
-                  className={`p-5 rounded-2xl border-2 flex items-center justify-between cursor-pointer transition-all ${metodoAcesso === "certificado" ? "bg-emerald-50/30 border-emerald-500 text-emerald-800" : "bg-white border-zinc-200 hover:border-zinc-300 text-zinc-700"}`}
+                  className={`p-6 rounded-2xl border-2 flex items-center justify-between cursor-pointer transition-all duration-300 relative overflow-hidden group ${
+                    metodoAcesso === "certificado" 
+                      ? "bg-emerald-50/20 border-emerald-500 text-emerald-900 shadow-sm" 
+                      : "bg-white border-zinc-200 hover:border-zinc-300 hover:shadow-xs text-zinc-700"
+                  }`}
                 >
-                  <div className="flex items-center gap-4">
-                    <div className={`p-2.5 rounded-xl ${metodoAcesso === "certificado" ? "bg-emerald-100/60 text-emerald-600" : "bg-zinc-100 text-zinc-400"}`}>
-                      <FileText className="h-5 w-5" />
+                  <div className="flex items-center gap-5">
+                    <div className={`p-3 rounded-xl transition-colors duration-300 ${
+                      metodoAcesso === "certificado" ? "bg-emerald-500 text-white shadow-sm" : "bg-zinc-100 text-zinc-500 group-hover:bg-zinc-200"
+                    }`}>
+                      <FileKey className="h-5 w-5" />
                     </div>
                     <div>
-                      <p className="font-extrabold text-xs text-zinc-900">Certificado da empresa</p>
-                      <p className="text-[11px] text-zinc-500 font-bold">A empresa usa o próprio e-CNPJ.</p>
+                      <p className="font-black text-sm text-zinc-900">Certificado Digital e-CNPJ da Empresa</p>
+                      <p className="text-xs text-zinc-500 mt-0.5 font-semibold">Envie o arquivo A1 (.pfx/.p12) exclusivo da própria empresa.</p>
                     </div>
                   </div>
-                  {metodoAcesso === "certificado" && (
-                    <div className="bg-emerald-600 text-white p-1 rounded-full">
-                      <Check className="h-3 w-3" strokeWidth={3} />
-                    </div>
-                  )}
+                  <div className={`h-6 w-6 rounded-full flex items-center justify-center border-2 transition-all duration-300 ${
+                    metodoAcesso === "certificado" 
+                      ? "bg-emerald-600 border-emerald-600 text-white" 
+                      : "border-zinc-200 group-hover:border-zinc-300 bg-white"
+                  }`}>
+                    {metodoAcesso === "certificado" ? (
+                      <Check className="h-3.5 w-3.5 stroke-[2.5]" />
+                    ) : (
+                      <div className="h-2 w-2 rounded-full bg-transparent group-hover:bg-zinc-100" />
+                    )}
+                  </div>
                 </div>
 
                 {/* Procuração para o escritório */}
                 <div 
                   onClick={() => setMetodoAcesso("procuracao")}
-                  className={`p-5 rounded-2xl border-2 flex items-center justify-between cursor-pointer transition-all ${metodoAcesso === "procuracao" ? "bg-emerald-50/30 border-emerald-500 text-emerald-800" : "bg-white border-zinc-200 hover:border-zinc-300 text-zinc-700"}`}
+                  className={`p-6 rounded-2xl border-2 flex items-center justify-between cursor-pointer transition-all duration-300 relative overflow-hidden group ${
+                    metodoAcesso === "procuracao" 
+                      ? "bg-emerald-50/20 border-emerald-500 text-emerald-900 shadow-sm" 
+                      : "bg-white border-zinc-200 hover:border-zinc-300 hover:shadow-xs text-zinc-700"
+                  }`}
                 >
-                  <div className="flex items-center gap-4">
-                    <div className={`p-2.5 rounded-xl ${metodoAcesso === "procuracao" ? "bg-emerald-100/60 text-emerald-600" : "bg-zinc-100 text-zinc-400"}`}>
-                      <Shield className="h-5 w-5" />
+                  <div className="flex items-center gap-5">
+                    <div className={`p-3 rounded-xl transition-colors duration-300 ${
+                      metodoAcesso === "procuracao" ? "bg-emerald-500 text-white shadow-sm" : "bg-zinc-100 text-zinc-500 group-hover:bg-zinc-200"
+                    }`}>
+                      <ShieldCheck className="h-5 w-5" />
                     </div>
                     <div>
-                      <p className="font-extrabold text-xs text-zinc-900">Procuração para o escritório</p>
-                      <p className="text-[11px] text-zinc-500 font-bold">O escritório opera autorizado pela empresa.</p>
+                      <p className="font-black text-sm text-zinc-900">Procuração Eletrônica RFB (e-CAC)</p>
+                      <p className="text-xs text-zinc-500 mt-0.5 font-semibold">O escritório opera utilizando a procuração vinculada ao e-CNPJ contábil.</p>
                     </div>
                   </div>
-                  {metodoAcesso === "procuracao" && (
-                    <div className="bg-emerald-600 text-white p-1 rounded-full">
-                      <Check className="h-3 w-3" strokeWidth={3} />
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* SECTION 2: Certificado da empresa */}
-            <div className="bg-white p-6 rounded-2xl border border-zinc-200/65 shadow-[0_2px_12px_rgba(0,0,0,0.01)] space-y-6">
-              <h4 className="text-sm font-extrabold text-zinc-900 uppercase tracking-wider">
-                {metodoAcesso === "certificado" ? "2. Certificado da empresa" : "2. Procuração do escritório"}
-              </h4>
-
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
-                <div className="space-y-1.5 text-xs font-semibold">
-                  <label className="text-[10px] font-bold text-zinc-500 uppercase">Arquivo do certificado *</label>
-                  <div 
-                    onClick={() => fileInputRef.current?.click()}
-                    onDragOver={handleDragOver}
-                    onDrop={handleDrop}
-                    className="border border-dashed border-zinc-300 hover:border-zinc-400 bg-zinc-50/20 hover:bg-zinc-50/50 rounded-xl p-3 flex items-center justify-center gap-2 cursor-pointer text-zinc-500 text-xs font-semibold h-[42px] transition-colors"
-                  >
-                    <Upload className="h-4 w-4 text-zinc-400 shrink-0" />
-                    <span className="truncate">{uploadedFile ? uploadedFile.name : "Selecionar .pfx ou .p12"}</span>
-                  </div>
-                  <input 
-                    type="file" 
-                    ref={fileInputRef} 
-                    onChange={handleFileSelect} 
-                    accept=".pfx,.p12" 
-                    className="hidden" 
-                  />
-                </div>
-
-                <div className="space-y-1.5 text-xs font-semibold">
-                  <label className="text-[10px] font-bold text-zinc-500 uppercase">Senha do certificado *</label>
-                  <input 
-                    type="password" 
-                    placeholder="Senha do certificado"
-                    value={senhaCertificado}
-                    onChange={(e) => setSenhaCertificado(e.target.value)}
-                    className="w-full h-[42px] px-3 border border-zinc-200 rounded-xl text-xs font-bold focus:border-blue-500 bg-white text-zinc-800 outline-none"
-                  />
-                </div>
-
-                <div className="space-y-1.5 text-xs font-semibold">
-                  <label className="text-[10px] font-bold text-zinc-500 uppercase">Tipo esperado</label>
-                  <input 
-                    type="text" 
-                    value={metodoAcesso === "certificado" ? "e-CNPJ" : "Procuração"} 
-                    disabled 
-                    className="w-full h-[42px] px-3 border border-zinc-200 bg-zinc-50/70 text-zinc-500 rounded-xl text-xs font-bold"
-                  />
-                </div>
-
-                <div className="space-y-1.5 text-xs font-semibold">
-                  <label className="text-[10px] font-bold text-zinc-500 uppercase">CNPJ esperado</label>
-                  {(() => {
-                    const activeCompany = companies.find(c => c.cnpj === selectedCompanyCnpj) || companies[0];
-                    const maskedCnpj = activeCompany?.cnpj ? activeCompany.cnpj.replace(/^(\d{2})\.(\d{3})\.(\d{3})\/(\d{4})-(\d{2})$/, "$1.***.***/****-$5") : "66.***.***/****-34";
-                    return (
-                      <input 
-                        type="text" 
-                        value={maskedCnpj} 
-                        disabled 
-                        className="w-full h-[42px] px-3 border border-zinc-200 bg-zinc-50/70 text-zinc-500 rounded-xl text-xs font-bold font-mono"
-                      />
-                    );
-                  })()}
-                </div>
-
-                <div className="md:col-span-2 space-y-1.5 text-xs font-semibold">
-                  <label className="text-[10px] font-bold text-zinc-500 uppercase">Responsável pela configuração *</label>
-                  <div className="relative">
-                    <select 
-                      value={responsavelConfig} 
-                      onChange={(e) => setResponsavelConfig(e.target.value)}
-                      className="w-full h-[42px] pl-3 pr-10 border border-zinc-200 rounded-xl text-xs font-bold bg-white text-zinc-800 outline-none appearance-none"
-                    >
-                      <option value="">Selecione o responsável</option>
-                      <option value="Naiale Augustinho">Naiale Augustinha</option>
-                      <option value="Carlos Alberto">Carlos Alberto</option>
-                      <option value="Mariana Silva">Mariana Silva</option>
-                    </select>
-                    <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 pointer-events-none" />
-                  </div>
-                </div>
-
-                <div className="md:col-span-2 space-y-1.5 text-xs font-semibold">
-                  <label className="text-[10px] font-bold text-zinc-500 uppercase">Validade identificada</label>
-                  <div className="relative">
-                    <input 
-                      type="text" 
-                      value={isValidatedCert ? certExpiryDate : "A validar após upload"} 
-                      disabled 
-                      className="w-full h-[42px] pl-3 pr-10 border border-zinc-200 bg-zinc-50/70 text-zinc-500 rounded-xl text-xs font-bold"
-                    />
-                    <Calendar className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
-                  </div>
-                </div>
-
-                {/* Validation progress */}
-                {isValidatingCert && (
-                  <div className="col-span-full bg-emerald-50/50 border border-emerald-100 rounded-xl p-4 space-y-2 animate-pulse mt-2">
-                    <div className="flex justify-between items-center text-[10px] font-bold text-emerald-700 uppercase">
-                      <span>{validationProgressMessage || "Processando..."}</span>
-                      <span>{certValidationProgress}%</span>
-                    </div>
-                    <div className="w-full bg-emerald-100 h-1.5 rounded-full overflow-hidden">
-                      <div className="bg-emerald-600 h-full transition-all duration-300" style={{ width: `${certValidationProgress}%` }} />
-                    </div>
-                  </div>
-                )}
-
-                {/* Validation buttons */}
-                <div className="col-span-full flex justify-end gap-3 pt-2">
-                  <button 
-                    onClick={validateCertificate}
-                    disabled={isValidatingCert}
-                    className="px-5 py-2.5 bg-white hover:bg-zinc-50 active:scale-95 border border-zinc-200 rounded-xl text-zinc-700 font-black text-[11px] transition-all duration-200 cursor-pointer flex items-center gap-1.5 shadow-sm uppercase tracking-wider h-10 select-none"
-                  >
-                    {isValidatingCert ? (
-                      <RefreshCw className="h-3.5 w-3.5 text-zinc-400 animate-spin" />
+                  <div className={`h-6 w-6 rounded-full flex items-center justify-center border-2 transition-all duration-300 ${
+                    metodoAcesso === "procuracao" 
+                      ? "bg-emerald-600 border-emerald-600 text-white" 
+                      : "border-zinc-200 group-hover:border-zinc-300 bg-white"
+                  }`}>
+                    {metodoAcesso === "procuracao" ? (
+                      <Check className="h-3.5 w-3.5 stroke-[2.5]" />
                     ) : (
-                      <ShieldCheck className="h-4 w-4 text-zinc-500" />
+                      <div className="h-2 w-2 rounded-full bg-transparent group-hover:bg-zinc-100" />
                     )}
-                    {isValidatingCert ? "Validando..." : "Validar certificado"}
-                  </button>
-                  <button 
-                    onClick={saveCertificateConfig}
-                    className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white rounded-xl font-black text-[11px] shadow-md hover:shadow-lg hover:shadow-emerald-600/10 transition-all duration-200 cursor-pointer flex items-center gap-1.5 uppercase tracking-wider h-10 select-none"
-                  >
-                    Salvar certificado
-                  </button>
+                  </div>
                 </div>
               </div>
             </div>
+
+            {/* SECTION 2: Configuração por Certificado Digital */}
+            {metodoAcesso === "certificado" ? (
+              <div className="bg-white rounded-2xl border border-zinc-200/65 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.02)] p-6 space-y-6">
+                <div className="flex items-center justify-between border-b border-zinc-100 pb-4">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 bg-emerald-50 rounded-lg text-emerald-600 shrink-0">
+                      <FileKey className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-black text-zinc-400 uppercase tracking-widest">Passo 2</h4>
+                      <h3 className="text-sm font-extrabold text-zinc-900 uppercase tracking-wider">Upload do Certificado Digital (A1)</h3>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-zinc-500 bg-zinc-50 border border-zinc-100 px-3 py-1 rounded-full shrink-0">
+                    <Lock className="h-3 w-3 text-emerald-600" />
+                    <span>Conexão criptografada SSL</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                  {/* Left Column: Interactive Upload Box */}
+                  <div className="lg:col-span-5 space-y-3">
+                    <label className="text-[10px] font-extrabold text-zinc-500 uppercase tracking-widest">Arquivo do certificado (.pfx ou .p12)</label>
+                    
+                    <div 
+                      onClick={() => fileInputRef.current?.click()}
+                      onDragOver={handleDragOver}
+                      onDrop={handleDrop}
+                      className={`border-2 border-dashed rounded-2xl p-6 flex flex-col items-center justify-center text-center gap-3.5 cursor-pointer transition-all duration-300 min-h-[190px] ${
+                        uploadedFile 
+                          ? "bg-emerald-50/5 border-emerald-500/60 text-emerald-800" 
+                          : "border-zinc-200 hover:border-emerald-500/40 bg-zinc-50/30 hover:bg-white text-zinc-500 hover:shadow-xs"
+                      }`}
+                    >
+                      {uploadedFile ? (
+                        <div className="flex flex-col items-center gap-2.5">
+                          <div className="p-3 bg-emerald-100 text-emerald-600 rounded-2xl shadow-2xs relative">
+                            <FileText className="h-8 w-8" />
+                            <div className="absolute -bottom-1 -right-1 bg-emerald-600 text-white rounded-full p-0.5">
+                              <Check className="h-3 w-3 stroke-[3px]" />
+                            </div>
+                          </div>
+                          <div>
+                            <p className="text-xs font-black text-zinc-800 truncate max-w-[220px]">{uploadedFile.name}</p>
+                            <p className="text-[10px] text-zinc-500 font-extrabold mt-0.5 uppercase tracking-wider">
+                              Tamanho: {uploadedFile.size} · Carregado
+                            </p>
+                          </div>
+                          <button 
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setUploadedFile(null);
+                              setIsValidatedCert(false);
+                            }}
+                            className="mt-1 text-[10px] font-extrabold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg px-2.5 py-1 transition-colors flex items-center gap-1 cursor-pointer"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                            Remover arquivo
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="p-3.5 bg-zinc-100 text-zinc-400 rounded-2xl transition-colors">
+                            <Upload className="h-7 w-7" />
+                          </div>
+                          <div>
+                            <p className="text-xs font-black text-zinc-800">Arraste o arquivo ou clique para carregar</p>
+                            <p className="text-[10px] text-zinc-400 font-bold mt-1 max-w-[220px] mx-auto leading-relaxed">
+                              Selecione arquivos e-CNPJ tipo A1 formatados em <span className="font-mono text-zinc-600 font-extrabold">.pfx</span> ou <span className="font-mono text-zinc-600 font-extrabold">.p12</span> (máximo 10MB)
+                            </p>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                    <input 
+                      type="file" 
+                      ref={fileInputRef} 
+                      onChange={handleFileSelect} 
+                      accept=".pfx,.p12" 
+                      className="hidden" 
+                    />
+                  </div>
+
+                  {/* Right Column: Parameters and Actions */}
+                  <div className="lg:col-span-7 space-y-5">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-1.5 text-xs font-semibold">
+                        <label className="text-[10px] font-extrabold text-zinc-500 uppercase tracking-widest">Senha do certificado *</label>
+                        <div className="relative">
+                          <input 
+                            type={mostrarSenha ? "text" : "password"} 
+                            placeholder="Senha para chaves privadas"
+                            value={senhaCertificado}
+                            onChange={(e) => setSenhaCertificado(e.target.value)}
+                            className="w-full h-11 px-3.5 border border-zinc-200 hover:border-zinc-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-2xl text-xs font-bold bg-white text-zinc-800 outline-none shadow-2xs transition-all"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setMostrarSenha(!mostrarSenha)}
+                            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 transition-colors"
+                          >
+                            {mostrarSenha ? (
+                              <Unlock className="h-4 w-4" />
+                            ) : (
+                              <LockKeyhole className="h-4 w-4" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5 text-xs font-semibold">
+                        <label className="text-[10px] font-extrabold text-zinc-500 uppercase tracking-widest">Responsável pela Configuração *</label>
+                        <div className="relative">
+                          <select 
+                            value={responsavelConfig} 
+                            onChange={(e) => setResponsavelConfig(e.target.value)}
+                            className="w-full h-11 pl-3.5 pr-10 border border-zinc-200 hover:border-zinc-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-2xl text-xs font-bold bg-white text-zinc-800 outline-none appearance-none shadow-2xs transition-all cursor-pointer"
+                          >
+                            <option value="">Selecione o operador</option>
+                            <option value="Naiale Augustinho">Naiale Augustinha</option>
+                            <option value="Carlos Alberto">Carlos Alberto</option>
+                            <option value="Mariana Silva">Mariana Silva</option>
+                          </select>
+                          <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 pointer-events-none" />
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5 text-xs font-semibold">
+                        <label className="text-[10px] font-extrabold text-zinc-500 uppercase tracking-widest">Validade Identificada</label>
+                        <div className="relative">
+                          <input 
+                            type="text" 
+                            value={isValidatedCert ? certExpiryDate : "Aguardando validação"} 
+                            disabled 
+                            className={`w-full h-11 pl-3.5 pr-10 border rounded-2xl text-xs font-bold outline-none shadow-2xs ${
+                              isValidatedCert 
+                                ? "border-emerald-200 bg-emerald-50/20 text-emerald-700" 
+                                : "border-zinc-200 bg-zinc-50/70 text-zinc-400"
+                            }`}
+                          />
+                          <Calendar className={`absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 ${isValidatedCert ? "text-emerald-500" : "text-zinc-400"}`} />
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5 text-xs font-semibold">
+                        <label className="text-[10px] font-extrabold text-zinc-500 uppercase tracking-widest">CNPJ Titular Esperado</label>
+                        {(() => {
+                          const activeCompany = companies.find(c => c.cnpj === selectedCompanyCnpj) || companies[0];
+                          const maskedCnpj = activeCompany?.cnpj ? activeCompany.cnpj.replace(/^(\d{2})\.(\d{3})\.(\d{3})\/(\d{4})-(\d{2})$/, "$1.***.***/****-$5") : "66.***.***/****-34";
+                          return (
+                            <input 
+                              type="text" 
+                              value={maskedCnpj} 
+                              disabled 
+                              className="w-full h-11 px-3.5 border border-zinc-200 bg-zinc-50/70 text-zinc-500 rounded-2xl text-xs font-bold font-mono shadow-2xs"
+                            />
+                          );
+                        })()}
+                      </div>
+                    </div>
+
+                    {/* Progress with beautiful anims */}
+                    {isValidatingCert && (
+                      <div className="bg-emerald-50/40 border border-emerald-100 rounded-2xl p-4 space-y-2.5 shadow-2xs">
+                        <div className="flex justify-between items-center text-[10px] font-black text-emerald-700 uppercase tracking-wider">
+                          <div className="flex items-center gap-1.5">
+                            <RefreshCw className="h-3.5 w-3.5 text-emerald-600 animate-spin" />
+                            <span>{validationProgressMessage || "Processando..."}</span>
+                          </div>
+                          <span className="font-mono">{certValidationProgress}%</span>
+                        </div>
+                        <div className="w-full bg-emerald-100/50 h-2 rounded-full overflow-hidden">
+                          <div className="bg-emerald-600 h-full transition-all duration-300" style={{ width: `${certValidationProgress}%` }} />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Verification & Action buttons inside panel */}
+                    <div className="flex justify-end gap-3 border-t border-zinc-100 pt-4">
+                      <button 
+                        onClick={validateCertificate}
+                        disabled={isValidatingCert}
+                        className="px-4 py-2 bg-zinc-100 hover:bg-zinc-200 active:scale-95 border border-zinc-200 rounded-xl text-zinc-700 font-extrabold text-[11px] transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs uppercase tracking-wider h-10 select-none disabled:opacity-50"
+                      >
+                        {isValidatingCert ? (
+                          <RefreshCw className="h-3.5 w-3.5 text-zinc-400 animate-spin" />
+                        ) : (
+                          <ShieldCheck className="h-4 w-4 text-emerald-600" />
+                        )}
+                        {isValidatingCert ? "Validando Chaves..." : "Validar Chaves"}
+                      </button>
+                      <button 
+                        onClick={saveCertificateConfig}
+                        disabled={isValidatingCert || !isValidatedCert}
+                        className={`px-5 py-2 rounded-xl font-extrabold text-[11px] shadow-sm hover:shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5 h-10 uppercase tracking-wider select-none ${
+                          isValidatedCert 
+                            ? "bg-emerald-600 hover:bg-emerald-500 text-white" 
+                            : "bg-zinc-100 text-zinc-400 border border-zinc-200 cursor-not-allowed"
+                        }`}
+                      >
+                        <Save className="h-4 w-4" />
+                        Salvar Certificado
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* If procuracao selected instead */
+              <div className="bg-white rounded-2xl border border-zinc-200/65 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.02)] p-6 space-y-6">
+                <div className="flex items-center justify-between border-b border-zinc-100 pb-4">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 bg-emerald-50 rounded-lg text-emerald-600 shrink-0">
+                      <ShieldCheck className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-black text-zinc-400 uppercase tracking-widest">Passo 2</h4>
+                      <h3 className="text-sm font-extrabold text-zinc-900 uppercase tracking-wider">Habilitação via Procuração Eletrônica</h3>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-zinc-500 bg-zinc-50 border border-zinc-100 px-3 py-1 rounded-full shrink-0">
+                    <Info className="h-3 w-3 text-emerald-600" />
+                    <span>Dispensa envio de arquivo local</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                  {/* Left Column: Guiding instruction list */}
+                  <div className="lg:col-span-7 space-y-5">
+                    <div className="space-y-3">
+                      <h5 className="text-xs font-black text-zinc-800 uppercase tracking-wider">Como vincular a procuração do escritório no e-CAC?</h5>
+                      
+                      <div className="space-y-3.5">
+                        {[
+                          { step: "Acesse o portal e-CAC da Receita Federal", desc: "Acesse ecac.receitafederal.gov.br utilizando a conta gov.br do cliente corporativo." },
+                          { step: "Cadastre Procuração para o CNPJ do Escritório", desc: "Selecione a opção 'Procuração Contábil' e informe o CNPJ do nosso escritório registrado." },
+                          { step: "Habilite as opções fiscais do Simples Nacional", desc: "Garanta que as permissões de 'PGDAS-D e DEFIS' e 'Consulta Cobrança' estejam integralmente habilitadas." },
+                        ].map((item, idx) => (
+                          <div key={idx} className="flex gap-4">
+                            <div className="h-6 w-6 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-black flex items-center justify-center shrink-0">
+                              {idx + 1}
+                            </div>
+                            <div>
+                              <p className="text-xs font-extrabold text-zinc-800">{item.step}</p>
+                              <p className="text-[11px] text-zinc-500 font-semibold mt-0.5 leading-relaxed">{item.desc}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right Column: Reference Fields */}
+                  <div className="lg:col-span-5 space-y-4 bg-zinc-50/50 border border-zinc-100 p-5 rounded-2xl">
+                    <div className="space-y-3.5">
+                      <div className="space-y-1 text-xs">
+                        <label className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-widest">Responsável pela Validação *</label>
+                        <div className="relative">
+                          <select 
+                            value={responsavelConfig} 
+                            onChange={(e) => setResponsavelConfig(e.target.value)}
+                            className="w-full h-10 pl-3.5 pr-10 border border-zinc-200 rounded-xl text-xs font-bold bg-white text-zinc-800 outline-none appearance-none transition-all cursor-pointer"
+                          >
+                            <option value="">Selecione o operador</option>
+                            <option value="Naiale Augustinho">Naiale Augustinha</option>
+                            <option value="Carlos Alberto">Carlos Alberto</option>
+                            <option value="Mariana Silva">Mariana Silva</option>
+                          </select>
+                          <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 pointer-events-none" />
+                        </div>
+                      </div>
+
+                      <div className="space-y-1 text-xs">
+                        <label className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-widest">Número do Processo de Vínculo (Opcional)</label>
+                        <input 
+                          type="text" 
+                          placeholder="Ex: 10380.720183/2026-90"
+                          className="w-full h-10 px-3.5 border border-zinc-200 rounded-xl text-xs font-bold bg-white text-zinc-800 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                        />
+                      </div>
+
+                      <div className="bg-emerald-50/40 border border-emerald-100 rounded-xl p-3.5 flex items-start gap-3">
+                        <Shield className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+                        <p className="text-[10px] text-emerald-800 font-semibold leading-relaxed">
+                          Ao salvar, o sistema executará um rastreamento automático de procuração em lote na Receita Federal para validar se o vínculo contábil já consta como ativo.
+                        </p>
+                      </div>
+
+                      <div className="flex justify-end gap-3 pt-2">
+                        <button 
+                          onClick={saveCertificateConfig}
+                          className="w-full px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white rounded-xl font-extrabold text-xs shadow-sm hover:shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5 uppercase tracking-wider select-none h-10"
+                        >
+                          <Check className="h-4 w-4 stroke-[2.5]" />
+                          Confirmar Vínculo de Procuração
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* SECTION 3: Alertas de vencimento */}
-            <div className="bg-white p-6 rounded-2xl border border-zinc-200/65 shadow-[0_2px_12px_rgba(0,0,0,0.01)] space-y-4">
-              <h4 className="text-sm font-extrabold text-zinc-900 uppercase tracking-wider">
-                3. Alertas de vencimento
-              </h4>
+            <div className="bg-white rounded-2xl border border-zinc-200/65 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.02)] p-6 space-y-6">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 bg-emerald-50 rounded-lg text-emerald-600 shrink-0">
+                  <Bell className="h-4 w-4" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-black text-zinc-400 uppercase tracking-widest">Passo 3</h4>
+                  <h3 className="text-sm font-extrabold text-zinc-900 uppercase tracking-wider">Alertas de Vencimento de Acesso</h3>
+                </div>
+              </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
                 {/* Left Part: Checkboxes & Email configs */}
                 <div className="lg:col-span-8 grid grid-cols-1 md:grid-cols-3 gap-6">
                   {/* Checkboxes */}
-                  <div className="space-y-3">
-                    <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Notificar antes do vencimento</span>
-                    <div className="space-y-2.5">
-                      <label className="flex items-center gap-2.5 text-xs font-bold text-zinc-700 cursor-pointer">
-                        <input 
-                          type="checkbox" 
-                          checked={alerta30d} 
-                          onChange={(e) => setAlerta30d(e.target.checked)} 
-                          className="h-4 w-4 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500"
-                        />
-                        <span>30 dias antes</span>
+                  <div className="space-y-3.5">
+                    <span className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider block">Frequência de Notificação</span>
+                    <div className="space-y-3">
+                      <label className="flex items-center gap-3 text-xs font-bold text-zinc-700 cursor-pointer group">
+                        <div className="relative flex items-center">
+                          <input 
+                            type="checkbox" 
+                            checked={alerta30d} 
+                            onChange={(e) => setAlerta30d(e.target.checked)} 
+                            className="peer h-5 w-5 rounded-lg border-zinc-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer transition-colors"
+                          />
+                        </div>
+                        <span className="group-hover:text-zinc-900 transition-colors">30 dias antes</span>
                       </label>
-                      <label className="flex items-center gap-2.5 text-xs font-bold text-zinc-700 cursor-pointer">
-                        <input 
-                          type="checkbox" 
-                          checked={alerta15d} 
-                          onChange={(e) => setAlerta15d(e.target.checked)} 
-                          className="h-4 w-4 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500"
-                        />
-                        <span>15 dias antes</span>
+                      <label className="flex items-center gap-3 text-xs font-bold text-zinc-700 cursor-pointer group">
+                        <div className="relative flex items-center">
+                          <input 
+                            type="checkbox" 
+                            checked={alerta15d} 
+                            onChange={(e) => setAlerta15d(e.target.checked)} 
+                            className="peer h-5 w-5 rounded-lg border-zinc-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer transition-colors"
+                          />
+                        </div>
+                        <span className="group-hover:text-zinc-900 transition-colors">15 dias antes</span>
                       </label>
-                      <label className="flex items-center gap-2.5 text-xs font-bold text-zinc-700 cursor-pointer">
-                        <input 
-                          type="checkbox" 
-                          checked={alerta7d} 
-                          onChange={(e) => setAlerta7d(e.target.checked)} 
-                          className="h-4 w-4 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500"
-                        />
-                        <span>7 dias antes</span>
+                      <label className="flex items-center gap-3 text-xs font-bold text-zinc-700 cursor-pointer group">
+                        <div className="relative flex items-center">
+                          <input 
+                            type="checkbox" 
+                            checked={alerta7d} 
+                            onChange={(e) => setAlerta7d(e.target.checked)} 
+                            className="peer h-5 w-5 rounded-lg border-zinc-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer transition-colors"
+                          />
+                        </div>
+                        <span className="group-hover:text-zinc-900 transition-colors">7 dias antes</span>
                       </label>
                     </div>
                   </div>
 
                   {/* Alerta dropdown */}
                   <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Enviar alerta para</label>
+                    <label className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider block">Direcionar Avisos Para</label>
                     <div className="relative">
                       <select 
                         value={enviarAlertaPara} 
                         onChange={(e) => setEnviarAlertaPara(e.target.value)}
-                        className="w-full h-10 pl-3 pr-10 border border-zinc-200 rounded-xl text-xs font-bold bg-white text-zinc-800 outline-none appearance-none"
+                        className="w-full h-11 pl-3.5 pr-10 border border-zinc-200 hover:border-zinc-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-2xl text-xs font-bold bg-white text-zinc-800 outline-none appearance-none shadow-2xs transition-all cursor-pointer"
                       >
-                        <option value="Responsável fiscal">Responsável fiscal</option>
-                        <option value="Financeiro">Financeiro</option>
-                        <option value="Administrador">Administrador</option>
+                        <option value="Responsável fiscal">Responsável Fiscal</option>
+                        <option value="Financeiro">Departamento Financeiro</option>
+                        <option value="Administrador">Administrador Geral</option>
                       </select>
                       <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 pointer-events-none" />
                     </div>
@@ -4985,68 +4774,40 @@ export default function Page() {
 
                   {/* Email Input */}
                   <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">E-mail adicional</label>
-                    <input 
-                      type="email" 
-                      value={emailAdicional} 
-                      onChange={(e) => setEmailAdicional(e.target.value)}
-                      className="w-full h-10 px-3 border border-zinc-200 rounded-xl text-xs font-bold bg-white text-zinc-800 outline-none focus:border-blue-500"
-                      placeholder="financeiro@empresa.com.br"
-                    />
+                    <label className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider block">E-mail Adicional para Cópia</label>
+                    <div className="relative">
+                      <input 
+                        type="email" 
+                        value={emailAdicional} 
+                        onChange={(e) => setEmailAdicional(e.target.value)}
+                        className="w-full h-11 pl-3.5 pr-10 border border-zinc-200 hover:border-zinc-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-2xl text-xs font-bold bg-white text-zinc-800 outline-none shadow-2xs transition-all"
+                        placeholder="financeiro@empresa.com.br"
+                      />
+                      <Mail className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+                    </div>
                   </div>
                 </div>
 
                 {/* Right Part: Emerald banner card */}
-                <div className="lg:col-span-4">
-                  <div className="bg-emerald-50/50 border border-emerald-100 p-4 rounded-xl flex items-start gap-3">
-                    <div className="p-2 bg-emerald-100 text-emerald-700 rounded-lg">
-                      <Bell className="h-4 w-4" />
+                <div className="lg:col-span-4 h-full">
+                  <div className="bg-emerald-50/30 border border-emerald-100 p-5 rounded-2xl flex items-start gap-4 h-full">
+                    <div className="p-3 bg-emerald-100 text-emerald-700 rounded-xl shrink-0">
+                      <Bell className="h-5 w-5 animate-bounce" style={{ animationDuration: '3s' }} />
                     </div>
-                    <div>
-                      <h5 className="text-xs font-black text-emerald-700 uppercase">Próximo aviso</h5>
-                      <p className="text-[10px] text-zinc-500 font-bold mt-1">30 dias antes do vencimento identificado.</p>
+                    <div className="space-y-1">
+                      <h5 className="text-xs font-black text-emerald-800 uppercase tracking-wider">Cronograma de Alertas</h5>
+                      <p className="text-[11px] text-zinc-500 font-semibold leading-relaxed mt-1">
+                        Os e-mails serão gerados e encaminhados de forma programada com base nos prazos indicados. A ausência de chaves ativas interromperá o cálculo automático.
+                      </p>
+                      {isValidatedCert && (
+                        <div className="mt-3 bg-white border border-emerald-100 px-3 py-1.5 rounded-lg flex items-center gap-1.5 w-max">
+                          <span className="h-1.5 w-1.5 bg-emerald-500 rounded-full animate-pulse" />
+                          <span className="text-[10px] text-emerald-800 font-extrabold uppercase">Próximo Aviso: {certExpiryDate}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
-              </div>
-            </div>
-
-            {/* SECTION 4: Resumo da autorização */}
-            <div className="bg-white p-6 rounded-2xl border border-zinc-200/65 shadow-[0_2px_12px_rgba(0,0,0,0.01)] space-y-4">
-              <h4 className="text-sm font-extrabold text-zinc-900 uppercase tracking-wider">
-                4. Resumo da autorização
-              </h4>
-
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                {[
-                  { 
-                    label: "Método ativo", 
-                    value: metodoAcesso === "certificado" ? "Certificado da própria empresa" : "Procuração do escritório" 
-                  },
-                  { 
-                    label: "Certificado válido", 
-                    value: isValidatedCert ? `Válido até ${certExpiryDate}` : "Pendente de validação"
-                  },
-                  { 
-                    label: "Procuração necessária", 
-                    value: metodoAcesso === "certificado" ? "Não" : "Sim" 
-                  },
-                  { 
-                    label: "Credencial SERPRO", 
-                    value: isValidatedCert ? "Configurado" : "A validar"
-                  },
-                  { 
-                    label: "Serviços fiscais", 
-                    value: isValidatedCert ? "Liberados" : "Não liberados"
-                  }
-                ].map((item, i) => (
-                  <div key={i} className="bg-zinc-50/50 p-4 rounded-xl border border-zinc-200 space-y-1">
-                    <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider block">{item.label}</span>
-                    <p className="text-xs font-black leading-snug text-zinc-800">
-                      {item.value}
-                    </p>
-                  </div>
-                ))}
               </div>
             </div>
 
@@ -5066,502 +4827,119 @@ export default function Page() {
             className="space-y-6 pb-20 relative"
             id="screen-pgdas"
           >
-            {/* 1. Header Navigation */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-zinc-200 pb-5">
+            {/* Header Navigation - Integra Contador */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-zinc-200 pb-5 mb-8">
               <div>
-                <h2 className="text-2xl font-extrabold text-zinc-900 tracking-tight font-display">PGDAS-D</h2>
+                <h2 className="text-2xl font-extrabold text-zinc-900 tracking-tight font-display">Integra Contador: PGDAS-D</h2>
                 <div className="flex items-center gap-3 mt-1.5">
-                  <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">Empresa: <span className="text-zinc-800">{pgdasEmpresaName.split(' ')[0]}...</span></p>
-                  <div className="w-[1px] h-3 bg-zinc-300" />
-                  <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">Competência: <span className="text-zinc-800">{pgdasCompetencia}</span></p>
-                  <div className="w-[1px] h-3 bg-zinc-300" />
-                  <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">Modo: <span className="text-emerald-600 font-black">{pgdasApuracaoModo}</span></p>
+                  <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">Integração Direta Serpro API</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
                 <button 
-                  onClick={() => { setCurrentPage("dashboard"); addToast("Apuracão salva como rascunho", "info"); }}
-                  className="px-4 py-2 bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-700 rounded-xl text-[11px] font-extrabold transition-all shadow-xs"
+                  onClick={() => { setCurrentPage("dashboard"); }}
+                  className="px-3.5 py-1.5 bg-zinc-100 border border-zinc-200 hover:bg-zinc-200 text-zinc-700 rounded-lg text-[10px] font-extrabold transition-all shadow-xs select-none"
                 >
-                  Salvar Rascunho
+                  Voltar ao Dashboard
                 </button>
+                <div className="hidden md:block pl-1">
+                  {renderUserDropdown()}
+                </div>
               </div>
             </div>
 
-            {/* 2. Page Indicators */}
-            <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-xs">
-              <div className="flex items-center justify-between max-w-4xl mx-auto relative">
-                {/* Connection Line */}
-                <div className="absolute top-1/2 left-0 w-full h-[2px] bg-zinc-100 -translate-y-1/2 -z-0" />
-                <div className={`absolute top-1/2 left-0 h-[2px] bg-emerald-500 -translate-y-1/2 transition-all duration-500 -z-0`} style={{ width: pgdasStep === 1 ? '0%' : pgdasStep === 2 ? '50%' : '100%' }} />
-
-                {[
-                  { step: 1, label: "Preparar Dados", status: pgdasStep === 1 ? "Em andamento" : "Concluída" },
-                  { step: 2, label: "Apurar e Revisar", status: pgdasStep < 2 ? "Bloqueada" : pgdasStep === 2 ? "Em andamento" : "Concluída" },
-                  { step: 3, label: "Finalizar", status: pgdasStep < 3 ? "Bloqueada" : "Em andamento" },
-                ].map((s) => (
-                  <div key={s.step} className="flex flex-col items-center gap-2 z-10 bg-white px-4">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-black transition-all duration-300 border-2 ${
-                      pgdasStep === s.step 
-                        ? "bg-white border-emerald-600 text-emerald-600 shadow-[0_0_15px_rgba(16,185,129,0.1)]" 
-                        : pgdasStep > s.step 
-                        ? "bg-emerald-600 border-emerald-600 text-white" 
-                        : "bg-white border-zinc-200 text-zinc-300"
-                    }`}>
-                      {pgdasStep > s.step ? <Check className="h-5 w-5" strokeWidth={3} /> : `0${s.step}`}
-                    </div>
-                    <div className="text-center">
-                      <p className={`text-[11px] font-black uppercase tracking-wider ${pgdasStep === s.step ? "text-zinc-900" : "text-zinc-400"}`}>{s.label}</p>
-                      <p className={`text-[9px] font-bold ${pgdasStep === s.step ? "text-emerald-600" : "text-zinc-300"}`}>{s.status}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* 3. Page Content */}
-            <div className="min-h-[500px]">
-              {/* PAGE 1: PREPARAR DADOS */}
-              {pgdasStep === 1 && (
-                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-                  {/* A. Resumo da Importação */}
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                    <div className="bg-white p-5 rounded-2xl border border-zinc-200 shadow-xs">
-                      <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1">Total de XML</p>
-                      <h4 className="text-lg font-black text-zinc-900 tracking-tight">{pgdasImportSummary.importados}</h4>
-                    </div>
-                    <div className="bg-white p-5 rounded-2xl border border-zinc-200 shadow-xs">
-                      <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1">Notas Válidas</p>
-                      <h4 className="text-lg font-black text-emerald-600 tracking-tight">{pgdasImportSummary.aceitos}</h4>
-                    </div>
-                    <div className="bg-white p-5 rounded-2xl border border-zinc-200 shadow-xs">
-                      <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1">Duplicadas</p>
-                      <h4 className="text-lg font-black text-amber-600 tracking-tight">{pgdasImportSummary.duplicados}</h4>
-                    </div>
-                    <div className="bg-white p-5 rounded-2xl border border-zinc-200 shadow-xs">
-                      <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1">Erros</p>
-                      <h4 className="text-lg font-black text-rose-600 tracking-tight">{pgdasImportSummary.rejeitados}</h4>
-                    </div>
-                  </div>
-
-                  {/* B. Importação e Documentos */}
-                  <div className="bg-white rounded-2xl border border-zinc-200 shadow-xs overflow-hidden">
-                    <div className="p-6 border-b border-zinc-100 flex items-center justify-between bg-zinc-50/50">
-                      <div>
-                        <h3 className="text-sm font-black text-zinc-900 uppercase tracking-tight">Importação de Documentos Fiscais</h3>
-                        <p className="text-[11px] text-zinc-500 font-bold">XMLs de Entrada/Saída, NFS-e e Cupons Fiscais</p>
-                      </div>
-                      <button 
-                        onClick={() => pgdasFileInputRef.current?.click()}
-                        disabled={isUploadingPgdas}
-                        className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white rounded-xl text-[11px] font-black transition-all duration-200 flex items-center gap-2 shadow-md hover:shadow-emerald-600/10 uppercase tracking-wider h-[38px] cursor-pointer"
-                      >
-                        {isUploadingPgdas ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
-                        Importar XML / ZIP
-                      </button>
-                    </div>
-                    
-                    <div className="p-6 grid grid-cols-1 md:grid-cols-12 gap-8">
-                      {/* Resumo da Importação */}
-                      <div className="md:col-span-4 space-y-4">
-                        <div className="space-y-3">
-                          <div className="flex justify-between items-center text-[11px]">
-                            <span className="text-zinc-500 font-bold">Total Identificado</span>
-                            <span className="text-zinc-900 font-black">{pgdasImportSummary.importados}</span>
-                          </div>
-                          <div className="flex justify-between items-center text-[11px]">
-                            <span className="text-zinc-500 font-bold">Documentos Aceitos</span>
-                            <span className="text-emerald-600 font-black">{pgdasImportSummary.aceitos}</span>
-                          </div>
-                          <div className="flex justify-between items-center text-[11px]">
-                            <span className="text-zinc-500 font-bold text-amber-600 italic">Duplicados (Removidos)</span>
-                            <span className="text-amber-600 font-black">-{pgdasImportSummary.duplicados}</span>
-                          </div>
-                          <div className="flex justify-between items-center text-[11px]">
-                            <span className="text-zinc-500 font-bold">Cancelados / Inválidos</span>
-                            <span className="text-rose-600 font-black">{pgdasImportSummary.cancelados}</span>
-                          </div>
-                        </div>
-                        
-                        <div className="pt-4 border-t border-zinc-100">
-                          <div className="bg-zinc-50 p-3 rounded-xl border border-zinc-100">
-                            <div className="flex items-center gap-2 text-zinc-900 mb-1.5">
-                              <ShieldCheck className="h-4 w-4 text-emerald-600" />
-                              <span className="text-[10px] font-black uppercase">Verificação de Integridade</span>
-                            </div>
-                            <p className="text-[10px] text-zinc-500 font-medium leading-relaxed">
-                              O sistema realizou a reconciliação entre os XMLs carregados e a base de deduplicação histórica.
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Lista de Documentos para Conferência */}
-                      <div className="md:col-span-8">
-                        <div className="border border-zinc-100 rounded-xl overflow-hidden">
-                          <table className="w-full text-[11px] text-left">
-                            <thead className="bg-zinc-50 border-b border-zinc-100">
-                              <tr className="text-zinc-500 font-bold uppercase">
-                                <th className="px-4 py-3">Documento</th>
-                                <th className="px-4 py-3 text-right">Valor</th>
-                                <th className="px-4 py-3 text-center">Origem</th>
-                                <th className="px-4 py-3 text-center">Situação</th>
-                                <th className="px-4 py-3 text-right">Ação</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-zinc-100">
-                              {pgdasDocs.map(doc => (
-                                <tr key={doc.id} className="hover:bg-zinc-50/50 transition-colors">
-                                  <td className="px-4 py-3">
-                                    <p className="font-black text-zinc-900">{doc.doc}</p>
-                                    <p className="text-[9px] text-zinc-400 font-bold uppercase">{doc.tipo} • {doc.data}</p>
-                                  </td>
-                                  <td className="px-4 py-3 text-right font-bold text-zinc-700">R$ {doc.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
-                                  <td className="px-4 py-3 text-center">
-                                    <span className="px-2 py-0.5 bg-zinc-100 text-zinc-600 rounded-full font-bold text-[9px]">{doc.origem}</span>
-                                  </td>
-                                  <td className="px-4 py-3 text-center">
-                                    <span className={`font-black text-[10px] ${doc.situacao.includes('✓') ? 'text-emerald-600' : doc.situacao.includes('⚠') ? 'text-amber-500' : 'text-rose-500'}`}>
-                                      {doc.situacao}
-                                    </span>
-                                  </td>
-                                  <td className="px-4 py-3 text-right">
-                                    <button 
-                                      onClick={() => { setCorrectingDoc(doc); setShowDocCorrection(true); }}
-                                      className="text-zinc-400 hover:text-zinc-900 font-black transition-colors"
-                                    >
-                                      EDITAR
-                                    </button>
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* CTA para próxima etapa */}
-                  <div className="flex justify-end pt-4">
-                    <button
-                      onClick={() => setPgdasStep(2)}
-                      className="px-6 py-3 bg-zinc-900 hover:bg-zinc-800 active:scale-95 text-white text-[11px] font-black rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center gap-2 uppercase tracking-wider h-11 cursor-pointer select-none"
-                    >
-                      <span>Classificar e Apurar</span>
-                      <ChevronRight className="h-4 w-4" />
-                    </button>
-                  </div>
-                </motion.div>
-              )}
-
-              {/* PAGE 2: CLASSIFICAR E APURAR */}
-              {pgdasStep === 2 && (
-                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-6">
+              {/* Painel Esquerdo: Parâmetros */}
+              <div className="lg:col-span-1 space-y-6">
+                <div className="bg-white p-6 rounded-3xl border border-zinc-200 shadow-sm space-y-4">
+                  <h3 className="text-[11px] font-black text-zinc-900 uppercase tracking-widest flex items-center gap-2">
+                    <Settings className="h-4 w-4 text-emerald-600" /> Parâmetros da Requisição
+                  </h3>
                   
-                  {/* Receita Consolidada da Etapa 1 */}
-                  <div className="bg-white p-6 rounded-2xl border border-emerald-100 shadow-sm">
-                    <h3 className="text-xs font-black text-emerald-900 uppercase tracking-widest mb-4">Receita Consolidada</h3>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-2xl font-black text-emerald-600">R$ 178.800,00</p>
-                        <p className="text-[10px] text-emerald-700 font-bold uppercase">Origem: 239 notas válidas XML</p>
-                      </div>
-                      <button className="text-[10px] font-black text-zinc-500 uppercase">Ver notas →</button>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-[10px] font-bold text-zinc-500 uppercase">CNPJ da Empresa</label>
+                      <input 
+                        type="text" 
+                        className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-xs mt-1 bg-zinc-50 focus:bg-white transition-colors outline-none focus:border-emerald-500" 
+                        value={pgdasEmpresaCnpj}
+                        readOnly
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-zinc-500 uppercase">Competência (MM/AAAA)</label>
+                      <input 
+                        type="text" 
+                        className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-xs mt-1 bg-zinc-50 focus:bg-white transition-colors outline-none focus:border-emerald-500" 
+                        value={pgdasCompetencia}
+                        readOnly
+                      />
                     </div>
                   </div>
-
-                  {/* RBT12 e Fator R */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-xs">
-                      <h3 className="text-xs font-black text-zinc-900 uppercase tracking-widest mb-4">Receita Bruta Acumulada (RBT12)</h3>
-                      <p className="text-lg font-black text-zinc-900">R$ {pgdasHistorico.rbt12.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-                      <button className="mt-4 px-4 py-2 bg-zinc-100 rounded-xl text-[10px] font-bold text-zinc-700 uppercase">Abrir RBT12 →</button>
-                    </div>
-                    <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-xs">
-                      <h3 className="text-xs font-black text-zinc-900 uppercase tracking-widest mb-4">Fator R</h3>
-                      <p className="text-lg font-black text-zinc-900">{pgdasHistorico.fatorR.toFixed(2)}%</p>
-                      <p className="text-[10px] text-zinc-500 font-bold mt-1">Folha 12m: R$ {pgdasHistorico.folha.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-                    {/* Lista de Classificação */}
-                    <div className="md:col-span-8 space-y-4">
-                      <div className="bg-white rounded-2xl border border-zinc-200 shadow-xs overflow-hidden">
-                        <div className="p-5 border-b border-zinc-100 flex items-center justify-between">
-                          <h3 className="text-[11px] font-black text-zinc-900 uppercase tracking-wider">Classificação e Segregação de Receitas</h3>
-                          <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">Análise via IA Fiscal</span>
-                        </div>
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-[11px] text-left">
-                            <thead className="bg-zinc-50 border-b border-zinc-100">
-                              <tr className="text-zinc-500 font-bold uppercase tracking-tighter">
-                                <th className="px-4 py-3">Atividade / Evidência</th>
-                                <th className="px-4 py-3 text-right">Receita</th>
-                                <th className="px-4 py-3 text-center">Tratamento Fiscal</th>
-                                <th className="px-4 py-3 text-center">Status</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-zinc-100">
-                              {pgdasClassificacoes.map(c => (
-                                <tr key={c.id} className="hover:bg-zinc-50/50 transition-colors">
-                                  <td className="px-4 py-3">
-                                    <p className="font-black text-zinc-900">{c.atividade}</p>
-                                    <p className="text-[9px] text-zinc-400 font-bold uppercase">{c.evidencia}</p>
-                                  </td>
-                                  <td className="px-4 py-3 text-right font-bold text-zinc-700">R$ {c.receita.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
-                                  <td className="px-4 py-3 text-center">
-                                    <span className="px-2 py-0.5 bg-zinc-100 text-zinc-600 rounded font-bold text-[9px]">{c.tratamento}</span>
-                                  </td>
-                                  <td className="px-4 py-3 text-center">
-                                    <span className={`font-black text-[10px] ${c.status.includes('OK') ? 'text-emerald-600' : 'text-amber-500'}`}>
-                                      {c.status}
-                                    </span>
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-
-                      <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-xl flex gap-3">
-                        <ShieldCheck className="h-5 w-5 text-emerald-600 shrink-0" />
-                        <div className="space-y-1">
-                          <p className="text-[10px] font-black text-emerald-900 uppercase">Resumo da Segregação</p>
-                          <p className="text-[10px] text-emerald-700 font-medium leading-relaxed">
-                            85% das receitas foram classificadas via NCM/CFOP. 15% foram vinculadas ao Anexo III via Fator R (FS12/RBT12 = {pgdasHistorico.fatorR}%).
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Prévia de Impostos (Internal vs Official) */}
-                    <div className="md:col-span-4 space-y-6">
-                      <div className="bg-zinc-900 p-6 rounded-2xl shadow-xl space-y-6 relative overflow-hidden">
-                        <div className="relative z-10">
-                          <h3 className="text-xs font-black text-zinc-400 uppercase tracking-widest border-b border-zinc-800 pb-3">Prévia Interna (Estimada)</h3>
-                          <div className="mt-4 space-y-3">
-                            <div className="flex justify-between items-center">
-                              <span className="text-[10px] font-bold text-zinc-500">Receita Total</span>
-                              <span className="text-xs font-black text-white font-mono">R$ {pgdasPreviewInterna.receitaTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                              <span className="text-[10px] font-bold text-zinc-500">Aliq. Efetiva</span>
-                              <span className="text-xs font-black text-white font-mono">{pgdasPreviewInterna.aliquotaEfetiva}%</span>
-                            </div>
-                            <div className="flex justify-between items-center pt-2 border-t border-zinc-800">
-                              <span className="text-xs font-black text-emerald-400">DAS CALCULADO</span>
-                              <span className="text-lg font-black text-emerald-400 font-mono">R$ {pgdasPreviewInterna.dasCalculado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                            </div>
-                          </div>
-                          
-                          <button 
-                            onClick={() => { setIsValidatingOficial(true); setTimeout(() => { setIsValidatingOficial(false); setPgdasPreviewOficial({}); addToast("Prévia Oficial gerada!", "success"); }, 2000); }}
-                            className="w-full mt-6 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl text-[10px] font-black transition-all border border-zinc-700 uppercase tracking-widest flex items-center justify-center gap-2"
-                          >
-                            {isValidatingOficial ? <RefreshCw className="h-3 w-3 animate-spin" /> : <Globe className="h-3 w-3" />}
-                            Gerar Prévia Oficial (PGDAS)
-                          </button>
-                        </div>
-                      </div>
-
-                      {pgdasPreviewOficial && (
-                        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-white p-6 rounded-2xl border-2 border-emerald-100 shadow-sm space-y-4">
-                          <div className="flex items-center gap-2 text-emerald-600">
-                            <CheckCircle2 className="h-4 w-4" />
-                            <span className="text-[10px] font-black uppercase">Dados Oficiais Conciliados</span>
-                          </div>
-                          <p className="text-[11px] text-zinc-600 font-medium">As informações da prévia oficial coincidem com a apuração interna. O sistema está pronto para a transmissão.</p>
-                        </motion.div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="flex justify-between items-center pt-4">
+                  
+                  <div className="pt-4 border-t border-zinc-100 flex flex-col gap-2">
                     <button 
-                      onClick={() => setPgdasStep(1)} 
-                      className="px-6 py-3 bg-zinc-100 hover:bg-zinc-200 active:scale-95 text-zinc-700 text-[11px] font-black rounded-xl border border-zinc-200 transition-all duration-200 uppercase tracking-wider h-11 cursor-pointer select-none"
+                      onClick={() => addToast("Consultando PGDAS-D na API Serpro...", "info")}
+                      className="w-full py-2 bg-zinc-900 hover:bg-zinc-800 text-white rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-sm transition-all"
                     >
-                      Voltar: Preparar Dados
+                      <Search className="h-3.5 w-3.5" /> Consultar Declaração
                     </button>
-                    <button
-                      onClick={() => setPgdasStep(3)}
-                      className="px-6 py-3 bg-zinc-900 hover:bg-zinc-800 active:scale-95 text-white text-[11px] font-black rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center gap-2 uppercase tracking-wider h-11 cursor-pointer select-none"
+                    <button 
+                      onClick={() => addToast("Transmitindo PGDAS-D via API Serpro...", "success")}
+                      className="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-sm transition-all"
                     >
-                      <span>Revisar e Transmitir</span>
-                      <ChevronRight className="h-4 w-4" />
-                    </button>
-                  </div>
-                </motion.div>
-              )}
-
-              {/* PAGE 3: FINALIZAR */}
-              {pgdasStep === 3 && (
-                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6 max-w-4xl mx-auto">
-                  <div className="text-center py-6">
-                    <h3 className="text-xl font-black text-zinc-900 tracking-tight">Transmissão e Documentos Oficiais</h3>
-                    <p className="text-[11px] text-zinc-500 font-bold mt-1 uppercase tracking-widest">Protocolo de Encerramento da Competência</p>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Status de Transmissão */}
-                    <div className="bg-white p-8 rounded-3xl border border-zinc-200 shadow-sm flex flex-col items-center text-center space-y-6">
-                      <div className={`w-20 h-20 rounded-3xl flex items-center justify-center transition-all duration-500 ${
-                        pgdasTransmissionState === 'concluida' ? 'bg-emerald-100 text-emerald-600' : 
-                        pgdasTransmissionState === 'processando' ? 'bg-zinc-900 text-white shadow-2xl shadow-zinc-200' : 'bg-zinc-50 text-zinc-300'
-                      }`}>
-                        {pgdasTransmissionState === 'concluida' ? (
-                          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring' }}>
-                            <CheckCircle2 className="h-10 w-10" />
-                          </motion.div>
-                        ) : (
-                          <div className="relative">
-                            {pgdasTransmissionSubStep === 1 && <ShieldCheck className="h-10 w-10 animate-pulse text-emerald-400" />}
-                            {pgdasTransmissionSubStep === 2 && <Globe className="h-10 w-10 animate-bounce" />}
-                            {pgdasTransmissionSubStep === 3 && <FileCheck className="h-10 w-10 animate-pulse text-emerald-400" />}
-                            {pgdasTransmissionSubStep === 0 && <Send className="h-10 w-10" />}
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <h4 className="text-lg font-black text-zinc-900 tracking-tight">Status: {pgdasTransmissionState === 'concluida' ? 'Transmitida' : 'Pronto para Envio'}</h4>
-                        <p className="text-[11px] text-zinc-500 font-medium px-6">
-                          Clique em transmitir para enviar os dados à Receita Federal e gerar a guia DAS e o recibo de entrega.
-                        </p>
-                      </div>
-
-                      {pgdasTransmissionState !== 'concluida' ? (
-                        <div className="w-full space-y-4">
-                          {pgdasTransmissionState === 'processando' && (
-                            <div className="space-y-3 w-full">
-                              <div className="flex justify-between items-end mb-1">
-                                <div className="space-y-0.5">
-                                  <p className="text-[10px] font-black text-zinc-900 uppercase tracking-widest">
-                                    {pgdasTransmissionSubStep === 1 && "Assinando digitalmente..."}
-                                    {pgdasTransmissionSubStep === 2 && "Transmitindo à Receita Federal..."}
-                                    {pgdasTransmissionSubStep === 3 && "Gerando recibo oficial..."}
-                                  </p>
-                                  <p className="text-[9px] text-zinc-400 font-bold font-mono">
-                                    {pgdasTransmissionSubStep === 1 && "Verificando chaves e-CNPJ"}
-                                    {pgdasTransmissionSubStep === 2 && "Conectando ao webservice e-CAC"}
-                                    {pgdasTransmissionSubStep === 3 && "Salvando documentos no sistema"}
-                                  </p>
-                                </div>
-                                <span className="text-[10px] font-black text-zinc-900 font-mono">{Math.round((pgdasTransmissionSubStep / 3) * 100)}%</span>
-                              </div>
-                              <div className="w-full bg-zinc-100 h-1.5 rounded-full overflow-hidden">
-                                <motion.div 
-                                  initial={{ width: 0 }}
-                                  animate={{ width: `${(pgdasTransmissionSubStep / 3) * 100}%` }}
-                                  className="bg-zinc-900 h-full rounded-full"
-                                />
-                              </div>
-                            </div>
-                          )}
-                          
-                          <button 
-                            onClick={() => { 
-                              setPgdasTransmissionState('processando'); 
-                              setPgdasTransmissionSubStep(1);
-                              
-                              setTimeout(() => setPgdasTransmissionSubStep(2), 1200);
-                              setTimeout(() => setPgdasTransmissionSubStep(3), 2400);
-                              
-                              setTimeout(() => { 
-                                setPgdasTransmissionState('concluida'); 
-                                setTransmissionConfirmed(true); 
-                                setPgdasTransmissionSubStep(0);
-                                addToast("Transmitido com sucesso!", "success"); 
-                              }, 3600); 
-                            }}
-                            disabled={pgdasTransmissionState === 'processando'}
-                            className="w-full py-3 bg-zinc-900 hover:bg-zinc-800 text-white rounded-2xl text-xs font-black shadow-xl shadow-zinc-200 transition-all flex items-center justify-center gap-2"
-                          >
-                            {pgdasTransmissionState === 'processando' ? (
-                              <div className="flex items-center gap-2">
-                                <RefreshCw className="h-4 w-4 animate-spin" />
-                                <span>PROCESSANDO ENVIO</span>
-                              </div>
-                            ) : (
-                              <>
-                                <Lock className="h-4 w-4" />
-                                <span>TRANSMITIR AGORA</span>
-                              </>
-                            )}
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="w-full p-4 bg-emerald-50 rounded-2xl border border-emerald-100 text-left">
-                          <p className="text-[10px] font-black text-emerald-800 uppercase mb-2">Comprovante de Transmissão</p>
-                          <div className="space-y-1.5">
-                            <div className="flex justify-between text-[9px] font-bold text-emerald-700"><span>Recibo:</span> <span>{pgdasRecibo}</span></div>
-                            <div className="flex justify-between text-[9px] font-bold text-emerald-700"><span>Data/Hora:</span> <span>19/07/2026 10:14:22</span></div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Downloads e Reconciliação */}
-                    <div className="space-y-4">
-                      <div className={`bg-white p-6 rounded-3xl border border-zinc-200 shadow-xs transition-all duration-500 ${pgdasTransmissionState !== 'concluida' ? 'opacity-40 grayscale pointer-events-none' : 'opacity-100'}`}>
-                        <h4 className="text-[10px] font-black text-zinc-900 uppercase tracking-widest mb-4">Documentos da Competência</h4>
-                        <div className="space-y-3">
-                          {[
-                            { name: "Guia do DAS", icon: <FileText className="h-4 w-4" />, size: "320 KB" },
-                            { name: "Recibo de Entrega", icon: <ShieldCheck className="h-4 w-4" />, size: "128 KB" },
-                            { name: "Extrato PGDAS-D", icon: <FileCheck className="h-4 w-4" />, size: "450 KB" },
-                          ].map((doc, idx) => (
-                            <div key={idx} className="flex items-center justify-between p-3 bg-zinc-50 hover:bg-zinc-100 rounded-xl transition-all cursor-pointer border border-zinc-100">
-                              <div className="flex items-center gap-3">
-                                <div className="text-zinc-400 transition-colors">{doc.icon}</div>
-                                <span className="text-[11px] font-bold text-zinc-700">{doc.name}</span>
-                              </div>
-                              <Download className="h-3.5 w-3.5 text-zinc-300" />
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="bg-zinc-50 p-6 rounded-3xl border border-zinc-200 border-dashed text-center space-y-3">
-                        <p className="text-[10px] font-black text-zinc-400 uppercase tracking-wider">Ações Pós-Transmissão</p>
-                        <div className="flex gap-2">
-                          <button className="flex-1 px-5 py-2.5 bg-white hover:bg-zinc-50 active:scale-95 border border-zinc-200 text-zinc-700 rounded-xl text-[10px] font-black transition-all duration-200 flex items-center justify-center gap-2 h-10 uppercase tracking-wider cursor-pointer select-none">
-                            <Mail className="h-3.5 w-3.5 text-zinc-400" /> E-MAIL
-                          </button>
-                          <button className="flex-1 px-5 py-2.5 bg-white hover:bg-zinc-50 active:scale-95 border border-zinc-200 text-zinc-700 rounded-xl text-[10px] font-black transition-all duration-200 flex items-center justify-center gap-2 h-10 uppercase tracking-wider cursor-pointer select-none">
-                            <Share2 className="h-3.5 w-3.5 text-emerald-500" /> WHATSAPP
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex justify-center pt-8 border-t border-zinc-100">
-                    <button
-                      onClick={() => {
-                        setPgdasFiles([]);
-                        setPgdasStep(1);
-                        setPgdasTransmissionState('pronta');
-                        addToast("Nova apuração iniciada.", "info");
-                      }}
-                      className="px-5 py-2.5 bg-zinc-900 hover:bg-zinc-800 active:scale-95 text-white rounded-xl text-[11px] font-black shadow-md hover:shadow-lg transition-all duration-200 h-10 uppercase tracking-wider cursor-pointer select-none flex items-center justify-center"
-                    >
-                      Realizar Nova Apuração
+                      <Send className="h-3.5 w-3.5" /> Transmitir Declaração
                     </button>
                   </div>
-                </motion.div>
-              )}
+                </div>
+              </div>
+
+              {/* Painel Direito: Resultados e Downloads */}
+              <div className="lg:col-span-2 space-y-6">
+                <div className="bg-white p-6 rounded-3xl border border-zinc-200 shadow-sm min-h-[300px]">
+                  <h3 className="text-[11px] font-black text-zinc-900 uppercase tracking-widest flex items-center gap-2 border-b border-zinc-100 pb-3 mb-4">
+                    <Globe className="h-4 w-4 text-emerald-600" /> Resposta da API Serpro
+                  </h3>
+                  
+                  <div className="bg-zinc-900 rounded-xl p-4 font-mono text-[10px] text-emerald-400 overflow-x-auto">
+                    <p className="text-zinc-500 mb-2">{/* Última consulta realizada com sucesso */}</p>
+                    <pre>
+{JSON.stringify({
+  "status": "SUCESSO",
+  "mensagem": "Declaração PGDAS-D recuperada com sucesso.",
+  "dados": {
+    "cnpj": pgdasEmpresaCnpj,
+    "competencia": pgdasCompetencia,
+    "receitaBruta": 178800.00,
+    "valorDevido": pgdasPreviewInterna?.dasCalculado || 15400.00,
+    "numeroRecibo": "NAO_TRANSMITIDO"
+  }
+}, null, 2)}
+                    </pre>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4 mt-6">
+                    <button 
+                      onClick={() => addToast("Gerando DAS via API Serpro...", "info")}
+                      className="px-4 py-3 bg-zinc-50 hover:bg-zinc-100 border border-zinc-200 rounded-xl text-zinc-700 flex flex-col items-center justify-center gap-2 transition-all cursor-pointer"
+                    >
+                      <FileText className="h-6 w-6 text-emerald-600" />
+                      <span className="text-[10px] font-black uppercase">Gerar Guia DAS</span>
+                    </button>
+                    <button 
+                      onClick={() => addToast("Gerando Recibo via API Serpro...", "info")}
+                      className="px-4 py-3 bg-zinc-50 hover:bg-zinc-100 border border-zinc-200 rounded-xl text-zinc-700 flex flex-col items-center justify-center gap-2 transition-all cursor-pointer"
+                    >
+                      <ShieldCheck className="h-6 w-6 text-emerald-600" />
+                      <span className="text-[10px] font-black uppercase">Obter Recibo</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </motion.div>
         )}
         
-        
-        {/* ====================================================================
-            VIEW: CADASTRO DE EMPRESA (EMPRESAS)
-            ==================================================================== */}
         {currentPage === "cadastro_empresa" && (
           <motion.div
             key="cadastro_empresa"
@@ -5574,22 +4952,28 @@ export default function Page() {
           >
             
             {/* Header Area */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-zinc-200 pb-5">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-zinc-200 pb-5 mb-8">
               <div>
                 <div className="flex items-center gap-2 text-[10px] font-bold text-zinc-400 tracking-wider uppercase mb-1">
                   <span>Empresas</span>
                   <ChevronRight className="h-3 w-3 text-zinc-300" />
-                  <span className="text-zinc-600">Cadastro</span>
+                  <span className="text-zinc-600">{isEditingCompany ? "Edição" : "Cadastro"}</span>
                 </div>
-                <h2 className="text-2xl md:text-3xl font-extrabold text-zinc-900 tracking-tight font-display">Cadastro de Empresa</h2>
-                <p className="text-sm text-zinc-500 mt-0.5">Registre os dados cadastrais essenciais e fiscais do cliente na plataforma.</p>
+                <h2 className="text-2xl md:text-3xl font-extrabold text-zinc-900 tracking-tight font-display">
+                  {isEditingCompany ? "Editar Empresa" : "Cadastro de Empresa"}
+                </h2>
+                <p className="text-sm text-zinc-500 mt-0.5">
+                  {isEditingCompany 
+                    ? "Atualize os dados cadastrais essenciais e parâmetros fiscais do cliente." 
+                    : "Registre os dados cadastrais essenciais e fiscais do cliente na plataforma."}
+                </p>
               </div>
-
+ 
               {/* Action Buttons */}
               <div className="flex items-center gap-2.5 w-full sm:w-auto">
                 <button
                   onClick={() => setCurrentPage("empresas")}
-                  className="flex-1 sm:flex-none px-5 py-2 bg-white hover:bg-zinc-50 active:scale-95 border border-zinc-200 rounded-xl text-zinc-700 font-black text-[11px] uppercase tracking-wider transition-all duration-200 cursor-pointer text-center h-9 flex items-center justify-center"
+                  className="flex-1 sm:flex-none px-3.5 py-1.5 bg-zinc-100 hover:bg-zinc-200 active:scale-95 border border-zinc-200 rounded-lg text-zinc-700 font-black text-[10px] uppercase tracking-wider transition-all duration-200 cursor-pointer text-center h-8 flex items-center justify-center select-none"
                   id="btn-cancelar-cad"
                 >
                   Cancelar
@@ -5597,12 +4981,12 @@ export default function Page() {
                 <button
                   onClick={saveCompanyConfig}
                   disabled={isSavingCompany || isSaveSuccess}
-                  className={`flex-1 sm:flex-none px-5 py-2.5 rounded-xl font-black text-[11px] uppercase tracking-wider shadow-md transition-all duration-200 flex items-center justify-center gap-2 h-9 cursor-pointer disabled:cursor-not-allowed ${
+                  className={`flex-1 sm:flex-none px-3.5 py-1.5 rounded-lg font-black text-[10px] uppercase tracking-wider shadow-sm transition-all duration-200 flex items-center justify-center gap-1.5 h-8 cursor-pointer disabled:cursor-not-allowed ${
                     isSaveSuccess
                       ? "bg-emerald-500 text-white hover:bg-emerald-500 border-transparent"
                       : isSavingCompany
                       ? "bg-zinc-100 border border-zinc-200 text-zinc-400 shadow-none cursor-wait animate-pulse"
-                      : "bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white border-transparent hover:shadow-lg hover:shadow-emerald-600/10"
+                      : "bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white border-transparent hover:shadow-md"
                   }`}
                   id="btn-salvar-empresa-top"
                 >
@@ -5635,10 +5019,10 @@ export default function Page() {
                       <span>Salvo com sucesso!</span>
                     </motion.div>
                   ) : (
-                    <span>Salvar Empresa</span>
+                    <span>{isEditingCompany ? "Salvar Alterações" : "Salvar Empresa"}</span>
                   )}
                 </button>
-                <div className="hidden md:block">
+                <div className="hidden md:block pl-1">
                   {renderUserDropdown()}
                 </div>
               </div>
@@ -5665,7 +5049,7 @@ export default function Page() {
                         />
                       ) : (
                         <div className="flex flex-col items-center justify-center text-center p-2">
-                          <Building2 className="h-7 w-7 text-zinc-300 group-hover:text-emerald-500 transition-colors" />
+                          <Building className="h-7 w-7 text-zinc-300 group-hover:text-emerald-500 transition-colors" />
                           <span className="text-[10px] font-bold text-zinc-400 mt-1 uppercase group-hover:text-emerald-600 transition-colors">Sem Logo</span>
                         </div>
                       )}
@@ -6164,6 +5548,28 @@ export default function Page() {
                   />
                 </div>
 
+                {/* Tratamento Tributário Global */}
+                <div className="md:col-span-12 space-y-1.5">
+                  <label className="text-[11px] font-bold text-zinc-700 uppercase tracking-wider block">
+                    ANEXO DA EMPRESA
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={tratamentoTributarioGlobal}
+                      onChange={(e) => setTratamentoTributarioGlobal(e.target.value)}
+                      className="w-full px-3 py-2 border border-zinc-200 bg-white text-zinc-800 text-xs appearance-none focus:outline-none rounded-lg"
+                    >
+                      <option value="AUTOMATICO SISTEMA">AUTOMATICO SISTEMA</option>
+                      <option value="Comércio — Anexo I">Comércio — Anexo I</option>
+                      <option value="Indústria — Anexo II">Indústria — Anexo II</option>
+                      <option value="Serviço — Anexo III sem Fator R">Serviço — Anexo III sem Fator R</option>
+                      <option value="Serviço — Anexo IV">Serviço — Anexo IV</option>
+                      <option value="Serviço sujeito ao Fator R">Serviço sujeito ao Fator R</option>
+                    </select>
+                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 h-4 w-4 pointer-events-none" />
+                  </div>
+                </div>
+
                 {/* CNAEs secundários (Textarea) */}
                 <div className="md:col-span-8 space-y-1.5">
                   <label className="text-[11px] font-bold text-zinc-700 uppercase tracking-wider block">
@@ -6216,19 +5622,23 @@ export default function Page() {
 
             {/* Save Section Actions */}
             <div className="flex justify-between items-center pt-4">
-              <button
-                type="button"
-                onClick={() => setCompanyToDelete(selectedCompanyCnpj)}
-                className="px-6 py-2.5 bg-red-50 hover:bg-red-100 border border-red-200 rounded-xl text-red-600 font-bold text-xs transition-colors cursor-pointer flex items-center gap-2"
-              >
-                <Trash2 className="h-4 w-4" />
-                Excluir Empresa
-              </button>
-              <div className="flex gap-3.5">
+              {isEditingCompany ? (
+                <button
+                  type="button"
+                  onClick={() => setCompanyToDelete(cnpj)}
+                  className="px-3.5 py-1.5 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg text-red-600 font-bold text-xs transition-colors cursor-pointer flex items-center gap-1.5 select-none"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Excluir Empresa
+                </button>
+              ) : (
+                <div />
+              )}
+              <div className="flex gap-3">
                 <button
                   type="button"
                   onClick={() => setCurrentPage("empresas")}
-                  className="px-6 py-2.5 bg-white hover:bg-zinc-50 active:scale-95 border border-zinc-200 rounded-xl text-zinc-700 font-black text-[11px] uppercase tracking-wider transition-all duration-200 cursor-pointer h-10 flex items-center justify-center"
+                  className="px-3.5 py-1.5 bg-zinc-100 hover:bg-zinc-200 active:scale-95 border border-zinc-200 rounded-lg text-zinc-700 font-black text-[10px] uppercase tracking-wider transition-all duration-200 cursor-pointer h-8 flex items-center justify-center select-none"
                 >
                   Cancelar
                 </button>
@@ -6236,12 +5646,12 @@ export default function Page() {
                   type="button"
                   onClick={saveCompanyConfig}
                   disabled={isSavingCompany || isSaveSuccess}
-                  className={`px-6 py-2.5 rounded-xl font-black text-[11px] uppercase tracking-wider shadow-md transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed h-10 ${
+                  className={`px-3.5 py-1.5 rounded-lg font-black text-[10px] uppercase tracking-wider shadow-sm transition-all duration-200 flex items-center justify-center gap-1.5 cursor-pointer disabled:cursor-not-allowed h-8 ${
                     isSaveSuccess
                       ? "bg-emerald-500 text-white hover:bg-emerald-500"
                       : isSavingCompany
                       ? "bg-emerald-700/80 text-white hover:bg-emerald-700/80 cursor-wait"
-                      : "bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white hover:shadow-lg hover:shadow-emerald-600/10"
+                      : "bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white hover:shadow-md"
                   }`}
                   id="btn-salvar-empresa-bottom"
                 >
@@ -6261,7 +5671,7 @@ export default function Page() {
                       <span>Salvo com sucesso!</span>
                     </motion.div>
                   ) : (
-                    <span>Salvar Empresa</span>
+                    <span>{isEditingCompany ? "Salvar Alterações" : "Salvar Empresa"}</span>
                   )}
                 </button>
               </div>
